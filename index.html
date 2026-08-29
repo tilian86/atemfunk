@@ -160,6 +160,11 @@
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
 
+  <div class="rhythms" id="modes" role="radiogroup" aria-label="Meditationsart" style="margin-bottom:14px">
+    <div class="rhy" role="radio" tabindex="0" data-mode="atem">Atem<small>geführt</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-mode="schale">Klangschale<small>alle 45 s</small></div>
+  </div>
+
   <div class="section-cap" id="capDur">Tippen zum Starten</div>
   <div class="durations">
     <div class="dur" role="button" tabindex="0" data-min="1" aria-label="1 Minute meditieren"><div class="num">1</div><div class="lbl">Minute</div></div>
@@ -304,6 +309,29 @@ const RHYTHMS = {
 let rhythmKey = store.get("atemfunk_rhythm", "ruhig");
 if (!RHYTHMS[rhythmKey]) rhythmKey = "ruhig";
 
+/* ---------- Meditationsart: Atem (geführt) oder Klangschale ---------- */
+let modeKey = store.get("atemfunk_mode", "atem");
+if (modeKey !== "schale") modeKey = "atem";
+function renderModes() {
+  document.querySelectorAll("#modes .rhy").forEach(el => {
+    const sel = el.dataset.mode === modeKey;
+    el.classList.toggle("sel", sel);
+    el.setAttribute("aria-checked", sel ? "true" : "false");
+  });
+  const schale = modeKey === "schale";
+  $("tglVoice").style.display = schale ? "none" : "flex";
+  $("tglSignals").style.display = schale ? "none" : "flex";
+  updateNote();
+}
+document.querySelectorAll("#modes .rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => {
+    modeKey = el.dataset.mode;
+    store.set("atemfunk_mode", modeKey);
+    renderModes();
+  });
+});
+
 function renderRhythms() {
   document.querySelectorAll(".rhy").forEach(el => {
     const sel = el.dataset.rhy === rhythmKey;
@@ -363,10 +391,12 @@ const oceanOn = makeToggle("tglOcean", "atemfunk_ocean", false);
 
 function updateNote() {
   const el = $("voiceNote");
-  if (voiceOn() && rhythmKey !== "ruhig") el.textContent = "Mit Stimme läuft die Sitzung im ruhigen 4–6-Rhythmus.";
+  if (modeKey === "schale") el.textContent = "Klangschale: sanfter Anschlag alle 45 Sekunden, sonst Stille.";
+  else if (voiceOn() && rhythmKey !== "ruhig") el.textContent = "Mit Stimme läuft die Sitzung im ruhigen 4–6-Rhythmus.";
   else el.textContent = el.dataset.fallback || "";
 }
 renderRhythms();
+renderModes();
 
 /* ---------- WebAudio: Gong, Signale, Meer ---------- */
 let actx = null;
@@ -431,6 +461,27 @@ function breathCue(label) {
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
     src.connect(f); f.connect(g); g.connect(ctx.destination);
     src.start(t); src.stop(t + len + 0.3);
+  } catch {}
+}
+
+/* Klangschale: Grundton + unharmonische Obertöne, leicht verstimmt für Schwebung, langer Ausklang */
+function bowl(vol = 0.13) {
+  try {
+    const ctx = audioCtx();
+    const t = ctx.currentTime;
+    const partials = [[220, 1], [602, 0.55], [1089, 0.3], [1452, 0.16]];
+    partials.forEach(([f, a], i) => {
+      [f, f * 1.004].forEach(ff => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = ff;
+        const decay = 14 - i * 2.5;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * a * 0.5, t + 0.05 + i * 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t); o.stop(t + decay + 0.2);
+      });
+    });
   } catch {}
 }
 
@@ -526,20 +577,22 @@ async function startSession(min) {
   $("sessionNote").textContent = "";
 
   const totalSec = min * 60;
+  const schale = modeKey === "schale";
   session = {
-    min, totalSec,
+    min, totalSec, schale,
     endAt: Date.now() + totalSec * 1000,
     leftMsAtPause: null,
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
+    nextBowlAt: 45,
     /* Die Stimme ist auf 4-6 eingesprochen – mit Stimme führt sie, sonst der gewählte Rhythmus */
-    rhythm: voiceOn() ? RHYTHMS.ruhig : RHYTHMS[rhythmKey],
+    rhythm: (!schale && voiceOn()) ? RHYTHMS.ruhig : RHYTHMS[rhythmKey],
   };
 
   acquireWakeLock();
   gong();
   setMediaSession(min);
 
-  if (voiceOn()) {
+  if (!schale && voiceOn()) {
     audio.src = "audio/atem-" + min + ".mp3";
     try {
       await audio.play();
@@ -572,9 +625,13 @@ async function startSession(min) {
       const bs = breathState(elapsed, session.rhythm);
       orb.style.transform = "scale(" + (0.82 + bs.value * amp) + ")";
       if (bs.label !== session.lastLabel) {
-        if (session.lastLabel !== null && sigOn()) breathCue(bs.label);
+        if (session.lastLabel !== null && !session.schale && sigOn()) breathCue(bs.label);
         session.lastLabel = bs.label;
         phaseEl.textContent = bs.label;
+      }
+      if (session.schale && elapsed >= session.nextBowlAt && elapsed < session.totalSec - 8) {
+        session.nextBowlAt += 45;
+        bowl();
       }
       if (ocean) {
         const t = ocean.gain.context.currentTime;
