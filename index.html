@@ -188,6 +188,9 @@
     <a href="https://www.youtube.com/watch?v=6EVqc2LBBhY" target="_blank" rel="noopener"><span>Anna Hahn</span> · Atemmeditation Entspannung · 5 Min</a>
     <a href="https://www.youtube.com/watch?v=00_nJsI69rk" target="_blank" rel="noopener"><span>Mindlook</span> · Kurze Atem-Meditation · 5 Min</a>
     <a href="https://www.youtube.com/watch?v=FjqE9a8aIAM" target="_blank" rel="noopener"><span>Akademie für Sport &amp; Gesundheit</span> · Atemmeditation · 10 Min</a>
+    <a href="https://www.youtube.com/watch?v=b_Rd602B_aQ" target="_blank" rel="noopener"><span>7Mind</span> · SOS-Meditation (schnell runterkommen) · 5 Min</a>
+    <a href="https://www.youtube.com/watch?v=IwN6mpAsm00" target="_blank" rel="noopener"><span>7Mind</span> · Grundlagen: Ankommen · 12 Min</a>
+    <a href="https://www.youtube.com/watch?v=yB0aVLcMdOE" target="_blank" rel="noopener"><span>Mindlook</span> · Atem-Meditation bei Stress · 11 Min</a>
   </div>
 </div>
 
@@ -388,30 +391,46 @@ function gong(when = 0) {
     });
   } catch {}
 }
-/* aufsteigend = einatmen, absteigend = ausatmen, kurz & konstant = halten */
+/* Weiche Atem-Schweller aus gefiltertem Rauschen: heller Hauch = einatmen,
+   dunkler Hauch = ausatmen, kurzer stiller Hauch = halten. Keine Töne. */
+let cueBuf = null;
+function noiseBuf(ctx) {
+  if (cueBuf) return cueBuf;
+  const sr = ctx.sampleRate;
+  cueBuf = ctx.createBuffer(1, 2 * sr, sr);
+  const d = cueBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return cueBuf;
+}
 function breathCue(label) {
   try {
     const ctx = audioCtx();
     const t = ctx.currentTime;
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = "sine";
-    let peak = 0.06, len = 1.5;
-    if (label === "Einatmen") {
-      o.frequency.setValueAtTime(294, t);
-      o.frequency.linearRampToValueAtTime(392, t + 1.2);
-    } else if (label === "Ausatmen") {
-      o.frequency.setValueAtTime(392, t);
-      o.frequency.linearRampToValueAtTime(262, t + 1.6);
-      peak = 0.05; len = 1.9;
-    } else {
-      o.frequency.setValueAtTime(330, t);
-      peak = 0.04; len = 0.8;
-    }
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuf(ctx); src.loop = true;
+    const f = ctx.createBiquadFilter();
+    f.type = "bandpass"; f.Q.value = 0.9;
+    const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(peak, t + 0.35);
+    let len;
+    if (label === "Einatmen") {
+      f.frequency.setValueAtTime(450, t);
+      f.frequency.linearRampToValueAtTime(950, t + 1.4);
+      g.gain.linearRampToValueAtTime(0.11, t + 0.6);
+      len = 1.6;
+    } else if (label === "Ausatmen") {
+      f.frequency.setValueAtTime(850, t);
+      f.frequency.linearRampToValueAtTime(300, t + 2.0);
+      g.gain.linearRampToValueAtTime(0.10, t + 0.6);
+      len = 2.2;
+    } else {
+      f.frequency.setValueAtTime(600, t);
+      g.gain.linearRampToValueAtTime(0.06, t + 0.3);
+      len = 0.9;
+    }
     g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    o.connect(g); g.connect(ctx.destination);
-    o.start(t); o.stop(t + len + 0.2);
+    src.connect(f); f.connect(g); g.connect(ctx.destination);
+    src.start(t); src.stop(t + len + 0.3);
   } catch {}
 }
 
