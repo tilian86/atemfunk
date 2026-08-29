@@ -1,16 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="30%" r="90%">
-      <stop offset="0%" stop-color="#1a2b4a"/>
-      <stop offset="100%" stop-color="#0b1026"/>
+    <radialGradient id="bg" cx="50%" cy="28%" r="95%">
+      <stop offset="0%" stop-color="#22355c"/>
+      <stop offset="55%" stop-color="#131b3a"/>
+      <stop offset="100%" stop-color="#0a0e22"/>
     </radialGradient>
-    <radialGradient id="orb" cx="40%" cy="34%" r="75%">
-      <stop offset="0%" stop-color="#d9ecf8"/>
-      <stop offset="45%" stop-color="#7fb8d8"/>
-      <stop offset="100%" stop-color="#33507e"/>
+    <radialGradient id="orb" cx="38%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#eaf6ff"/>
+      <stop offset="35%" stop-color="#a8d4ec"/>
+      <stop offset="70%" stop-color="#5e8fc2"/>
+      <stop offset="100%" stop-color="#2c4577"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7fb8d8" stop-opacity="0.55"/>
+      <stop offset="70%" stop-color="#7fb8d8" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#7fb8d8" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="512" height="512" rx="110" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#7fb8d8" stroke-opacity="0.3" stroke-width="4"/>
-  <circle cx="256" cy="256" r="104" fill="url(#orb)"/>
+  <!-- Sterne -->
+  <g fill="#ffffff">
+    <circle cx="96" cy="92" r="3" opacity="0.7"/>
+    <circle cx="418" cy="76" r="2.4" opacity="0.5"/>
+    <circle cx="452" cy="180" r="2" opacity="0.45"/>
+    <circle cx="66" cy="220" r="2" opacity="0.4"/>
+    <circle cx="150" cy="52" r="1.6" opacity="0.35"/>
+    <circle cx="368" cy="120" r="1.6" opacity="0.4"/>
+    <circle cx="88" cy="404" r="2" opacity="0.35"/>
+    <circle cx="430" cy="420" r="2.4" opacity="0.4"/>
+    <circle cx="330" cy="52" r="1.4" opacity="0.3"/>
+    <circle cx="52" cy="320" r="1.6" opacity="0.3"/>
+  </g>
+  <!-- Atemringe -->
+  <circle cx="256" cy="268" r="196" fill="none" stroke="#7fb8d8" stroke-opacity="0.10" stroke-width="3"/>
+  <circle cx="256" cy="268" r="164" fill="none" stroke="#7fb8d8" stroke-opacity="0.20" stroke-width="3"/>
+  <circle cx="256" cy="268" r="132" fill="none" stroke="#7fb8d8" stroke-opacity="0.34" stroke-width="3.5"/>
+  <!-- Glühen + Kugel -->
+  <circle cx="256" cy="268" r="150" fill="url(#glow)"/>
+  <circle cx="256" cy="268" r="96" fill="url(#orb)"/>
+  <ellipse cx="228" cy="234" rx="34" ry="24" fill="#ffffff" opacity="0.35"/>
 </svg>
