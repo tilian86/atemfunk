@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Atemfunk</title>
+<meta name="description" content="Deine tägliche Atemmeditation – 3, 5 oder 10 Minuten.">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Atemfunk">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<style>
+  :root {
+    --bg1: #0b1026;
+    --bg2: #131b3a;
+    --bg3: #1a2b4a;
+    --ink: #e8ecf8;
+    --ink-dim: #9aa5c8;
+    --accent: #7fb8d8;
+    --accent-soft: rgba(127, 184, 216, 0.25);
+    --gold: #d8c48f;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overscroll-behavior: none; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(ellipse 120% 90% at 50% -10%, var(--bg3) 0%, var(--bg2) 45%, var(--bg1) 100%);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+  }
+
+  /* Sterne */
+  .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .stars span {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: #fff; opacity: 0.35;
+    animation: twinkle 5s ease-in-out infinite;
+  }
+  @keyframes twinkle { 0%,100% { opacity: 0.12; } 50% { opacity: 0.5; } }
+
+  .screen { position: relative; z-index: 1; width: 100%; max-width: 420px; display: none; flex-direction: column; align-items: center; }
+  .screen.active { display: flex; }
+
+  /* ---------- Home ---------- */
+  .brand {
+    font-size: 15px; letter-spacing: 0.35em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 10px;
+  }
+  .greeting { font-size: 30px; font-weight: 300; line-height: 1.3; margin-bottom: 6px; }
+  .streak { font-size: 14px; color: var(--gold); min-height: 20px; margin-bottom: 40px; letter-spacing: 0.02em; }
+
+  .durations { display: flex; gap: 10px; width: 100%; margin-bottom: 28px; }
+  .dur {
+    flex: 1; padding: 22px 0 16px; border-radius: 20px; cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    backdrop-filter: blur(10px);
+    transition: transform 0.15s, background 0.2s, border-color 0.2s;
+  }
+  .dur:active { transform: scale(0.96); background: var(--accent-soft); border-color: var(--accent); }
+  .dur .num { font-size: 34px; font-weight: 200; line-height: 1; color: var(--ink); }
+  .dur .lbl { font-size: 11px; color: var(--ink-dim); margin-top: 8px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .toggles { display: flex; gap: 10px; }
+  .voice-toggle {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    font-size: 13px; color: var(--ink-dim); padding: 10px 16px; border-radius: 999px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  }
+  .voice-toggle .dot {
+    width: 34px; height: 20px; border-radius: 999px; background: rgba(255,255,255,0.12);
+    position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .voice-toggle .dot::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--ink-dim); transition: transform 0.2s, background 0.2s;
+  }
+  .voice-toggle.on .dot { background: var(--accent-soft); }
+  .voice-toggle.on .dot::after { transform: translateX(14px); background: var(--accent); }
+  .voice-note { font-size: 12px; color: var(--ink-dim); margin-top: 14px; opacity: 0.7; min-height: 16px; }
+
+  .links { margin-top: 38px; width: 100%; }
+  .links-title { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); opacity: 0.7; margin-bottom: 12px; }
+  .links a {
+    display: block; padding: 11px 16px; margin-bottom: 8px; border-radius: 14px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    color: var(--ink-dim); text-decoration: none; font-size: 13px; text-align: left;
+  }
+  .links a span { color: var(--ink); }
+  .links a:active { background: rgba(255,255,255,0.07); }
+
+  /* ---------- Session ---------- */
+  .orb-wrap { position: relative; width: 280px; height: 280px; margin: 30px 0 36px; display: flex; align-items: center; justify-content: center; }
+  .orb-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 1px solid rgba(127,184,216,0.18);
+  }
+  .orb {
+    width: 170px; height: 170px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, rgba(200,225,245,0.85), rgba(127,184,216,0.55) 45%, rgba(70,110,160,0.35) 75%, rgba(40,60,110,0.2));
+    box-shadow: 0 0 70px 12px rgba(127,184,216,0.28), inset 0 0 40px rgba(255,255,255,0.12);
+    transform: scale(0.82);
+  }
+  .orb.breathing { animation: breathe 10s ease-in-out infinite; }
+  @keyframes breathe {
+    0%   { transform: scale(0.82); }
+    40%  { transform: scale(1.18); }   /* 4 s einatmen */
+    100% { transform: scale(0.82); }   /* 6 s ausatmen */
+  }
+  .phase { font-size: 22px; font-weight: 300; letter-spacing: 0.15em; color: var(--ink); min-height: 30px; }
+  .timeleft { font-size: 15px; color: var(--ink-dim); margin-top: 10px; font-variant-numeric: tabular-nums; }
+
+  progress-bar, .bar { width: 200px; height: 3px; border-radius: 3px; background: rgba(255,255,255,0.1); margin-top: 22px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width 1s linear; }
+
+  .stop {
+    margin-top: 44px; padding: 12px 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15);
+    background: transparent; color: var(--ink-dim); font-size: 14px; cursor: pointer; letter-spacing: 0.08em;
+  }
+  .stop:active { background: rgba(255,255,255,0.08); }
+
+  /* ---------- Done ---------- */
+  .done-icon { font-size: 52px; margin-bottom: 22px; }
+  .done-title { font-size: 26px; font-weight: 300; margin-bottom: 10px; }
+  .done-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 44px; line-height: 1.5; }
+  .home-btn {
+    padding: 14px 40px; border-radius: 999px; border: none; cursor: pointer;
+    background: var(--accent-soft); color: var(--ink); font-size: 15px; letter-spacing: 0.05em;
+    border: 1px solid rgba(127,184,216,0.4);
+  }
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<!-- HOME -->
+<div class="screen active" id="home">
+  <div class="brand">Atemfunk</div>
+  <div class="greeting" id="greeting">Guten Abend.</div>
+  <div class="streak" id="streak"></div>
+  <div class="durations">
+    <div class="dur" data-min="1"><div class="num">1</div><div class="lbl">Minute</div></div>
+    <div class="dur" data-min="3"><div class="num">3</div><div class="lbl">Minuten</div></div>
+    <div class="dur" data-min="5"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    <div class="dur" data-min="10"><div class="num">10</div><div class="lbl">Minuten</div></div>
+  </div>
+  <div class="toggles">
+    <div class="voice-toggle on" id="voiceToggle"><span class="dot"></span><span id="voiceLabel">Mit Stimme</span></div>
+    <div class="voice-toggle on" id="signalToggle"><span class="dot"></span><span>Atemsignale</span></div>
+  </div>
+  <div class="voice-note" id="voiceNote"></div>
+  <div class="links">
+    <div class="links-title">Andere Stimmen · extern</div>
+    <a href="https://www.youtube.com/watch?v=ockCQMt9kM0" target="_blank" rel="noopener"><span>Mady Morrison</span> · Geführte Anfänger-Meditation · 10 Min</a>
+    <a href="https://www.youtube.com/watch?v=00_nJsI69rk" target="_blank" rel="noopener"><span>Mindlook</span> · Kurze Atem-Meditation · 5 Min</a>
+    <a href="https://www.youtube.com/watch?v=FjqE9a8aIAM" target="_blank" rel="noopener"><span>Akademie für Sport &amp; Gesundheit</span> · Atemmeditation · 10 Min</a>
+  </div>
+</div>
+
+<!-- SESSION -->
+<div class="screen" id="session">
+  <div class="orb-wrap">
+    <div class="orb-ring"></div>
+    <div class="orb" id="orb"></div>
+  </div>
+  <div class="phase" id="phase">&nbsp;</div>
+  <div class="timeleft" id="timeleft"></div>
+  <div class="bar"><i id="barFill"></i></div>
+  <button class="stop" id="stopBtn">Beenden</button>
+</div>
+
+<!-- DONE -->
+<div class="screen" id="doneScreen">
+  <div class="done-icon">🌙</div>
+  <div class="done-title">Gut gemacht.</div>
+  <div class="done-sub" id="doneSub"></div>
+  <button class="home-btn" id="homeBtn">Zurück</button>
+</div>
+
+<audio id="voiceAudio" preload="none"></audio>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ---------- Sterne ---------- */
+(() => {
+  const wrap = $("stars");
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement("span");
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.animationDelay = (Math.random() * 5) + "s";
+    s.style.transform = "scale(" + (0.5 + Math.random()) + ")";
+    wrap.appendChild(s);
+  }
+})();
+
+/* ---------- Begrüßung & Streak ---------- */
+(() => {
+  const h = new Date().getHours();
+  $("greeting").textContent = h < 5 ? "Gute Nacht." : h < 11 ? "Guten Morgen." : h < 18 ? "Zeit zum Atmen." : "Guten Abend.";
+  renderStreak();
+})();
+
+function loadStreak() {
+  try { return JSON.parse(localStorage.getItem("atemfunk_streak")) || { count: 0, last: "" }; }
+  catch { return { count: 0, last: "" }; }
+}
+function renderStreak() {
+  const s = loadStreak();
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  let el = $("streak");
+  if (s.last === today) el.textContent = "✓ Heute schon meditiert · " + s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge";
+  else if (s.last === yesterday && s.count > 0) el.textContent = s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge – weiter so";
+  else el.textContent = "";
+}
+function bumpStreak() {
+  const s = loadStreak();
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  if (s.last === today) return s.count;
+  s.count = (s.last === yesterday) ? s.count + 1 : 1;
+  s.last = today;
+  try { localStorage.setItem("atemfunk_streak", JSON.stringify(s)); } catch {}
+  return s.count;
+}
+
+/* ---------- Stimme an/aus ---------- */
+let voiceOn = true;
+try { voiceOn = localStorage.getItem("atemfunk_voice") !== "off"; } catch {}
+const vt = $("voiceToggle");
+function renderVoice() {
+  vt.classList.toggle("on", voiceOn);
+  $("voiceLabel").textContent = voiceOn ? "Mit Stimme" : "Nur Klang";
+}
+renderVoice();
+vt.addEventListener("click", () => {
+  voiceOn = !voiceOn;
+  try { localStorage.setItem("atemfunk_voice", voiceOn ? "on" : "off"); } catch {}
+  renderVoice();
+});
+
+/* ---------- Atemsignale an/aus ---------- */
+let sigOn = true;
+try { sigOn = localStorage.getItem("atemfunk_signals") !== "off"; } catch {}
+const st = $("signalToggle");
+st.classList.toggle("on", sigOn);
+st.addEventListener("click", () => {
+  sigOn = !sigOn;
+  try { localStorage.setItem("atemfunk_signals", sigOn ? "on" : "off"); } catch {}
+  st.classList.toggle("on", sigOn);
+});
+
+/* ---------- Gong (WebAudio, kein Asset nötig) ---------- */
+let actx = null;
+function gong(when = 0) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime + when;
+    [196, 392, 587.3].forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = f; o.type = "sine";
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.18 / (i + 1), t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 5);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t); o.stop(t + 5.2);
+    });
+  } catch {}
+}
+
+/* Sanfter Atemhinweis: aufsteigender Ton = einatmen, absteigender = ausatmen */
+function breathCue(inhale) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine";
+    if (inhale) {
+      o.frequency.setValueAtTime(294, t);
+      o.frequency.linearRampToValueAtTime(392, t + 1.2);
+    } else {
+      o.frequency.setValueAtTime(392, t);
+      o.frequency.linearRampToValueAtTime(262, t + 1.6);
+    }
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(inhale ? 0.06 : 0.05, t + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + (inhale ? 1.5 : 1.9));
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + 2);
+  } catch {}
+}
+
+/* ---------- Session ---------- */
+let timer = null, phaseTimer = null, endAt = 0, curMin = 0, wakeLock = null;
+const audio = $("voiceAudio");
+
+async function startSession(min) {
+  curMin = min;
+  $("home").classList.remove("active");
+  $("doneScreen").classList.remove("active");
+  $("session").classList.add("active");
+  $("barFill").style.width = "0%";
+
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+
+  gong();
+
+  let hasVoice = false;
+  if (voiceOn) {
+    audio.src = "audio/atem-" + min + ".mp3";
+    try { await audio.play(); hasVoice = true; } catch { audio.removeAttribute("src"); }
+  }
+
+  // Atem-Animation & Phasen-Label
+  const orb = $("orb");
+  orb.classList.remove("breathing");
+  void orb.offsetWidth;
+  orb.classList.add("breathing");
+  const phaseEl = $("phase");
+  let cycleStart = performance.now();
+  phaseEl.textContent = "Einatmen";
+  let lastInhale = true;
+  clearInterval(phaseTimer);
+  phaseTimer = setInterval(() => {
+    const p = ((performance.now() - cycleStart) / 1000) % 10;
+    const inhale = p < 4;
+    phaseEl.textContent = inhale ? "Einatmen" : "Ausatmen";
+    if (inhale !== lastInhale) {
+      lastInhale = inhale;
+      if (sigOn) breathCue(inhale);
+    }
+  }, 200);
+
+  // Countdown
+  const total = min * 60;
+  endAt = Date.now() + total * 1000;
+  clearInterval(timer);
+  const tick = () => {
+    const left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+    $("timeleft").textContent = String(Math.floor(left / 60)) + ":" + String(left % 60).padStart(2, "0");
+    $("barFill").style.width = (100 * (1 - left / total)) + "%";
+    if (left <= 0) finishSession(true);
+  };
+  tick();
+  timer = setInterval(tick, 1000);
+}
+
+function finishSession(completed) {
+  clearInterval(timer); clearInterval(phaseTimer);
+  audio.pause(); audio.removeAttribute("src");
+  try { wakeLock?.release(); } catch {}
+  wakeLock = null;
+  $("session").classList.remove("active");
+  if (completed) {
+    gong(); gong(0.15);
+    const c = bumpStreak();
+    $("doneSub").textContent = curMin + " Minuten Atemmeditation · " + c + (c === 1 ? " Tag" : " Tage") + " in Folge";
+    $("doneScreen").classList.add("active");
+  } else {
+    $("home").classList.add("active");
+  }
+  renderStreak();
+}
+
+document.querySelectorAll(".dur").forEach(el =>
+  el.addEventListener("click", () => startSession(+el.dataset.min)));
+$("stopBtn").addEventListener("click", () => finishSession(false));
+$("homeBtn").addEventListener("click", () => {
+  $("doneScreen").classList.remove("active");
+  $("home").classList.add("active");
+});
+
+/* ---------- Hinweis, falls Audio noch fehlt ---------- */
+fetch("audio/atem-3.mp3", { method: "HEAD" }).then(r => {
+  if (!r.ok) $("voiceNote").textContent = "Sprachaufnahmen folgen in Kürze – bis dahin: Nur Klang.";
+}).catch(() => {
+  $("voiceNote").textContent = "Sprachaufnahmen folgen in Kürze – bis dahin: Nur Klang.";
+});
+
+/* ---------- Service Worker ---------- */
+if ("serviceWorker" in navigator && location.protocol === "https:")
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
