@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Atemfunk</title>
-<meta name="description" content="Deine tägliche Atemmeditation – 3, 5 oder 10 Minuten.">
+<meta name="description" content="Deine tägliche Atemmeditation – 1, 3, 5 oder 10 Minuten.">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,15 +31,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     text-align: center;
-    padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
+    padding: calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 16px);
     user-select: none;
     -webkit-user-select: none;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 14px; }
 
-  /* Sterne */
   .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
   .stars span {
     position: absolute; width: 2px; height: 2px; border-radius: 50%;
@@ -47,120 +47,140 @@
     animation: twinkle 5s ease-in-out infinite;
   }
   @keyframes twinkle { 0%,100% { opacity: 0.12; } 50% { opacity: 0.5; } }
+  @media (prefers-reduced-motion: reduce) { .stars span { animation: none; } }
 
-  .screen { position: relative; z-index: 1; width: 100%; max-width: 420px; display: none; flex-direction: column; align-items: center; }
+  .screen { position: relative; z-index: 1; width: 100%; max-width: 420px; display: none; flex-direction: column; align-items: center; margin: auto; }
   .screen.active { display: flex; }
 
   /* ---------- Home ---------- */
-  .brand {
-    font-size: 15px; letter-spacing: 0.35em; text-transform: uppercase;
-    color: var(--ink-dim); margin-bottom: 10px;
-  }
-  .greeting { font-size: 30px; font-weight: 300; line-height: 1.3; margin-bottom: 6px; }
-  .streak { font-size: 14px; color: var(--gold); min-height: 20px; margin-bottom: 40px; letter-spacing: 0.02em; }
+  .brand { font-size: 15px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; }
+  .greeting { font-size: 28px; font-weight: 300; line-height: 1.3; margin-bottom: 6px; }
+  .streak { font-size: 13px; color: var(--gold); min-height: 18px; letter-spacing: 0.02em; }
+  .stats-line { font-size: 12px; color: var(--ink-dim); opacity: 0.8; min-height: 16px; margin: 4px 0 26px; }
 
-  .durations { display: flex; gap: 10px; width: 100%; margin-bottom: 28px; }
+  .section-cap { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); opacity: 0.7; margin-bottom: 10px; }
+
+  .durations { display: flex; gap: 10px; width: 100%; margin-bottom: 18px; }
   .dur {
-    flex: 1; padding: 22px 0 16px; border-radius: 20px; cursor: pointer;
+    flex: 1; padding: 20px 0 15px; border-radius: 20px; cursor: pointer;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.09);
     backdrop-filter: blur(10px);
     transition: transform 0.15s, background 0.2s, border-color 0.2s;
   }
   .dur:active { transform: scale(0.96); background: var(--accent-soft); border-color: var(--accent); }
-  .dur .num { font-size: 34px; font-weight: 200; line-height: 1; color: var(--ink); }
-  .dur .lbl { font-size: 11px; color: var(--ink-dim); margin-top: 8px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
+  .dur .lbl { font-size: 10px; color: var(--ink-dim); margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
 
-  .toggles { display: flex; gap: 10px; }
-  .voice-toggle {
-    display: flex; align-items: center; gap: 10px; cursor: pointer;
-    font-size: 13px; color: var(--ink-dim); padding: 10px 16px; border-radius: 999px;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  .rhythms { display: flex; gap: 8px; width: 100%; margin-bottom: 14px; }
+  .rhy {
+    flex: 1; padding: 11px 4px; border-radius: 14px; cursor: pointer; font-size: 12px;
+    color: var(--ink-dim); background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    min-height: 48px;
   }
-  .voice-toggle .dot {
-    width: 34px; height: 20px; border-radius: 999px; background: rgba(255,255,255,0.12);
+  .rhy small { display: block; font-size: 10px; opacity: 0.7; margin-top: 2px; }
+  .rhy.sel { color: var(--ink); background: var(--accent-soft); border-color: rgba(127,184,216,0.5); }
+
+  .toggles { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .tgl {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 12px; color: var(--ink-dim); padding: 13px 15px; border-radius: 999px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+    min-height: 44px;
+  }
+  .tgl .dot {
+    width: 30px; height: 18px; border-radius: 999px; background: rgba(255,255,255,0.12);
     position: relative; transition: background 0.2s; flex-shrink: 0;
   }
-  .voice-toggle .dot::after {
-    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px;
+  .tgl .dot::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
     border-radius: 50%; background: var(--ink-dim); transition: transform 0.2s, background 0.2s;
   }
-  .voice-toggle.on .dot { background: var(--accent-soft); }
-  .voice-toggle.on .dot::after { transform: translateX(14px); background: var(--accent); }
-  .voice-note { font-size: 12px; color: var(--ink-dim); margin-top: 14px; opacity: 0.7; min-height: 16px; }
+  .tgl.on .dot { background: var(--accent-soft); }
+  .tgl.on .dot::after { transform: translateX(12px); background: var(--accent); }
+  .voice-note { font-size: 12px; color: var(--ink-dim); margin-top: 12px; opacity: 0.75; min-height: 16px; }
 
-  .links { margin-top: 38px; width: 100%; }
-  .links-title { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); opacity: 0.7; margin-bottom: 12px; }
+  .links { margin-top: 28px; width: 100%; }
   .links a {
-    display: block; padding: 11px 16px; margin-bottom: 8px; border-radius: 14px;
+    display: block; padding: 12px 16px; margin-bottom: 8px; border-radius: 14px;
     background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
     color: var(--ink-dim); text-decoration: none; font-size: 13px; text-align: left;
+    min-height: 44px;
   }
   .links a span { color: var(--ink); }
   .links a:active { background: rgba(255,255,255,0.07); }
 
   /* ---------- Session ---------- */
-  .orb-wrap { position: relative; width: 280px; height: 280px; margin: 30px 0 36px; display: flex; align-items: center; justify-content: center; }
-  .orb-ring {
-    position: absolute; inset: 0; border-radius: 50%;
-    border: 1px solid rgba(127,184,216,0.18);
-  }
+  .orb-wrap { position: relative; width: 290px; height: 290px; margin: 14px 0 26px; display: flex; align-items: center; justify-content: center; }
+  .ring-svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring-svg .track { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+  .ring-svg .prog { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 1s linear; opacity: 0.85; }
   .orb {
     width: 170px; height: 170px; border-radius: 50%;
     background: radial-gradient(circle at 38% 32%, rgba(200,225,245,0.85), rgba(127,184,216,0.55) 45%, rgba(70,110,160,0.35) 75%, rgba(40,60,110,0.2));
     box-shadow: 0 0 70px 12px rgba(127,184,216,0.28), inset 0 0 40px rgba(255,255,255,0.12);
     transform: scale(0.82);
-  }
-  .orb.breathing { animation: breathe 10s ease-in-out infinite; }
-  @keyframes breathe {
-    0%   { transform: scale(0.82); }
-    40%  { transform: scale(1.18); }   /* 4 s einatmen */
-    100% { transform: scale(0.82); }   /* 6 s ausatmen */
+    will-change: transform;
   }
   .phase { font-size: 22px; font-weight: 300; letter-spacing: 0.15em; color: var(--ink); min-height: 30px; }
-  .timeleft { font-size: 15px; color: var(--ink-dim); margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .timeleft { font-size: 15px; color: var(--ink-dim); margin-top: 8px; font-variant-numeric: tabular-nums; min-height: 20px; }
+  .session-note { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-top: 10px; min-height: 16px; }
 
-  progress-bar, .bar { width: 200px; height: 3px; border-radius: 3px; background: rgba(255,255,255,0.1); margin-top: 22px; overflow: hidden; }
-  .bar i { display: block; height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width 1s linear; }
-
-  .stop {
-    margin-top: 44px; padding: 12px 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15);
-    background: transparent; color: var(--ink-dim); font-size: 14px; cursor: pointer; letter-spacing: 0.08em;
+  .session-btns { display: flex; gap: 12px; margin-top: 28px; }
+  .sbtn {
+    padding: 13px 30px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.15);
+    background: transparent; color: var(--ink-dim); font-size: 14px; cursor: pointer; letter-spacing: 0.06em;
+    font-family: inherit; min-height: 44px;
   }
-  .stop:active { background: rgba(255,255,255,0.08); }
+  .sbtn.primary { border-color: rgba(127,184,216,0.45); color: var(--ink); background: var(--accent-soft); }
+  .sbtn:active { background: rgba(255,255,255,0.08); }
 
   /* ---------- Done ---------- */
   .done-icon { font-size: 52px; margin-bottom: 22px; }
   .done-title { font-size: 26px; font-weight: 300; margin-bottom: 10px; }
-  .done-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 44px; line-height: 1.5; }
+  .done-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 8px; line-height: 1.5; }
+  .done-stats { font-size: 13px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 40px; }
   .home-btn {
-    padding: 14px 40px; border-radius: 999px; border: none; cursor: pointer;
+    padding: 14px 40px; border-radius: 999px; cursor: pointer;
     background: var(--accent-soft); color: var(--ink); font-size: 15px; letter-spacing: 0.05em;
-    border: 1px solid rgba(127,184,216,0.4);
+    border: 1px solid rgba(127,184,216,0.4); font-family: inherit; min-height: 44px;
   }
 </style>
 </head>
 <body>
-<div class="stars" id="stars"></div>
+<div class="stars" id="stars" aria-hidden="true"></div>
 
 <!-- HOME -->
 <div class="screen active" id="home">
   <div class="brand">Atemfunk</div>
-  <div class="greeting" id="greeting">Guten Abend.</div>
+  <h1 class="greeting" id="greeting">Zeit zum Atmen.</h1>
   <div class="streak" id="streak"></div>
+  <div class="stats-line" id="statsLine"></div>
+
+  <div class="section-cap" id="capDur">Tippen zum Starten</div>
   <div class="durations">
-    <div class="dur" data-min="1"><div class="num">1</div><div class="lbl">Minute</div></div>
-    <div class="dur" data-min="3"><div class="num">3</div><div class="lbl">Minuten</div></div>
-    <div class="dur" data-min="5"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <div class="dur" data-min="10"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-min="1" aria-label="1 Minute meditieren"><div class="num">1</div><div class="lbl">Minute</div></div>
+    <div class="dur" role="button" tabindex="0" data-min="3" aria-label="3 Minuten meditieren"><div class="num">3</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-min="5" aria-label="5 Minuten meditieren"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-min="10" aria-label="10 Minuten meditieren"><div class="num">10</div><div class="lbl">Minuten</div></div>
   </div>
+
+  <div class="rhythms" id="rhythms" role="radiogroup" aria-label="Atemrhythmus">
+    <div class="rhy" role="radio" tabindex="0" data-rhy="ruhig">Ruhig<small>4 ein · 6 aus</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-rhy="box">Box<small>4 · 4 · 4 · 4</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-rhy="schlaf">Schlaf<small>4 · 7 · 8</small></div>
+  </div>
+
   <div class="toggles">
-    <div class="voice-toggle on" id="voiceToggle"><span class="dot"></span><span id="voiceLabel">Mit Stimme</span></div>
-    <div class="voice-toggle on" id="signalToggle"><span class="dot"></span><span>Atemsignale</span></div>
+    <div class="tgl" role="switch" tabindex="0" id="tglVoice"><span class="dot"></span><span>Stimme</span></div>
+    <div class="tgl" role="switch" tabindex="0" id="tglSignals"><span class="dot"></span><span>Signale</span></div>
+    <div class="tgl" role="switch" tabindex="0" id="tglOcean"><span class="dot"></span><span>Meer</span></div>
   </div>
   <div class="voice-note" id="voiceNote"></div>
+
   <div class="links">
-    <div class="links-title">Andere Stimmen · extern</div>
+    <div class="section-cap">Andere Stimmen · extern</div>
     <a href="https://insighttimer.com/de/heckenbeck/gefuehrte-meditation/3-minuten-atemraum" target="_blank" rel="noopener"><span>Tobias Polzin</span> · 3-Minuten-Atemraum · 3 Min</a>
     <a href="https://insighttimer.com/de/britta.hoelzel/gefuehrte-meditation/kurze-atemachtsamkeit-deutsch" target="_blank" rel="noopener"><span>Britta Hölzel</span> · Kurze Atemachtsamkeit · 4 Min</a>
     <a href="https://www.youtube.com/watch?v=6EVqc2LBBhY" target="_blank" rel="noopener"><span>Anna Hahn</span> · Atemmeditation Entspannung · 5 Min</a>
@@ -172,28 +192,49 @@
 <!-- SESSION -->
 <div class="screen" id="session">
   <div class="orb-wrap">
-    <div class="orb-ring"></div>
+    <svg class="ring-svg" viewBox="0 0 290 290" aria-hidden="true">
+      <circle class="track" cx="145" cy="145" r="140"></circle>
+      <circle class="prog" id="ringProg" cx="145" cy="145" r="140"></circle>
+    </svg>
     <div class="orb" id="orb"></div>
   </div>
-  <div class="phase" id="phase">&nbsp;</div>
+  <div class="phase" id="phase" aria-live="polite">&nbsp;</div>
   <div class="timeleft" id="timeleft"></div>
-  <div class="bar"><i id="barFill"></i></div>
-  <button class="stop" id="stopBtn">Beenden</button>
+  <div class="session-note" id="sessionNote"></div>
+  <div class="session-btns">
+    <button class="sbtn primary" id="pauseBtn">Pause</button>
+    <button class="sbtn" id="stopBtn">Beenden</button>
+  </div>
 </div>
 
 <!-- DONE -->
 <div class="screen" id="doneScreen">
   <div class="done-icon">🌙</div>
-  <div class="done-title">Gut gemacht.</div>
+  <div class="done-title" id="doneTitle">Gut gemacht.</div>
   <div class="done-sub" id="doneSub"></div>
+  <div class="done-stats" id="doneStats"></div>
   <button class="home-btn" id="homeBtn">Zurück</button>
 </div>
 
-<audio id="voiceAudio" preload="none"></audio>
+<audio id="voiceAudio" preload="none" playsinline></audio>
 
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
+const store = {
+  get(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : v; } catch { return fallback; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  getJSON(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
+  setJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* Enter/Leertaste wie Klick (role=button/switch/radio sind Divs) */
+function keyActivate(el) {
+  el.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.click(); }
+  });
+}
 
 /* ---------- Sterne ---------- */
 (() => {
@@ -208,188 +249,408 @@ const $ = id => document.getElementById(id);
   }
 })();
 
-/* ---------- Begrüßung & Streak ---------- */
+/* ---------- Begrüßung, Streak, Statistik ---------- */
 (() => {
   const h = new Date().getHours();
   $("greeting").textContent = h < 5 ? "Gute Nacht." : h < 11 ? "Guten Morgen." : h < 18 ? "Zeit zum Atmen." : "Guten Abend.";
-  renderStreak();
 })();
 
-function loadStreak() {
-  try { return JSON.parse(localStorage.getItem("atemfunk_streak")) || { count: 0, last: "" }; }
-  catch { return { count: 0, last: "" }; }
+function todayStr(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays); /* kalendertagsicher, auch bei Zeitumstellung */
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-function renderStreak() {
+function loadStreak() { return store.getJSON("atemfunk_streak", { count: 0, last: "", best: 0 }); }
+function loadStats() { return store.getJSON("atemfunk_stats", { sessions: 0, minutes: 0 }); }
+
+function renderHome() {
   const s = loadStreak();
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-  let el = $("streak");
-  if (s.last === today) el.textContent = "✓ Heute schon meditiert · " + s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge";
-  else if (s.last === yesterday && s.count > 0) el.textContent = s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge – weiter so";
+  const el = $("streak");
+  if (s.last === todayStr()) el.textContent = "✓ Heute schon meditiert · " + s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge";
+  else if (s.last === todayStr(-1) && s.count > 0) el.textContent = s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge – weiter so";
   else el.textContent = "";
+  const st = loadStats();
+  $("statsLine").textContent = st.sessions > 0
+    ? st.sessions + (st.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + st.minutes + " Min gesamt" + (s.best > 1 ? " · Rekord " + s.best + " Tage" : "")
+    : "";
 }
-function bumpStreak() {
+renderHome();
+
+function recordSession(min) {
   const s = loadStreak();
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
-  if (s.last === today) return s.count;
-  s.count = (s.last === yesterday) ? s.count + 1 : 1;
-  s.last = today;
-  try { localStorage.setItem("atemfunk_streak", JSON.stringify(s)); } catch {}
-  return s.count;
+  if (s.last !== todayStr()) {
+    s.count = (s.last === todayStr(-1)) ? s.count + 1 : 1;
+    s.last = todayStr();
+  }
+  s.best = Math.max(s.best || 0, s.count);
+  store.setJSON("atemfunk_streak", s);
+  const st = loadStats();
+  st.sessions += 1; st.minutes += min;
+  store.setJSON("atemfunk_stats", st);
+  return { streak: s.count, stats: st };
 }
 
-/* ---------- Stimme an/aus ---------- */
-let voiceOn = true;
-try { voiceOn = localStorage.getItem("atemfunk_voice") !== "off"; } catch {}
-const vt = $("voiceToggle");
-function renderVoice() {
-  vt.classList.toggle("on", voiceOn);
-  $("voiceLabel").textContent = voiceOn ? "Mit Stimme" : "Nur Klang";
+/* ---------- Atemrhythmen ---------- */
+const RHYTHMS = {
+  ruhig:  { phases: [["Einatmen", 4], ["Ausatmen", 6]] },
+  box:    { phases: [["Einatmen", 4], ["Halten", 4], ["Ausatmen", 4], ["Halten", 4]] },
+  schlaf: { phases: [["Einatmen", 4], ["Halten", 7], ["Ausatmen", 8]] },
+};
+let rhythmKey = store.get("atemfunk_rhythm", "ruhig");
+if (!RHYTHMS[rhythmKey]) rhythmKey = "ruhig";
+
+function renderRhythms() {
+  document.querySelectorAll(".rhy").forEach(el => {
+    const sel = el.dataset.rhy === rhythmKey;
+    el.classList.toggle("sel", sel);
+    el.setAttribute("aria-checked", sel ? "true" : "false");
+  });
+  updateNote();
 }
-renderVoice();
-vt.addEventListener("click", () => {
-  voiceOn = !voiceOn;
-  try { localStorage.setItem("atemfunk_voice", voiceOn ? "on" : "off"); } catch {}
-  renderVoice();
+document.querySelectorAll(".rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => {
+    rhythmKey = el.dataset.rhy;
+    store.set("atemfunk_rhythm", rhythmKey);
+    renderRhythms();
+  });
 });
 
-/* ---------- Atemsignale an/aus ---------- */
-let sigOn = true;
-try { sigOn = localStorage.getItem("atemfunk_signals") !== "off"; } catch {}
-const st = $("signalToggle");
-st.classList.toggle("on", sigOn);
-st.addEventListener("click", () => {
-  sigOn = !sigOn;
-  try { localStorage.setItem("atemfunk_signals", sigOn ? "on" : "off"); } catch {}
-  st.classList.toggle("on", sigOn);
-});
+/* Atemzustand: label + Füllwert 0..1 an Zeitpunkt t innerhalb des Zyklus */
+function breathState(tSec, rhythm) {
+  const total = rhythm.phases.reduce((a, p) => a + p[1], 0);
+  let p = ((tSec % total) + total) % total;
+  let cur = 0;
+  for (const [name, dur] of rhythm.phases) {
+    if (p < dur) {
+      const eased = 0.5 - 0.5 * Math.cos(Math.PI * (p / dur));
+      let value = cur;
+      if (name === "Einatmen") value = cur + (1 - cur) * eased;
+      else if (name === "Ausatmen") value = cur * (1 - eased);
+      return { label: name, value };
+    }
+    p -= dur;
+    if (name === "Einatmen") cur = 1;
+    else if (name === "Ausatmen") cur = 0;
+  }
+  return { label: rhythm.phases[0][0], value: 0 };
+}
 
-/* ---------- Gong (WebAudio, kein Asset nötig) ---------- */
+/* ---------- Schalter ---------- */
+function makeToggle(id, key, def, onChange) {
+  const el = $(id);
+  let on = store.get(key, def ? "on" : "off") !== "off";
+  el.classList.toggle("on", on);
+  el.setAttribute("aria-checked", on ? "true" : "false");
+  keyActivate(el);
+  el.addEventListener("click", () => {
+    on = !on;
+    store.set(key, on ? "on" : "off");
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-checked", on ? "true" : "false");
+    if (onChange) onChange(on);
+  });
+  return () => on;
+}
+const voiceOn = makeToggle("tglVoice", "atemfunk_voice", true, updateNote);
+const sigOn = makeToggle("tglSignals", "atemfunk_signals", true);
+const oceanOn = makeToggle("tglOcean", "atemfunk_ocean", false);
+
+function updateNote() {
+  const el = $("voiceNote");
+  if (voiceOn() && rhythmKey !== "ruhig") el.textContent = "Mit Stimme läuft die Sitzung im ruhigen 4–6-Rhythmus.";
+  else el.textContent = el.dataset.fallback || "";
+}
+renderRhythms();
+
+/* ---------- WebAudio: Gong, Signale, Meer ---------- */
 let actx = null;
+function audioCtx() {
+  actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+  /* iOS meldet nach Sperrbildschirm/Anruf 'interrupted', nicht 'suspended' */
+  if (actx.state !== "running") actx.resume().catch(() => {});
+  return actx;
+}
 function gong(when = 0) {
   try {
-    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    const t = actx.currentTime + when;
+    const ctx = audioCtx();
+    const t = ctx.currentTime + when;
     [196, 392, 587.3].forEach((f, i) => {
-      const o = actx.createOscillator(), g = actx.createGain();
+      const o = ctx.createOscillator(), g = ctx.createGain();
       o.frequency.value = f; o.type = "sine";
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(0.18 / (i + 1), t + 0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 5);
-      o.connect(g); g.connect(actx.destination);
+      o.connect(g); g.connect(ctx.destination);
       o.start(t); o.stop(t + 5.2);
     });
   } catch {}
 }
-
-/* Sanfter Atemhinweis: aufsteigender Ton = einatmen, absteigender = ausatmen */
-function breathCue(inhale) {
+/* aufsteigend = einatmen, absteigend = ausatmen, kurz & konstant = halten */
+function breathCue(label) {
   try {
-    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-    const t = actx.currentTime;
-    const o = actx.createOscillator(), g = actx.createGain();
+    const ctx = audioCtx();
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = "sine";
-    if (inhale) {
+    let peak = 0.06, len = 1.5;
+    if (label === "Einatmen") {
       o.frequency.setValueAtTime(294, t);
       o.frequency.linearRampToValueAtTime(392, t + 1.2);
-    } else {
+    } else if (label === "Ausatmen") {
       o.frequency.setValueAtTime(392, t);
       o.frequency.linearRampToValueAtTime(262, t + 1.6);
+      peak = 0.05; len = 1.9;
+    } else {
+      o.frequency.setValueAtTime(330, t);
+      peak = 0.04; len = 0.8;
     }
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(inhale ? 0.06 : 0.05, t + 0.4);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + (inhale ? 1.5 : 1.9));
-    o.connect(g); g.connect(actx.destination);
-    o.start(t); o.stop(t + 2);
+    g.gain.linearRampToValueAtTime(peak, t + 0.35);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + len + 0.2);
   } catch {}
 }
 
+/* Meeresrauschen: nahtlos geloopte Rausch-Schleife durch Tiefpass, schwillt mit dem Atem */
+let ocean = null;
+function startOcean() {
+  try {
+    const ctx = audioCtx();
+    const sr = ctx.sampleRate;
+    const settle = sr >> 1, len = 4 * sr, fade = Math.floor(0.3 * sr);
+    /* Filter einschwingen lassen, Überhang für Crossfade erzeugen */
+    const tmp = new Float32Array(settle + len + fade);
+    let b0 = 0, b1 = 0, b2 = 0;
+    for (let i = 0; i < tmp.length; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.997 * b0 + 0.03 * white;
+      b1 = 0.985 * b1 + 0.06 * white;
+      b2 = 0.95 * b2 + 0.11 * white;
+      tmp[i] = (b0 + b1 + b2) * 1.1;
+    }
+    const buf = ctx.createBuffer(1, len, sr);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = tmp[settle + i];
+    /* Kopf mit dem Material hinter dem Ende überblenden → kein Knacks am Loop-Punkt */
+    for (let j = 0; j < fade; j++) {
+      const w = j / fade;
+      data[j] = data[j] * w + tmp[settle + len + j] * (1 - w);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass"; filter.frequency.value = 250; filter.Q.value = 0.6;
+    const g = ctx.createGain(); g.gain.value = 0.0;
+    src.connect(filter); filter.connect(g); g.connect(ctx.destination);
+    src.start();
+    ocean = { src, filter, gain: g };
+  } catch { ocean = null; }
+}
+function stopOcean() {
+  if (!ocean) return;
+  const o = ocean;
+  ocean = null;
+  try {
+    const t = audioCtx().currentTime;
+    o.gain.gain.setTargetAtTime(0.0001, t, 0.12);
+    o.src.stop(t + 0.8);
+  } catch { try { o.src.stop(); } catch {} }
+}
+
 /* ---------- Session ---------- */
-let timer = null, phaseTimer = null, endAt = 0, curMin = 0, wakeLock = null;
 const audio = $("voiceAudio");
+const RING_LEN = 2 * Math.PI * 140;
+$("ringProg").style.strokeDasharray = RING_LEN;
+$("ringProg").style.strokeDashoffset = RING_LEN;
+
+let session = null; // { min, totalSec, endAt, leftMsAtPause, raf, endTimer, lastLabel, lastSecond, rhythm }
+let wakeLock = null;
+
+async function acquireWakeLock() {
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+}
+
+/* Nach Entsperren: Audio-Kontext wiederbeleben + Restzeit gegen die Uhr prüfen */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (actx && (!session || !session.leftMsAtPause) && actx.state !== "running") actx.resume().catch(() => {});
+  if (session && !session.leftMsAtPause) {
+    acquireWakeLock();
+    if (session.endAt - Date.now() <= 0) finishSession(true);
+  }
+});
+
+function setMediaSession(min) {
+  if (!("mediaSession" in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: "Atemmeditation · " + min + " " + (min === 1 ? "Minute" : "Minuten"),
+      artist: "Atemfunk",
+      artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }],
+    });
+    navigator.mediaSession.setActionHandler("pause", () => togglePause(true));
+    navigator.mediaSession.setActionHandler("play", () => togglePause(false));
+  } catch {}
+}
 
 async function startSession(min) {
-  curMin = min;
+  if (session) return;
   $("home").classList.remove("active");
   $("doneScreen").classList.remove("active");
   $("session").classList.add("active");
-  $("barFill").style.width = "0%";
+  $("ringProg").style.strokeDashoffset = RING_LEN;
+  $("pauseBtn").textContent = "Pause";
+  $("sessionNote").textContent = "";
 
-  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
-
-  gong();
-
-  let hasVoice = false;
-  if (voiceOn) {
-    audio.src = "audio/atem-" + min + ".mp3";
-    try { await audio.play(); hasVoice = true; } catch { audio.removeAttribute("src"); }
-  }
-
-  // Atem-Animation & Phasen-Label
-  const orb = $("orb");
-  orb.classList.remove("breathing");
-  void orb.offsetWidth;
-  orb.classList.add("breathing");
-  const phaseEl = $("phase");
-  let cycleStart = performance.now();
-  phaseEl.textContent = "Einatmen";
-  let lastInhale = true;
-  clearInterval(phaseTimer);
-  phaseTimer = setInterval(() => {
-    const p = ((performance.now() - cycleStart) / 1000) % 10;
-    const inhale = p < 4;
-    phaseEl.textContent = inhale ? "Einatmen" : "Ausatmen";
-    if (inhale !== lastInhale) {
-      lastInhale = inhale;
-      if (sigOn) breathCue(inhale);
-    }
-  }, 200);
-
-  // Countdown
-  const total = min * 60;
-  endAt = Date.now() + total * 1000;
-  clearInterval(timer);
-  const tick = () => {
-    const left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
-    $("timeleft").textContent = String(Math.floor(left / 60)) + ":" + String(left % 60).padStart(2, "0");
-    $("barFill").style.width = (100 * (1 - left / total)) + "%";
-    if (left <= 0) finishSession(true);
+  const totalSec = min * 60;
+  session = {
+    min, totalSec,
+    endAt: Date.now() + totalSec * 1000,
+    leftMsAtPause: null,
+    raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
+    /* Die Stimme ist auf 4-6 eingesprochen – mit Stimme führt sie, sonst der gewählte Rhythmus */
+    rhythm: voiceOn() ? RHYTHMS.ruhig : RHYTHMS[rhythmKey],
   };
-  tick();
-  timer = setInterval(tick, 1000);
+
+  acquireWakeLock();
+  gong();
+  setMediaSession(min);
+
+  if (voiceOn()) {
+    audio.src = "audio/atem-" + min + ".mp3";
+    try {
+      await audio.play();
+    } catch {
+      audio.removeAttribute("src");
+      if (session) $("sessionNote").textContent = "Stimme nicht verfügbar – Sitzung läuft ohne Stimme.";
+    }
+  }
+  if (!session) { audio.pause(); audio.removeAttribute("src"); return; } /* während play() beendet */
+
+  if (oceanOn()) startOcean();
+
+  const orb = $("orb");
+  const phaseEl = $("phase");
+  const amp = reducedMotion ? 0.10 : 0.36;
+
+  const armEndTimer = () => {
+    clearTimeout(session.endTimer);
+    session.endTimer = setTimeout(() => finishSession(true), Math.max(0, session.endAt - Date.now()) + 50);
+  };
+  session.armEndTimer = armEndTimer;
+  armEndTimer();
+
+  const loop = () => {
+    if (!session) return;
+    if (!session.leftMsAtPause) {
+      const leftMs = Math.max(0, session.endAt - Date.now());
+      const elapsed = session.totalSec - leftMs / 1000;
+
+      const bs = breathState(elapsed, session.rhythm);
+      orb.style.transform = "scale(" + (0.82 + bs.value * amp) + ")";
+      if (bs.label !== session.lastLabel) {
+        if (session.lastLabel !== null && sigOn()) breathCue(bs.label);
+        session.lastLabel = bs.label;
+        phaseEl.textContent = bs.label;
+      }
+      if (ocean) {
+        const t = ocean.gain.context.currentTime;
+        ocean.filter.frequency.setTargetAtTime(250 + bs.value * 650, t, 0.15);
+        ocean.gain.gain.setTargetAtTime(0.028 + bs.value * 0.03, t, 0.2);
+      }
+
+      const sec = Math.ceil(leftMs / 1000);
+      if (sec !== session.lastSecond) {
+        session.lastSecond = sec;
+        $("timeleft").textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+        $("ringProg").style.strokeDashoffset = RING_LEN * (leftMs / 1000 / session.totalSec);
+      }
+      if (leftMs <= 0) { finishSession(true); return; }
+    }
+    session.raf = requestAnimationFrame(loop);
+  };
+  session.raf = requestAnimationFrame(loop);
+}
+
+function togglePause(forcePause) {
+  if (!session) return;
+  const paused = !!session.leftMsAtPause;
+  const wantPause = forcePause !== undefined ? forcePause : !paused;
+  if (wantPause && !paused) {
+    session.leftMsAtPause = Math.max(1, session.endAt - Date.now());
+    clearTimeout(session.endTimer);
+    audio.pause();
+    if (actx) actx.suspend().catch(() => {});
+    $("pauseBtn").textContent = "Weiter";
+    $("phase").textContent = "Pause";
+  } else if (!wantPause && paused) {
+    session.endAt = Date.now() + session.leftMsAtPause;
+    session.leftMsAtPause = null;
+    session.lastLabel = null;
+    session.lastSecond = -1;
+    if (audio.src && voiceOn() && !audio.ended) audio.play().catch(() => {});
+    if (actx) actx.resume().catch(() => {});
+    if (session.armEndTimer) session.armEndTimer();
+    $("pauseBtn").textContent = "Pause";
+    acquireWakeLock();
+  }
 }
 
 function finishSession(completed) {
-  clearInterval(timer); clearInterval(phaseTimer);
+  if (!session) return;
+  cancelAnimationFrame(session.raf);
+  clearTimeout(session.endTimer);
+  const min = session.min;
+  const elapsedSec = session.leftMsAtPause
+    ? session.totalSec - session.leftMsAtPause / 1000
+    : session.totalSec - Math.max(0, session.endAt - Date.now()) / 1000;
+  session = null;
   audio.pause(); audio.removeAttribute("src");
+  stopOcean();
+  if (actx && actx.state !== "running") actx.resume().catch(() => {}); /* eingefrorene Ausklänge nicht in die nächste Sitzung schleppen */
   try { wakeLock?.release(); } catch {}
   wakeLock = null;
   $("session").classList.remove("active");
-  if (completed) {
+
+  /* Früh beendet, aber mehr als die Hälfte geschafft → zählt trotzdem */
+  const countsAnyway = !completed && elapsedSec >= session_minHalf(min);
+  if (completed || countsAnyway) {
     gong(); gong(0.15);
-    const c = bumpStreak();
-    $("doneSub").textContent = curMin + " Minuten Atemmeditation · " + c + (c === 1 ? " Tag" : " Tage") + " in Folge";
+    const credited = completed ? min : Math.max(1, Math.floor(elapsedSec / 60));
+    const { streak, stats } = recordSession(credited);
+    $("doneTitle").textContent = completed ? "Gut gemacht." : "Zählt trotzdem.";
+    $("doneSub").textContent = credited + " " + (credited === 1 ? "Minute" : "Minuten") + " Atemmeditation · " + streak + (streak === 1 ? " Tag" : " Tage") + " in Folge";
+    $("doneStats").textContent = stats.sessions + (stats.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + stats.minutes + (stats.minutes === 1 ? " Minute" : " Minuten") + " insgesamt";
     $("doneScreen").classList.add("active");
   } else {
     $("home").classList.add("active");
   }
-  renderStreak();
+  renderHome();
 }
+function session_minHalf(min) { return (min * 60) / 2; }
 
-document.querySelectorAll(".dur").forEach(el =>
-  el.addEventListener("click", () => startSession(+el.dataset.min)));
+document.querySelectorAll(".dur").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => startSession(+el.dataset.min));
+});
+$("pauseBtn").addEventListener("click", () => togglePause());
 $("stopBtn").addEventListener("click", () => finishSession(false));
 $("homeBtn").addEventListener("click", () => {
   $("doneScreen").classList.remove("active");
   $("home").classList.add("active");
 });
 
-/* ---------- Hinweis, falls Audio noch fehlt ---------- */
-fetch("audio/atem-3.mp3", { method: "HEAD" }).then(r => {
-  if (!r.ok) $("voiceNote").textContent = "Sprachaufnahmen folgen in Kürze – bis dahin: Nur Klang.";
+/* ---------- Hinweis, falls Audio fehlt (GET mit Range prüft auch den SW-Pfad) ---------- */
+fetch("audio/atem-3.mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
+  if (!r.ok) {
+    $("voiceNote").dataset.fallback = "Sprachaufnahmen nicht erreichbar – bis dahin: Nur Klang.";
+    updateNote();
+  }
 }).catch(() => {
-  $("voiceNote").textContent = "Sprachaufnahmen folgen in Kürze – bis dahin: Nur Klang.";
+  $("voiceNote").dataset.fallback = "Sprachaufnahmen nicht erreichbar – bis dahin: Nur Klang.";
+  updateNote();
 });
 
 /* ---------- Service Worker ---------- */

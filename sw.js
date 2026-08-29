@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v3";
+const CACHE = "atemfunk-v5";
 const ASSETS = [
   ".",
   "index.html",
@@ -27,12 +27,60 @@ self.addEventListener("activate", e => {
   );
 });
 
+/* iOS-Media-Loader fordert Audio mit Range-Headern an und braucht eine echte
+   206-Antwort – eine volle 200 aus dem Cache lässt <audio> auf iOS scheitern. */
+async function rangeResponse(request) {
+  const hit = await caches.match(request, { ignoreSearch: true });
+  if (!hit) return fetch(request);
+  const buf = await hit.arrayBuffer();
+  const m = /bytes=(\d+)-(\d*)/.exec(request.headers.get("range") || "");
+  if (!m) return hit;
+  const start = Number(m[1]);
+  const end = m[2] ? Math.min(Number(m[2]), buf.byteLength - 1) : buf.byteLength - 1;
+  if (start >= buf.byteLength) {
+    return new Response(null, { status: 416, headers: { "Content-Range": "bytes */" + buf.byteLength } });
+  }
+  return new Response(buf.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      "Content-Type": hit.headers.get("Content-Type") || "audio/mpeg",
+      "Content-Range": "bytes " + start + "-" + end + "/" + buf.byteLength,
+      "Content-Length": String(end - start + 1),
+      "Accept-Ranges": "bytes"
+    }
+  });
+}
+
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  if (new URL(e.request.url).origin !== location.origin) return;
+
+  if (e.request.headers.has("range")) {
+    e.respondWith(rangeResponse(e.request));
+    return;
+  }
+
+  /* HTML netz-zuerst, damit Updates ohne SW-Versionssprung ankommen */
+  if (e.request.mode === "navigate" || e.request.destination === "document") {
+    e.respondWith(
+      fetch(e.request).then(resp => {
+        if (resp.ok) {
+          const copy = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy));
+        }
+        return resp;
+      }).catch(() =>
+        caches.match(e.request, { ignoreSearch: true })
+          .then(hit => hit || caches.match("index.html"))
+      )
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then(hit =>
       hit || fetch(e.request).then(resp => {
-        if (resp.ok && new URL(e.request.url).origin === location.origin) {
+        if (resp.ok) {
           const copy = resp.clone();
           caches.open(CACHE).then(c => c.put(e.request, copy));
         }
