@@ -197,11 +197,6 @@
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
 
-  <div class="rhythms" id="modes" role="radiogroup" aria-label="Meditationsart" style="margin-bottom:14px">
-    <div class="rhy" role="radio" tabindex="0" data-mode="atem">Atem<small>geführt</small></div>
-    <div class="rhy" role="radio" tabindex="0" data-mode="schale">Klangschale<small>alle 45 s</small></div>
-  </div>
-
   <div class="section-cap" id="capDur">Tippen zum Starten</div>
   <div class="durations">
     <div class="dur" role="button" tabindex="0" data-min="1" aria-label="1 Minute meditieren"><div class="num">1</div><div class="lbl">Minute</div></div>
@@ -219,6 +214,7 @@
   <div class="toggles">
     <div class="tgl" role="switch" tabindex="0" id="tglVoice"><span class="dot"></span><span>Stimme</span></div>
     <div class="tgl" role="switch" tabindex="0" id="tglSignals"><span class="dot"></span><span>Signale</span></div>
+    <div class="tgl" role="switch" tabindex="0" id="tglBowl"><span class="dot"></span><span>Klangschale</span></div>
   </div>
   <div class="rhythms" id="ambients" role="radiogroup" aria-label="Klangkulisse" style="margin-top:12px">
     <div class="rhy" role="radio" tabindex="0" data-amb="aus">Stille</div>
@@ -374,38 +370,16 @@ const RHYTHMS = {
 let rhythmKey = store.get("atemfunk_rhythm", "ruhig");
 if (!RHYTHMS[rhythmKey]) rhythmKey = "ruhig";
 
-/* ---------- Meditationsart: Atem (geführt) oder Klangschale ---------- */
-let modeKey = store.get("atemfunk_mode", "atem");
-if (modeKey !== "schale") modeKey = "atem";
-function renderModes() {
-  document.querySelectorAll("#modes .rhy").forEach(el => {
-    const sel = el.dataset.mode === modeKey;
-    el.classList.toggle("sel", sel);
-    el.setAttribute("aria-checked", sel ? "true" : "false");
-  });
-  const schale = modeKey === "schale";
-  $("tglVoice").style.display = schale ? "none" : "flex";
-  $("tglSignals").style.display = schale ? "none" : "flex";
-  updateNote();
-}
-document.querySelectorAll("#modes .rhy").forEach(el => {
-  keyActivate(el);
-  el.addEventListener("click", () => {
-    modeKey = el.dataset.mode;
-    store.set("atemfunk_mode", modeKey);
-    renderModes();
-  });
-});
 
 function renderRhythms() {
-  document.querySelectorAll(".rhy").forEach(el => {
+  document.querySelectorAll("#rhythms .rhy").forEach(el => {
     const sel = el.dataset.rhy === rhythmKey;
     el.classList.toggle("sel", sel);
     el.setAttribute("aria-checked", sel ? "true" : "false");
   });
   updateNote();
 }
-document.querySelectorAll(".rhy").forEach(el => {
+document.querySelectorAll("#rhythms .rhy").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => {
     rhythmKey = el.dataset.rhy;
@@ -452,9 +426,23 @@ function makeToggle(id, key, def, onChange) {
 }
 const voiceOn = makeToggle("tglVoice", "atemfunk_voice", true, updateNote);
 const sigOn = makeToggle("tglSignals", "atemfunk_signals", true);
+const bowlOn = makeToggle("tglBowl", "atemfunk_bowl", false, updateNote);
+
+/* Gesprochene Phasenansagen für Box/Schlaf – vorgeladen, damit sie sofort kommen */
+const CUES = {};
+["Einatmen", "Halten", "Ausatmen"].forEach(w => {
+  const a = new Audio("audio/cues/" + w + ".mp3");
+  a.preload = "auto"; a.volume = 0.85;
+  CUES[w] = a;
+});
+function speakCue(label) {
+  const a = CUES[label];
+  if (!a) return;
+  try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
+}
 
 /* ---------- Klangkulisse ---------- */
-let ambKey = store.get("atemfunk_amb", store.get("atemfunk_ocean", "off") === "on" ? "meer" : "aus");
+let ambKey = store.get("atemfunk_amb", store.get("atemfunk_ocean", "off") === "on" ? "meer" : "wald");
 if (!["aus", "meer", "wald", "voegel", "fluss"].includes(ambKey)) ambKey = "aus";
 function renderAmbients() {
   document.querySelectorAll("#ambients .rhy").forEach(el => {
@@ -469,18 +457,22 @@ document.querySelectorAll("#ambients .rhy").forEach(el => {
     ambKey = el.dataset.amb;
     store.set("atemfunk_amb", ambKey);
     renderAmbients();
+    stopAmbient();
+    ensureAmbient();
   });
 });
 renderAmbients();
 
 function updateNote() {
   const el = $("voiceNote");
-  if (modeKey === "schale") el.textContent = "Klangschale: sanfter Anschlag alle 45 Sekunden, sonst Stille.";
-  else if (voiceOn() && rhythmKey !== "ruhig") el.textContent = "Mit Stimme läuft die Sitzung im ruhigen 4–6-Rhythmus.";
-  else el.textContent = el.dataset.fallback || "";
+  const parts = [];
+  if (voiceOn()) parts.push(rhythmKey === "ruhig"
+    ? "Stimme: geführte Meditation"
+    : "Stimme sagt Einatmen · Halten · Ausatmen");
+  if (bowlOn()) parts.push("Klangschale alle 45 s");
+  el.textContent = parts.length ? parts.join(" · ") + "." : (el.dataset.fallback || "");
 }
 renderRhythms();
-renderModes();
 
 /* ---------- WebAudio: Gong, Signale, Meer ---------- */
 let actx = null;
@@ -672,6 +664,23 @@ function ambientUpdate(bs, elapsed) {
   } catch {}
 }
 
+/* Kulisse läuft ab dem ersten Antippen dauerhaft – Browser erlauben Ton erst nach einer Geste */
+function ensureAmbient() {
+  if (!amb && ambKey !== "aus") startAmbient();
+}
+["pointerdown", "keydown"].forEach(ev =>
+  window.addEventListener(ev, ensureAmbient, { once: true, passive: true }));
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") ensureAmbient();
+});
+/* Leerlauf-Bewegung, wenn gerade keine Sitzung läuft */
+let idleT = 0;
+setInterval(() => {
+  if (!amb || session) return;
+  idleT += 0.5;
+  ambientUpdate({ value: 0.35 + 0.25 * Math.sin(idleT / 9) }, idleT);
+}, 500);
+
 function stopAmbient() {
   if (!amb) return;
   const a = amb;
@@ -729,22 +738,22 @@ async function startSession(min) {
   $("sessionNote").textContent = "";
 
   const totalSec = min * 60;
-  const schale = modeKey === "schale";
+  const guided = voiceOn() && rhythmKey === "ruhig";   /* eingesprochene Meditation (4-6) */
+  const spoken = voiceOn() && rhythmKey !== "ruhig";   /* gesprochene Phasenansagen */
   session = {
-    min, totalSec, schale,
+    min, totalSec, spoken, bowl: bowlOn(),
     endAt: Date.now() + totalSec * 1000,
     leftMsAtPause: null,
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: 45,
-    /* Die Stimme ist auf 4-6 eingesprochen – mit Stimme führt sie, sonst der gewählte Rhythmus */
-    rhythm: (!schale && voiceOn()) ? RHYTHMS.ruhig : RHYTHMS[rhythmKey],
+    rhythm: RHYTHMS[rhythmKey],
   };
 
   acquireWakeLock();
   gong();
   setMediaSession(min);
 
-  if (!schale && voiceOn()) {
+  if (guided) {
     audio.src = "audio/atem-" + min + ".mp3";
     try {
       await audio.play();
@@ -755,7 +764,7 @@ async function startSession(min) {
   }
   if (!session) { audio.pause(); audio.removeAttribute("src"); return; } /* während play() beendet */
 
-  startAmbient();
+  ensureAmbient();
 
   const orb = $("orb");
   const phaseEl = $("phase");
@@ -768,36 +777,48 @@ async function startSession(min) {
   session.armEndTimer = armEndTimer;
   armEndTimer();
 
-  const loop = () => {
+  /* Ablauf-Logik über einen Timer (läuft auch, wenn der Tab nicht sichtbar ist) */
+  const tick = () => {
+    if (!session || session.leftMsAtPause) return;
+    const leftMs = Math.max(0, session.endAt - Date.now());
+    const elapsed = session.totalSec - leftMs / 1000;
+    const bs = breathState(elapsed, session.rhythm);
+
+    if (bs.label !== session.lastLabel) {
+      const first = session.lastLabel === null;
+      if (session.spoken) speakCue(bs.label);          /* auch die erste Ansage */
+      if (!first && sigOn()) breathCue(bs.label);      /* Ton erst ab dem Wechsel */
+      session.lastLabel = bs.label;
+      phaseEl.textContent = bs.label;
+    }
+    if (session.bowl && elapsed >= session.nextBowlAt && elapsed < session.totalSec - 8) {
+      session.nextBowlAt += 45;
+      bowl();
+    }
+    ambientUpdate(bs, elapsed);
+
+    const sec = Math.ceil(leftMs / 1000);
+    if (sec !== session.lastSecond) {
+      session.lastSecond = sec;
+      $("timeleft").textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+      $("ringProg").style.strokeDashoffset = RING_LEN * (leftMs / 1000 / session.totalSec);
+    }
+    if (leftMs <= 0) finishSession(true);
+  };
+  session.tick = setInterval(tick, 200);
+  tick();
+
+  /* Nur die Kugel-Animation hängt am Bildschirm-Takt */
+  const draw = () => {
     if (!session) return;
     if (!session.leftMsAtPause) {
       const leftMs = Math.max(0, session.endAt - Date.now());
-      const elapsed = session.totalSec - leftMs / 1000;
-
-      const bs = breathState(elapsed, session.rhythm);
+      const bs = breathState(session.totalSec - leftMs / 1000, session.rhythm);
       orb.style.transform = "scale(" + (0.82 + bs.value * amp) + ")";
-      if (bs.label !== session.lastLabel) {
-        if (session.lastLabel !== null && !session.schale && sigOn()) breathCue(bs.label);
-        session.lastLabel = bs.label;
-        phaseEl.textContent = bs.label;
-      }
-      if (session.schale && elapsed >= session.nextBowlAt && elapsed < session.totalSec - 8) {
-        session.nextBowlAt += 45;
-        bowl();
-      }
-      ambientUpdate(bs, elapsed);
-
-      const sec = Math.ceil(leftMs / 1000);
-      if (sec !== session.lastSecond) {
-        session.lastSecond = sec;
-        $("timeleft").textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
-        $("ringProg").style.strokeDashoffset = RING_LEN * (leftMs / 1000 / session.totalSec);
-      }
-      if (leftMs <= 0) { finishSession(true); return; }
     }
-    session.raf = requestAnimationFrame(loop);
+    session.raf = requestAnimationFrame(draw);
   };
-  session.raf = requestAnimationFrame(loop);
+  session.raf = requestAnimationFrame(draw);
 }
 
 function togglePause(forcePause) {
@@ -827,6 +848,7 @@ function togglePause(forcePause) {
 function finishSession(completed) {
   if (!session) return;
   cancelAnimationFrame(session.raf);
+  clearInterval(session.tick);
   clearTimeout(session.endTimer);
   const min = session.min;
   const elapsedSec = session.leftMsAtPause
@@ -834,7 +856,6 @@ function finishSession(completed) {
     : session.totalSec - Math.max(0, session.endAt - Date.now()) / 1000;
   session = null;
   audio.pause(); audio.removeAttribute("src");
-  stopAmbient();
   if (actx && actx.state !== "running") actx.resume().catch(() => {}); /* eingefrorene Ausklänge nicht in die nächste Sitzung schleppen */
   try { wakeLock?.release(); } catch {}
   wakeLock = null;

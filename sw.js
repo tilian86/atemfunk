@@ -1,10 +1,13 @@
-const CACHE = "atemfunk-v14";
+const CACHE = "atemfunk-v15";
 const ASSETS = [
   ".",
   "index.html",
   "manifest.json",
   "icon-180.png",
   "icon-512.png",
+  "audio/cues/Einatmen.mp3",
+  "audio/cues/Halten.mp3",
+  "audio/cues/Ausatmen.mp3",
   "audio/atem-1.mp3",
   "audio/atem-3.mp3",
   "audio/atem-5.mp3",
