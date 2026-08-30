@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v9";
+const CACHE = "atemfunk-v10";
 const ASSETS = [
   ".",
   "index.html",
