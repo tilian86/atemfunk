@@ -222,6 +222,13 @@
     <div class="vid-frame"></div>
   </div>
 
+  <div class="links" id="librarySection">
+    <div class="section-cap">Meine Bibliothek · offline · läuft bei Bildschirm aus</div>
+    <div id="libList"></div>
+    <label class="vid" style="text-align:center; display:block;">＋ Audio importieren<input type="file" accept="audio/*" multiple hidden id="libImport"></label>
+    <div class="voice-note" style="margin-top:4px">Importierte Audios bleiben nur auf diesem Gerät.</div>
+  </div>
+
   <div class="links" id="stretchSection">
     <div class="section-cap">Morgen-Dehnen · läuft direkt hier</div>
     <div class="vid" role="button" tabindex="0" data-yt="r8nw2cEmeYE"><span>Liebscher &amp; Bracht</span> · Morgenroutine Ganzkörper · 10 Min<span class="play-hint">▶</span></div>
@@ -858,6 +865,84 @@ $("homeBtn").addEventListener("click", () => {
   $("doneScreen").classList.remove("active");
   $("home").classList.add("active");
 });
+
+/* ---------- Meine Bibliothek: importierte Audios in IndexedDB, Wiedergabe über <audio> ---------- */
+function idb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("atemfunk", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("tracks", { keyPath: "id" });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function idbTx(mode, fn) {
+  return idb().then(db => new Promise((res, rej) => {
+    const tx = db.transaction("tracks", mode);
+    const rq = fn(tx.objectStore("tracks"));
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror = () => rej(rq.error);
+  }));
+}
+
+let libPlayingId = null, libUrl = null;
+function libStop() {
+  if (libPlayingId !== null) { audio.pause(); audio.removeAttribute("src"); }
+  if (libUrl) { URL.revokeObjectURL(libUrl); libUrl = null; }
+  libPlayingId = null;
+  renderLib();
+}
+async function renderLib() {
+  let tracks = [];
+  try { tracks = await idbTx("readonly", s => s.getAll()); } catch {}
+  const list = $("libList");
+  list.innerHTML = "";
+  tracks.sort((a, b) => a.name.localeCompare(b.name));
+  for (const tr of tracks) {
+    const row = document.createElement("div");
+    row.className = "vid";
+    row.setAttribute("role", "button");
+    row.tabIndex = 0;
+    const playing = tr.id === libPlayingId;
+    row.innerHTML = "<span>" + (playing ? "⏸ " : "▶ ") + "</span>" +
+      tr.name.replace(/[<>&]/g, "") +
+      '<span class="play-hint lib-del" title="Löschen">✕</span>';
+    row.addEventListener("click", async e => {
+      if (e.target.classList.contains("lib-del")) {
+        if (tr.id === libPlayingId) libStop();
+        try { await idbTx("readwrite", s => s.delete(tr.id)); } catch {}
+        renderLib();
+        return;
+      }
+      if (session) return; /* nicht in laufende Sitzung funken */
+      if (tr.id === libPlayingId) { libStop(); return; }
+      libStop();
+      libUrl = URL.createObjectURL(tr.blob);
+      audio.src = libUrl;
+      audio.play().catch(() => {});
+      libPlayingId = tr.id;
+      if ("mediaSession" in navigator) {
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({ title: tr.name, artist: "Atemfunk Bibliothek", artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }] });
+          navigator.mediaSession.setActionHandler("pause", () => { audio.pause(); });
+          navigator.mediaSession.setActionHandler("play", () => { audio.play().catch(() => {}); });
+        } catch {}
+      }
+      renderLib();
+    });
+    keyActivate(row);
+    list.appendChild(row);
+  }
+}
+audio.addEventListener("ended", () => { if (libPlayingId !== null) libStop(); });
+$("libImport").addEventListener("change", async e => {
+  for (const f of e.target.files) {
+    const name = f.name.replace(/\.[^.]+$/, "");
+    try { await idbTx("readwrite", s => s.put({ id: Date.now() + "-" + Math.random().toString(36).slice(2), name, blob: f })); } catch {}
+  }
+  e.target.value = "";
+  renderLib();
+});
+renderLib();
 
 /* ---------- Dehn-Videos: Player erst beim Antippen laden, nur einer offen ---------- */
 document.querySelectorAll(".vid").forEach(el => {
