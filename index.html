@@ -225,8 +225,9 @@
   <div class="links" id="librarySection">
     <div class="section-cap">Meine Bibliothek · offline · läuft bei Bildschirm aus</div>
     <div id="libList"></div>
-    <label class="vid" style="text-align:center; display:block;">＋ Audio importieren<input type="file" accept="audio/*" multiple hidden id="libImport"></label>
-    <div class="voice-note" style="margin-top:4px">Importierte Audios bleiben nur auf diesem Gerät.</div>
+    <label class="vid" style="text-align:center; display:block;">＋ Audio importieren<input type="file" accept="audio/*,video/*,.m4a,.mp3,.aac,.m4b,.wav,.mp4" multiple hidden id="libImport"></label>
+    <div class="vid" role="button" tabindex="0" id="libConnect" style="text-align:center">🔗 Bibliothek verbinden</div>
+    <div class="voice-note" id="libNote" style="margin-top:4px">Inhalte bleiben nur auf diesem Gerät.</div>
   </div>
 
   <div class="links" id="stretchSection">
@@ -268,6 +269,11 @@
 </div>
 
 <audio id="voiceAudio" preload="none" playsinline></audio>
+
+<div id="videoOverlay" style="display:none; position:fixed; inset:0; background:#000; z-index:50;">
+  <video id="ovVideo" controls playsinline style="width:100%; height:100%; object-fit:contain;"></video>
+  <button id="ovClose" style="position:fixed; top:calc(env(safe-area-inset-top) + 12px); right:16px; z-index:51; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); color:#fff; font-size:18px; cursor:pointer;">✕</button>
+</div>
 
 <script>
 "use strict";
@@ -891,6 +897,20 @@ function libStop() {
   libPlayingId = null;
   renderLib();
 }
+
+/* Video im Vollbild-Overlay abspielen (Blob oder Stream-URL) */
+function openVideo(src) {
+  const ov = $("videoOverlay"), v = $("ovVideo");
+  v.src = src;
+  ov.style.display = "block";
+  v.play().catch(() => {});
+}
+$("ovClose").addEventListener("click", () => {
+  const ov = $("videoOverlay"), v = $("ovVideo");
+  v.pause(); v.removeAttribute("src");
+  ov.style.display = "none";
+  if (libUrl) { URL.revokeObjectURL(libUrl); libUrl = null; }
+});
 async function renderLib() {
   let tracks = [];
   try { tracks = await idbTx("readonly", s => s.getAll()); } catch {}
@@ -914,6 +934,12 @@ async function renderLib() {
         return;
       }
       if (session) return; /* nicht in laufende Sitzung funken */
+      if (tr.url || (tr.blob && tr.blob.type.startsWith("video"))) {
+        libStop();
+        if (tr.url) openVideo(tr.url);
+        else { libUrl = URL.createObjectURL(tr.blob); openVideo(libUrl); }
+        return;
+      }
       if (tr.id === libPlayingId) { libStop(); return; }
       libStop();
       libUrl = URL.createObjectURL(tr.blob);
@@ -943,6 +969,52 @@ $("libImport").addEventListener("change", async e => {
   renderLib();
 });
 renderLib();
+
+/* Verbundene Bibliothek: Manifest laden, Audios herunterladen (offline), Videos streamen */
+async function libSync(verbose) {
+  const base = store.get("atemfunk_lib_url", "");
+  if (!base) return;
+  const note = $("libNote");
+  try {
+    const man = await (await fetch(base + "manifest.json", { cache: "no-store" })).json();
+    let keys = [];
+    try { keys = await idbTx("readonly", s => s.getAllKeys()); } catch {}
+    const have = new Set(keys);
+    for (const t of man.tracks) {
+      const id = (t.stream ? "s-" : "r-") + t.key;
+      if (t.stream) {
+        await idbTx("readwrite", s => s.put({ id, name: t.name, url: base + t.key }));
+        continue;
+      }
+      if (have.has(id)) continue;
+      note.textContent = "Lade: " + t.name + " …";
+      const blob = await (await fetch(base + t.key)).blob();
+      await idbTx("readwrite", s => s.put({ id, name: t.name, blob }));
+      renderLib();
+    }
+    note.textContent = "Bibliothek aktuell · Audios offline gespeichert.";
+    $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
+    renderLib();
+  } catch {
+    if (verbose) note.textContent = "Bibliothek nicht erreichbar – Link prüfen.";
+  }
+}
+keyActivate($("libConnect"));
+$("libConnect").addEventListener("click", () => {
+  let base = store.get("atemfunk_lib_url", "");
+  if (!base) {
+    const inp = prompt("Bibliotheks-Link einfügen:");
+    if (!inp) return;
+    base = inp.trim();
+    if (!base.endsWith("/")) base += "/";
+    store.set("atemfunk_lib_url", base);
+  }
+  libSync(true);
+});
+if (store.get("atemfunk_lib_url", "")) {
+  $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
+  libSync(false);
+}
 
 /* ---------- Dehn-Videos: Player erst beim Antippen laden, nur einer offen ---------- */
 document.querySelectorAll(".vid").forEach(el => {
