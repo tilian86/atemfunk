@@ -309,7 +309,10 @@
   <div class="done-title" id="doneTitle">Gut gemacht.</div>
   <div class="done-sub" id="doneSub"></div>
   <div class="done-stats" id="doneStats"></div>
-  <button class="home-btn" id="homeBtn">Zurück</button>
+  <div class="session-btns">
+    <button class="sbtn" id="quietBtn">Stimme aus</button>
+    <button class="home-btn" id="homeBtn">Zurück</button>
+  </div>
 </div>
 
 <audio id="voiceAudio" preload="none" playsinline></audio>
@@ -540,23 +543,38 @@ function speakCue(label) {
   try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
 }
 
-/* Abschluss: „Das war deine Meditation." → Zitat → Gruß je nach Tageszeit */
+/* Abschluss: „Das war deine Meditation." → Zitat → Gruß je nach Tageszeit.
+   Läuft in einer Kette, die sich jederzeit abbrechen lässt. */
+let closing = null;
+function stopClosing() {
+  if (!closing) return;
+  clearTimeout(closing.timer);
+  try { closing.audio && closing.audio.pause(); } catch {}
+  closing = null;
+}
 function playClosing() {
+  stopClosing();
   if (!voiceOn()) return;
   const h = new Date().getHours();
   const gruss = h < 11 ? "gruss-morgen" : h < 18 ? "gruss-tag" : h < 22 ? "gruss-abend" : "gruss-nacht";
-  const zitat = "zitat-" + (1 + Math.floor(Math.random() * 8));
-  const folge = ["ende", zitat, gruss];
+  const folge = ["ende", "zitat-" + (1 + Math.floor(Math.random() * 8)), gruss];
+  const lauf = {};
+  closing = lauf;
   let i = 0;
   const spielen = () => {
-    if (i >= folge.length) return;
+    if (closing !== lauf || i >= folge.length) { if (closing === lauf) closing = null; return; }
     const a = new Audio(voicePath() + "cues/" + folge[i] + ".mp3");
     a.volume = 0.9;
-    a.addEventListener("ended", () => { i++; setTimeout(spielen, 550); });
-    a.addEventListener("error", () => { i++; spielen(); });
+    lauf.audio = a;
+    a.addEventListener("ended", () => {
+      if (closing !== lauf) return;
+      i++;
+      lauf.timer = setTimeout(spielen, 550);
+    });
+    a.addEventListener("error", () => { if (closing === lauf) { i++; spielen(); } });
     a.play().catch(() => {});
   };
-  setTimeout(spielen, 2200);   /* erst den Schluss-Gong ausklingen lassen */
+  lauf.timer = setTimeout(spielen, 2200);   /* erst den Schluss-Gong ausklingen lassen */
 }
 
 /* ---------- Klangkulisse ---------- */
@@ -767,18 +785,24 @@ function elapsedOf(s) {
 }
 let wakeLock = null;
 
+/* Bildschirm bleibt an, solange die App offen ist – nicht nur während einer Sitzung */
 async function acquireWakeLock() {
-  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+  if (document.visibilityState !== "visible") return;
+  try {
+    if (wakeLock && !wakeLock.released) return;
+    wakeLock = await navigator.wakeLock?.request("screen");
+    wakeLock?.addEventListener?.("release", () => { wakeLock = null; });
+  } catch {}
 }
+["pointerdown", "keydown"].forEach(ev =>
+  window.addEventListener(ev, acquireWakeLock, { once: true, passive: true }));
 
 /* Nach Entsperren: Audio-Kontext wiederbeleben + Restzeit gegen die Uhr prüfen */
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
+  acquireWakeLock();
   if (actx && (!session || !session.leftMsAtPause) && actx.state !== "running") actx.resume().catch(() => {});
-  if (session && !session.leftMsAtPause) {
-    acquireWakeLock();
-    if (session.endAt - Date.now() <= 0) finishSession(true);
-  }
+  if (session && !session.leftMsAtPause && session.endAt - Date.now() <= 0) finishSession(true);
 });
 
 function setMediaSession(min) {
@@ -796,6 +820,8 @@ function setMediaSession(min) {
 
 async function startSession(min, prog) {
   if (session) return;
+  stopClosing();                 /* Abschlussansage der letzten Sitzung beenden */
+  $("quietBtn").textContent = "Stimme aus";
   $("home").classList.remove("active");
   $("doneScreen").classList.remove("active");
   $("session").classList.add("active");
@@ -941,9 +967,7 @@ function finishSession(completed) {
   $("phaseCount").textContent = "";
   audio.pause(); audio.removeAttribute("src");
   if (actx && actx.state !== "running") actx.resume().catch(() => {}); /* eingefrorene Ausklänge nicht in die nächste Sitzung schleppen */
-  try { wakeLock?.release(); } catch {}
-  wakeLock = null;
-  $("session").classList.remove("active");
+  $("session").classList.remove("active");   /* Bildschirm bleibt an, solange die App offen ist */
 
   /* Offene Sitzung: ab einer Minute zählt sie. Sonst: ab der Hälfte zählt sie trotzdem. */
   const countsAnyway = !completed && (offen ? elapsedSec >= 60 : elapsedSec >= session_minHalf(min));
@@ -974,8 +998,13 @@ document.querySelectorAll("[data-prog]").forEach(el => {
 $("pauseBtn").addEventListener("click", () => togglePause());
 $("stopBtn").addEventListener("click", () => finishSession(false));
 $("homeBtn").addEventListener("click", () => {
+  stopClosing();
   $("doneScreen").classList.remove("active");
   $("home").classList.add("active");
+});
+$("quietBtn").addEventListener("click", () => {
+  stopClosing();
+  $("quietBtn").textContent = "Still";
 });
 
 /* ---------- Meine Bibliothek: importierte Audios in IndexedDB, Wiedergabe über <audio> ---------- */
