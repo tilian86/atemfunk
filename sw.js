@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v16";
+const CACHE = "atemfunk-v17";
 const ASSETS = [
   ".",
   "index.html",
@@ -15,6 +15,11 @@ const ASSETS = [
   "audio/m/atem-3.mp3",
   "audio/m/atem-5.mp3",
   "audio/m/atem-10.mp3",
+  "audio/atmo/wald.mp3",
+  "audio/atmo/voegel.mp3",
+  "audio/atmo/fluss.mp3",
+  "audio/atmo/meer.mp3",
+  "audio/atmo/klavier.mp3",
   "audio/atem-1.mp3",
   "audio/atem-3.mp3",
   "audio/atem-5.mp3",

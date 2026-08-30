@@ -225,10 +225,11 @@
   </div>
   <div class="rhythms" id="ambients" role="radiogroup" aria-label="Klangkulisse" style="margin-top:12px">
     <div class="rhy" role="radio" tabindex="0" data-amb="aus">Stille</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="meer">Meer</div>
     <div class="rhy" role="radio" tabindex="0" data-amb="wald">Wald</div>
     <div class="rhy" role="radio" tabindex="0" data-amb="voegel">Vögel</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="fluss">Fluss</div>
+    <div class="rhy" role="radio" tabindex="0" data-amb="fluss">Bach</div>
+    <div class="rhy" role="radio" tabindex="0" data-amb="meer">Meer</div>
+    <div class="rhy" role="radio" tabindex="0" data-amb="klavier">Klavier</div>
   </div>
   <div class="voice-note" id="voiceNote"></div>
 
@@ -534,7 +535,7 @@ function playClosing() {
 
 /* ---------- Klangkulisse ---------- */
 let ambKey = store.get("atemfunk_amb", store.get("atemfunk_ocean", "off") === "on" ? "meer" : "wald");
-if (!["aus", "meer", "wald", "voegel", "fluss"].includes(ambKey)) ambKey = "aus";
+if (!["aus", "meer", "wald", "voegel", "fluss", "klavier"].includes(ambKey)) ambKey = "wald";
 function renderAmbients() {
   document.querySelectorAll("#ambients .rhy").forEach(el => {
     const sel = el.dataset.amb === ambKey;
@@ -641,128 +642,42 @@ function bowl(vol = 0.13) {
   } catch {}
 }
 
-/* ---------- Klangkulissen: Meer, Wald, Vögel, Fluss – alles synthetisch ---------- */
-let ambientBuf = null;
-function makeNoiseSrc(ctx) {
-  if (!ambientBuf) {
-    const sr = ctx.sampleRate;
-    const settle = sr >> 1, len = 4 * sr, fade = Math.floor(0.3 * sr);
-    const tmp = new Float32Array(settle + len + fade);
-    let b0 = 0, b1 = 0, b2 = 0;
-    for (let i = 0; i < tmp.length; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.997 * b0 + 0.03 * white;
-      b1 = 0.985 * b1 + 0.06 * white;
-      b2 = 0.95 * b2 + 0.11 * white;
-      tmp[i] = (b0 + b1 + b2) * 1.1;
-    }
-    ambientBuf = ctx.createBuffer(1, len, sr);
-    const data = ambientBuf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = tmp[settle + i];
-    /* Kopf mit dem Material hinter dem Ende überblenden → kein Knacks am Loop-Punkt */
-    for (let j = 0; j < fade; j++) {
-      const w = j / fade;
-      data[j] = data[j] * w + tmp[settle + len + j] * (1 - w);
-    }
-  }
-  const src = ctx.createBufferSource();
-  src.buffer = ambientBuf; src.loop = true;
-  return src;
-}
+/* ---------- Klangkulissen: echte Naturaufnahmen (gemeinfrei), nahtlos geloopt ---------- */
+const AMB_LEVEL = { wald: 0.60, voegel: 0.55, fluss: 0.50, meer: 0.55, klavier: 0.38 };
+const ambBuffers = {};
+let amb = null, ambLoading = false;
 
-/* Kurzes Vogel-Zwitschern: 2-4 Silben, zufällige Tonhöhe, leicht im Raum verteilt */
-function birdChirp(ctx, dest) {
-  try {
-    const t = ctx.currentTime + 0.02;
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-    if (pan) pan.pan.value = Math.random() * 1.4 - 0.7;
-    o.type = "sine";
-    const f0 = 2300 + Math.random() * 1700;
-    const syl = 2 + Math.floor(Math.random() * 3);
-    g.gain.setValueAtTime(0.0001, t);
-    for (let k = 0; k < syl; k++) {
-      const ts = t + k * 0.19;
-      o.frequency.setValueAtTime(f0 + Math.random() * 300, ts);
-      o.frequency.linearRampToValueAtTime(f0 + 700 + Math.random() * 500, ts + 0.06);
-      o.frequency.linearRampToValueAtTime(f0 - 150, ts + 0.13);
-      g.gain.linearRampToValueAtTime(0.03, ts + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, ts + 0.16);
-    }
-    o.connect(g);
-    if (pan) { g.connect(pan); pan.connect(dest); } else g.connect(dest);
-    o.start(t); o.stop(t + syl * 0.19 + 0.2);
-  } catch {}
-}
-
-let amb = null;
-function startAmbient() {
-  if (ambKey === "aus") return;
+async function startAmbient() {
+  if (ambKey === "aus" || amb || ambLoading) return;
+  const key = ambKey;
+  ambLoading = true;
   try {
     const ctx = audioCtx();
-    const master = ctx.createGain(); master.gain.value = 0.0001;
-    master.connect(ctx.destination);
-    amb = { type: ambKey, master, nextChirp: 3, lastWobble: 0 };
-    const t = ctx.currentTime;
-
-    if (ambKey === "meer") {
-      const src = makeNoiseSrc(ctx);
-      const lp = ctx.createBiquadFilter();
-      lp.type = "lowpass"; lp.frequency.value = 250; lp.Q.value = 0.6;
-      src.connect(lp); lp.connect(master); src.start();
-      amb.lp = lp; amb.srcs = [src];
-      master.gain.setTargetAtTime(0.03, t, 0.5);
-    } else if (ambKey === "fluss") {
-      const src = makeNoiseSrc(ctx);
-      const lp = ctx.createBiquadFilter();
-      lp.type = "lowpass"; lp.frequency.value = 750; lp.Q.value = 0.5;
-      const base = ctx.createGain(); base.gain.value = 0.55;
-      src.connect(lp); lp.connect(base); base.connect(master);
-      const src2 = makeNoiseSrc(ctx);
-      const bp = ctx.createBiquadFilter();
-      bp.type = "bandpass"; bp.frequency.value = 1600; bp.Q.value = 1.1;
-      const babble = ctx.createGain(); babble.gain.value = 0.3;
-      src2.connect(bp); bp.connect(babble); babble.connect(master);
-      src.start(); src2.start();
-      amb.babble = babble; amb.srcs = [src, src2];
-      master.gain.setTargetAtTime(0.05, t, 0.5);
-    } else { /* wald & voegel: Wind-Bett + Zwitschern */
-      const src = makeNoiseSrc(ctx);
-      const lp = ctx.createBiquadFilter();
-      lp.type = "lowpass"; lp.frequency.value = 320; lp.Q.value = 0.5;
-      const wind = ctx.createGain();
-      wind.gain.value = ambKey === "wald" ? 0.7 : 0.3;
-      src.connect(lp); lp.connect(wind); wind.connect(master); src.start();
-      amb.wind = wind; amb.srcs = [src];
-      amb.chirpEvery = ambKey === "wald" ? [5, 8] : [2.5, 4.5];
-      master.gain.setTargetAtTime(0.045, t, 0.5);
+    if (!ambBuffers[key]) {
+      const arr = await (await fetch("audio/atmo/" + key + ".mp3")).arrayBuffer();
+      ambBuffers[key] = await new Promise((res, rej) => ctx.decodeAudioData(arr, res, rej));
     }
+    if (ambKey !== key || amb) { ambLoading = false; return; }   /* inzwischen umgeschaltet */
+    const src = ctx.createBufferSource();
+    src.buffer = ambBuffers[key];
+    src.loop = true;
+    const g = ctx.createGain();
+    g.gain.value = 0.0001;
+    src.connect(g); g.connect(ctx.destination);
+    src.start();
+    amb = { type: key, src, gain: g, base: AMB_LEVEL[key] || 0.5 };
+    g.gain.setTargetAtTime(amb.base, ctx.currentTime, 1.5);      /* sanft einblenden */
   } catch { amb = null; }
+  ambLoading = false;
 }
 
+/* Atmet leicht mit: schwillt zum Einatmen an, sinkt zum Ausatmen */
 function ambientUpdate(bs, elapsed) {
   if (!amb) return;
   try {
-    const ctx = amb.master.context;
-    const t = ctx.currentTime;
-    if (amb.type === "meer") {
-      amb.lp.frequency.setTargetAtTime(250 + bs.value * 650, t, 0.15);
-      amb.master.gain.setTargetAtTime(0.028 + bs.value * 0.03, t, 0.2);
-    } else if (amb.type === "fluss") {
-      if (elapsed - amb.lastWobble > 0.35) {
-        amb.lastWobble = elapsed;
-        amb.babble.gain.setTargetAtTime(0.18 + Math.random() * 0.35, t, 0.25);
-      }
-    } else {
-      if (elapsed - amb.lastWobble > 0.8) {
-        amb.lastWobble = elapsed;
-        amb.wind.gain.setTargetAtTime((amb.type === "wald" ? 0.5 : 0.2) + Math.random() * 0.4, t, 0.6);
-      }
-      if (elapsed >= amb.nextChirp) {
-        amb.nextChirp = elapsed + amb.chirpEvery[0] + Math.random() * (amb.chirpEvery[1] - amb.chirpEvery[0]);
-        birdChirp(ctx, amb.master);
-      }
-    }
+    const ctx = amb.gain.context;
+    const tiefe = amb.type === "klavier" ? 0.12 : 0.22;
+    amb.gain.gain.setTargetAtTime(amb.base * (1 - tiefe + tiefe * 2 * bs.value), ctx.currentTime, 0.6);
   } catch {}
 }
 
@@ -788,10 +703,10 @@ function stopAmbient() {
   const a = amb;
   amb = null;
   try {
-    const t = a.master.context.currentTime;
-    a.master.gain.setTargetAtTime(0.0001, t, 0.12);
-    a.srcs.forEach(s => { try { s.stop(t + 0.8); } catch {} });
-  } catch { a.srcs?.forEach(s => { try { s.stop(); } catch {} }); }
+    const t = a.gain.context.currentTime;
+    a.gain.gain.setTargetAtTime(0.0001, t, 0.25);   /* sanft ausblenden */
+    a.src.stop(t + 1.2);
+  } catch { try { a.src.stop(); } catch {} }
 }
 
 /* ---------- Session ---------- */
