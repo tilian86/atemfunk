@@ -211,6 +211,7 @@
     <div class="rhy" role="radio" tabindex="0" data-rhy="ruhig">Ruhig<small>4 ein · 6 aus</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="box">Box<small>4 · 4 · 4 · 4</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="schlaf">Schlaf<small>4 · 7 · 8</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-rhy="seufzer">Beruhigen<small>Seufzer</small></div>
   </div>
 
   <div class="rhythms" id="voices" role="radiogroup" aria-label="Stimme" style="margin-bottom:14px">
@@ -231,12 +232,30 @@
     <div class="rhy" role="radio" tabindex="0" data-amb="meer">Meer</div>
     <div class="rhy" role="radio" tabindex="0" data-amb="klavier">Klavier</div>
   </div>
+  <div id="ambVolWrap" style="width:100%; margin-top:12px; display:none">
+    <input type="range" id="ambVol" min="0" max="100" value="60" aria-label="Lautstärke der Klangkulisse"
+           style="width:100%; accent-color:var(--accent); height:24px">
+    <div class="section-cap" style="margin:0">Klangkulisse · Lautstärke</div>
+  </div>
   <div class="voice-note" id="voiceNote"></div>
+
+  <div class="links" id="progSection">
+    <div class="section-cap">Geführte Programme</div>
+    <div class="vid" role="button" tabindex="0" data-prog="koerperreise" data-min="10"><span>Körperreise</span> · durch den ganzen Körper spüren · 10 Min</div>
+    <div class="vid" role="button" tabindex="0" data-prog="frei" data-min="12"><span>Freie Meditation</span> · offen geführt · 12 Min</div>
+  </div>
 
   <div class="links">
     <div class="section-cap">Andere Stimmen · extern</div>
     <a href="https://insighttimer.com/de/heckenbeck/gefuehrte-meditation/3-minuten-atemraum" target="_blank" rel="noopener"><span>Tobias Polzin</span> · 3-Minuten-Atemraum · 3 Min</a>
     <a href="https://insighttimer.com/de/britta.hoelzel/gefuehrte-meditation/kurze-atemachtsamkeit-deutsch" target="_blank" rel="noopener"><span>Britta Hölzel</span> · Kurze Atemachtsamkeit · 4 Min</a>
+  </div>
+
+  <div class="links">
+    <div class="section-cap">Zum Weiterhören · Spotify</div>
+    <a href="https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO" target="_blank" rel="noopener"><span>Peaceful Piano</span> · ruhiges Klavier</a>
+    <a href="https://open.spotify.com/playlist/6SJJ1n7kMgC9iKyIhkpxys" target="_blank" rel="noopener"><span>Meditation Mix</span> · zum Meditieren</a>
+    <a href="https://open.spotify.com/playlist/4fXQWXCxLv9k2WUSqvjKs4" target="_blank" rel="noopener"><span>Klänge zum Entspannen</span> · Naturklänge</a>
   </div>
 
   <div class="links" id="librarySection">
@@ -377,6 +396,9 @@ const RHYTHMS = {
   ruhig:  { phases: [["Einatmen", 4], ["Ausatmen", 6]] },
   box:    { phases: [["Einatmen", 4], ["Halten", 4], ["Ausatmen", 4], ["Halten", 4]] },
   schlaf: { phases: [["Einatmen", 4], ["Halten", 7], ["Ausatmen", 8]] },
+  /* Physiologischer Seufzer: zweiter kurzer Zug oben drauf, dann lang ausatmen –
+     der schnellste bekannte Weg, das Nervensystem herunterzufahren. */
+  seufzer: { phases: [["Einatmen", 4], ["Nachatmen", 1.5], ["Ausatmen", 8]] },
 };
 let rhythmKey = store.get("atemfunk_rhythm", "ruhig");
 if (!RHYTHMS[rhythmKey]) rhythmKey = "ruhig";
@@ -403,17 +425,21 @@ document.querySelectorAll("#rhythms .rhy").forEach(el => {
 function breathState(tSec, rhythm) {
   const total = rhythm.phases.reduce((a, p) => a + p[1], 0);
   const inCycle = ((tSec % total) + total) % total;
+  /* Beim Seufzer bleibt der erste Zug bei 85 %, der Nachzug füllt auf 100 % */
+  const peakEin = rhythm.phases.some(p => p[0] === "Nachatmen") ? 0.85 : 1;
   let p = inCycle, cur = 0;
   for (const [name, dur] of rhythm.phases) {
     if (p < dur) {
       const eased = 0.5 - 0.5 * Math.cos(Math.PI * (p / dur));
       let value = cur;
-      if (name === "Einatmen") value = cur + (1 - cur) * eased;
+      if (name === "Einatmen") value = cur + (peakEin - cur) * eased;
+      else if (name === "Nachatmen") value = cur + (1 - cur) * eased;
       else if (name === "Ausatmen") value = cur * (1 - eased);
       return { label: name, value, left: dur - p, cycle: inCycle / total };
     }
     p -= dur;
-    if (name === "Einatmen") cur = 1;
+    if (name === "Einatmen") cur = peakEin;
+    else if (name === "Nachatmen") cur = 1;
     else if (name === "Ausatmen") cur = 0;
   }
   return { label: rhythm.phases[0][0], value: 0, left: 0, cycle: 0 };
@@ -500,7 +526,7 @@ document.querySelectorAll("#voices .rhy").forEach(el => {
 /* Gesprochene Phasenansagen – vorgeladen, damit sie sofort kommen */
 const CUES = {};
 function loadCues() {
-  ["Einatmen", "Halten", "Ausatmen"].forEach(w => {
+  ["Einatmen", "Halten", "Ausatmen", "Nachatmen"].forEach(w => {
     const a = new Audio(voicePath() + "cues/" + w + ".mp3");
     a.preload = "auto"; a.volume = 0.85;
     CUES[w] = a;
@@ -536,12 +562,16 @@ function playClosing() {
 /* ---------- Klangkulisse ---------- */
 let ambKey = store.get("atemfunk_amb", store.get("atemfunk_ocean", "off") === "on" ? "meer" : "wald");
 if (!["aus", "meer", "wald", "voegel", "fluss", "klavier"].includes(ambKey)) ambKey = "wald";
+let ambVol = parseInt(store.get("atemfunk_ambvol", "60"), 10);
+if (!(ambVol >= 0 && ambVol <= 100)) ambVol = 60;
 function renderAmbients() {
   document.querySelectorAll("#ambients .rhy").forEach(el => {
     const sel = el.dataset.amb === ambKey;
     el.classList.toggle("sel", sel);
     el.setAttribute("aria-checked", sel ? "true" : "false");
   });
+  $("ambVolWrap").style.display = ambKey === "aus" ? "none" : "block";
+  $("ambVol").value = ambVol;
 }
 document.querySelectorAll("#ambients .rhy").forEach(el => {
   keyActivate(el);
@@ -552,6 +582,14 @@ document.querySelectorAll("#ambients .rhy").forEach(el => {
     stopAmbient();
     ensureAmbient();
   });
+});
+$("ambVol").addEventListener("input", e => {
+  ambVol = +e.target.value;
+  store.set("atemfunk_ambvol", String(ambVol));
+  if (amb) {
+    amb.base = (AMB_LEVEL[amb.type] || 0.5) * (ambVol / 60);
+    try { amb.gain.gain.setTargetAtTime(amb.base, amb.gain.context.currentTime, 0.2); } catch {}
+  }
 });
 renderAmbients();
 
@@ -612,6 +650,8 @@ function breathCue(label) {
     if (label === "Einatmen") {          /* C5 → G5 */
       bell(ctx, 523.25, 0.030, 1.6, 0);
       bell(ctx, 784.00, 0.026, 1.8, 0.22);
+    } else if (label === "Nachatmen") {  /* kurzer heller Zusatzton */
+      bell(ctx, 987.77, 0.024, 1.0, 0);
     } else if (label === "Ausatmen") {   /* G4 → C4 */
       bell(ctx, 392.00, 0.030, 2.2, 0);
       bell(ctx, 261.63, 0.028, 2.6, 0.26);
@@ -665,7 +705,7 @@ async function startAmbient() {
     g.gain.value = 0.0001;
     src.connect(g); g.connect(ctx.destination);
     src.start();
-    amb = { type: key, src, gain: g, base: AMB_LEVEL[key] || 0.5 };
+    amb = { type: key, src, gain: g, base: (AMB_LEVEL[key] || 0.5) * (ambVol / 60) };
     g.gain.setTargetAtTime(amb.base, ctx.currentTime, 1.5);      /* sanft einblenden */
   } catch { amb = null; }
   ambLoading = false;
@@ -754,7 +794,7 @@ function setMediaSession(min) {
   } catch {}
 }
 
-async function startSession(min) {
+async function startSession(min, prog) {
   if (session) return;
   $("home").classList.remove("active");
   $("doneScreen").classList.remove("active");
@@ -765,16 +805,17 @@ async function startSession(min) {
 
   const offen = min === 0;                              /* ohne Zeitlimit */
   const totalSec = offen ? Infinity : min * 60;
-  const guided = !offen && voiceOn() && rhythmKey === "ruhig";  /* eingesprochene Meditation (4-6) */
+  /* Programme sind immer geführt; sonst nur der ruhige 4-6-Rhythmus */
+  const guided = !offen && voiceOn() && (!!prog || rhythmKey === "ruhig");
   const spoken = voiceOn() && !guided;                  /* gesprochene Phasenansagen */
   session = {
-    min, totalSec, offen, spoken, bowl: bowlOn(),
+    min, totalSec, offen, spoken, prog, bowl: bowlOn(),
     startedAt: Date.now(),
     endAt: offen ? Infinity : Date.now() + totalSec * 1000,
     leftMsAtPause: null,
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: 45,
-    rhythm: RHYTHMS[rhythmKey],
+    rhythm: prog ? RHYTHMS.ruhig : RHYTHMS[rhythmKey],   /* Programme atmen ruhig mit */
   };
   buildBreathRing(session.rhythm);
   $("ringProg").style.strokeDashoffset = offen ? RING_LEN : RING_LEN;
@@ -785,7 +826,9 @@ async function startSession(min) {
   setMediaSession(min);
 
   if (guided) {
-    audio.src = voicePath() + "atem-" + min + ".mp3";
+    audio.src = session.prog
+      ? voicePath() + "prog/" + session.prog + ".mp3"
+      : voicePath() + "atem-" + min + ".mp3";
     try {
       await audio.play();
     } catch {
@@ -923,6 +966,10 @@ function session_minHalf(min) { return (min * 60) / 2; }
 document.querySelectorAll(".dur").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => startSession(+el.dataset.min));
+});
+document.querySelectorAll("[data-prog]").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => startSession(+el.dataset.min, el.dataset.prog));
 });
 $("pauseBtn").addEventListener("click", () => togglePause());
 $("stopBtn").addEventListener("click", () => finishSession(false));
