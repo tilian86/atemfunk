@@ -493,6 +493,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("lernenBtn").addEventListener("click", merkeErkenntnis);
   $("wocheVorlesenBtn").addEventListener("click", () =>
     vorlesen($("wocheErgebnis").dataset.text || "", $("wocheVorlesenBtn")));
+  /* Aus der Meditation mitgebrachte Frage übernehmen */
+  const mit = new URLSearchParams(location.search).get("frage");
+  if (mit) {
+    $("impulsText").textContent = "„" + mit + "“";
+    $("impulsText").style.display = "block";
+    $("notiz").focus();
+    history.replaceState(null, "", "journal.html");
+  }
   zeigeErkenntnisse(); zeigeErinnerung(); zeigeFaeden();
   $("tonBtn").addEventListener("click", tonStart);
   $("sichernBtn").addEventListener("click", sichern);

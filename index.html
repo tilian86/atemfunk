@@ -164,6 +164,8 @@
   }
   .phase { font-size: 22px; font-weight: 300; letter-spacing: 0.15em; color: var(--ink); min-height: 30px; }
   .phase-count { font-size: 30px; font-weight: 200; color: var(--accent); min-height: 34px; font-variant-numeric: tabular-nums; opacity: 0.85; }
+  .frage-text { font-size: 18px; font-weight: 300; line-height: 1.5; color: var(--gold);
+                max-width: 340px; margin: -8px auto 14px; min-height: 0; }
   .timeleft { font-size: 15px; color: var(--ink-dim); margin-top: 8px; font-variant-numeric: tabular-nums; min-height: 20px; }
   .session-note { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-top: 10px; min-height: 16px; }
 
@@ -255,6 +257,17 @@
   </div>
   <div class="voice-note" id="voiceNote"></div>
 
+  <div class="links" id="frageSection">
+    <div class="section-cap">Über eine Frage meditieren</div>
+    <div id="frageAnzeige" class="vid" style="display:none; text-align:left; color:var(--ink); line-height:1.5"></div>
+    <div class="rhythms" id="frageThemen" style="flex-wrap:wrap"></div>
+    <div class="row" style="display:flex; gap:8px; margin-top:4px">
+      <button class="vid" id="frageEigene" style="flex:1; text-align:center; margin:0">Eigene Frage</button>
+      <button class="vid" id="frageImpuls" style="flex:1; text-align:center; margin:0">Aus meinem Journal</button>
+    </div>
+    <div class="voice-note" id="frageNote"></div>
+  </div>
+
   <div class="links" id="progSection">
     <div class="section-cap">Geführte Programme</div>
     <div class="vid" role="button" tabindex="0" data-prog="koerperreise" data-min="10"><span>Körperreise</span> · durch den ganzen Körper spüren · 10 Min</div>
@@ -309,6 +322,7 @@
     </svg>
     <div class="orb" id="orb"></div>
   </div>
+  <div class="frage-text" id="frageImLauf"></div>
   <div class="phase" id="phase" aria-live="polite">&nbsp;</div>
   <div class="phase-count" id="phaseCount"></div>
   <div class="timeleft" id="timeleft"></div>
@@ -327,6 +341,7 @@
   <div class="done-stats" id="doneStats"></div>
   <div class="session-btns">
     <button class="sbtn" id="quietBtn">Stimme aus</button>
+    <a class="sbtn" id="journalBtn" style="display:none; text-decoration:none; align-items:center">Ins Journal</a>
     <button class="home-btn" id="homeBtn">Zurück</button>
   </div>
 </div>
@@ -855,10 +870,12 @@ async function startSession(min, prog) {
   const offen = min === 0;                              /* ohne Zeitlimit */
   const totalSec = offen ? Infinity : min * 60;
   /* Programme sind immer geführt; sonst nur der ruhige 4-6-Rhythmus */
-  const guided = !offen && voiceOn() && (!!prog || rhythmKey === "ruhig");
+  const mitFrage = !!frage && !prog;
+  const guided = !offen && voiceOn() && !mitFrage && (!!prog || rhythmKey === "ruhig");
   const spoken = voiceOn() && !guided;                  /* gesprochene Phasenansagen */
   session = {
-    min, totalSec, offen, spoken, prog, bowl: bowlOn(),
+    min, totalSec, offen, spoken: spoken && !mitFrage, prog, bowl: bowlOn(),
+    frage: mitFrage ? frage.text : null, frageWiederholt: false,
     startedAt: Date.now(),
     endAt: offen ? Infinity : Date.now() + totalSec * 1000,
     leftMsAtPause: null,
@@ -870,9 +887,11 @@ async function startSession(min, prog) {
   $("ringProg").style.strokeDashoffset = offen ? RING_LEN : RING_LEN;
   $("stopBtn").textContent = offen ? "Fertig" : "Beenden";
 
+  $("frageImLauf").textContent = session.frage ? "„" + session.frage + "“" : "";
   acquireWakeLock();
   gong();
   setMediaSession(min);
+  if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage), 4200);
 
   if (guided) {
     audio.src = session.prog
@@ -914,6 +933,11 @@ async function startSession(min, prog) {
       if (!first && sigOn()) breathCue(bs.label);      /* Ton erst ab dem Wechsel */
       session.lastLabel = bs.label;
       phaseEl.textContent = bs.label;
+    }
+    if (session.frage && !session.frageWiederholt && !session.offen && elapsed > session.totalSec * 0.55) {
+      session.frageWiederholt = true;
+      if (voiceOn()) sprichFrage(session.frage);
+      else bowl(0.10);
     }
     if (session.bowl && elapsed >= session.nextBowlAt && (session.offen || elapsed < session.totalSec - 8)) {
       session.nextBowlAt += 45;
@@ -985,9 +1009,12 @@ function finishSession(completed) {
   const elapsedSec = (!offen && session.leftMsAtPause)
     ? session.totalSec - session.leftMsAtPause / 1000
     : elapsedOf(session);
+  const warFrage = session.frage;
   session = null;
   $("breathDot").style.display = "none";
   $("phaseCount").textContent = "";
+  $("frageImLauf").textContent = "";
+  try { speechSynthesis.cancel(); } catch {}
   audio.pause(); audio.removeAttribute("src");
   if (actx && actx.state !== "running") actx.resume().catch(() => {}); /* eingefrorene Ausklänge nicht in die nächste Sitzung schleppen */
   $("session").classList.remove("active");   /* Bildschirm bleibt an, solange die App offen ist */
@@ -1001,6 +1028,14 @@ function finishSession(completed) {
     const { streak, stats } = recordSession(credited);
     $("doneTitle").textContent = (completed && !offen) ? "Gut gemacht." : (offen ? "Schön, dass du da warst." : "Zählt trotzdem.");
     $("doneSub").textContent = credited + " " + (credited === 1 ? "Minute" : "Minuten") + " Atemmeditation · " + streak + (streak === 1 ? " Tag" : " Tage") + " in Folge";
+    if (warFrage) {
+      $("doneSub").textContent = "„" + warFrage + "“";
+      store.set("atemfunk_letzte_frage", warFrage);
+      $("journalBtn").href = "journal.html?frage=" + encodeURIComponent(warFrage);
+      $("journalBtn").style.display = "inline-flex";
+    } else {
+      $("journalBtn").style.display = "none";
+    }
     $("doneStats").textContent = stats.sessions + (stats.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + stats.minutes + (stats.minutes === 1 ? " Minute" : " Minuten") + " insgesamt";
     $("doneScreen").classList.add("active");
   } else {
@@ -1247,6 +1282,97 @@ $("libConnect").addEventListener("click", () => {
 if (store.get("atemfunk_lib_url", "")) {
   $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
   libSync(false);
+}
+
+/* ---------- Über eine Frage meditieren (Fragen aus KlarKreis) ---------- */
+let frage = null, frageDaten = null;
+
+function setzeFrage(text, quelle) {
+  frage = text ? { text, quelle } : null;
+  const a = $("frageAnzeige");
+  if (!frage) { a.style.display = "none"; $("frageNote").textContent = ""; return; }
+  a.style.display = "block";
+  a.innerHTML = "<span style='color:var(--gold)'>„" + text.replace(/[<>&]/g, "") + "“</span>"
+    + "<span class='play-hint' id='frageWeg'>✕</span>";
+  $("frageWeg").addEventListener("click", e => { e.stopPropagation(); setzeFrage(null); });
+  $("frageNote").textContent = "Wähle jetzt eine Dauer – die Frage begleitet dich still durch die Sitzung.";
+  $("frageAnzeige").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function ladeFragen() {
+  if (frageDaten) return frageDaten;
+  try { frageDaten = await (await fetch("fragen.json")).json(); } catch { frageDaten = {}; }
+  return frageDaten;
+}
+
+(async function baueFragen() {
+  const daten = await ladeFragen();
+  const ziel = $("frageThemen");
+  const themen = Object.keys(daten);
+  if (!themen.length) { $("frageSection").style.display = "none"; return; }
+  const zufall = document.createElement("div");
+  zufall.className = "rhy sel"; zufall.style.flex = "1 1 100%";
+  zufall.textContent = "Zufällige Frage";
+  zufall.addEventListener("click", () => {
+    const alle = Object.values(daten).flat();
+    setzeFrage(alle[Math.floor(Math.random() * alle.length)], "klarkreis");
+  });
+  ziel.appendChild(zufall);
+  for (const t of themen) {
+    const el = document.createElement("div");
+    el.className = "rhy"; el.style.flex = "1 1 28%";
+    el.innerHTML = t + "<small>" + daten[t].length + "</small>";
+    el.addEventListener("click", () => {
+      const liste = daten[t];
+      setzeFrage(liste[Math.floor(Math.random() * liste.length)], "klarkreis");
+    });
+    ziel.appendChild(el);
+  }
+})();
+
+$("frageEigene").addEventListener("click", () => {
+  const t = prompt("Worüber möchtest du nachsinnen?");
+  if (t && t.trim()) setzeFrage(t.trim(), "eigen");
+});
+
+$("frageImpuls").addEventListener("click", async () => {
+  const basis = store.get("atemfunk_lib_url", "");
+  if (!basis) { $("frageNote").textContent = "Dafür einmal unten die Bibliothek verbinden."; return; }
+  const btn = $("frageImpuls"); btn.textContent = "Sucht …";
+  const profil = store.get("atemfunk_profil", "");
+  const lernen = (store.getJSON("atemfunk_lernen", []) || []).slice(0, 4).map(e => "- " + e.text).join("\n");
+  const auftrag =
+    "Formuliere EINE einzige Frage, über die Florian in einer stillen Meditation nachsinnen kann. " +
+    "Sie soll aus seinem Material kommen, offen sein und sich nicht in einem Satz beantworten lassen. " +
+    "Keine Ja-Nein-Frage, kein Ratschlag, keine Erklärung. Antworte nur mit der Frage selbst.";
+  try {
+    const r = await fetch(basis + "ki", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ system: "", user: auftrag + "\n\n---\n\n" +
+        (profil ? "Was du über ihn weißt:\n" + profil + "\n\n" : "") +
+        (lernen ? "Seine Erkenntnisse:\n" + lernen : "Noch wenig bekannt – nimm eine ruhige Grundfrage.") }),
+    });
+    const d = await r.json();
+    btn.textContent = "Aus meinem Journal";
+    if (d.text) setzeFrage(d.text.trim().replace(/^[„"']|[""']$/g, ""), "ki");
+    else $("frageNote").textContent = "Mac gerade nicht erreichbar.";
+  } catch {
+    btn.textContent = "Aus meinem Journal";
+    $("frageNote").textContent = "Mac gerade nicht erreichbar.";
+  }
+});
+
+/* Spricht die Frage – zu Beginn und noch einmal in der Mitte */
+function sprichFrage(text) {
+  if (!("speechSynthesis" in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "de-DE"; u.rate = 0.85;
+    const de = speechSynthesis.getVoices().filter(v => v.lang.startsWith("de"));
+    const gut = de.find(v => /premium|enhanced|siri/i.test(v.name)) || de[0];
+    if (gut) u.voice = gut;
+    speechSynthesis.speak(u);
+  } catch {}
 }
 
 /* ---------- Hinweis, falls Audio fehlt (GET mit Range prüft auch den SW-Pfad) ---------- */
