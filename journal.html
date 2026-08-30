@@ -18,8 +18,10 @@
   <div class="sub">Gedanken, Sprachnotizen und Bilder über den Tag – alles bleibt auf diesem Gerät.
     Wenn du magst, reflektieren wir abends gemeinsam darüber.</div>
 
+  <div class="hint" id="impulsText" style="display:none; margin:0 0 10px; color:var(--gold); font-size:14px; line-height:1.55"></div>
   <textarea id="notiz" placeholder="Was ist gerade?"></textarea>
   <div class="row">
+    <button class="btn" id="impulsBtn">✨ Impuls</button>
     <button class="btn rec" id="diktatBtn">🎙 Diktieren</button>
     <button class="btn rec" id="tonBtn">⏺ Sprachnotiz</button>
     <label class="btn">📷 Bild<input type="file" accept="image/*" id="bildInput" hidden></label>
@@ -30,10 +32,14 @@
   <div class="cap">Heute</div>
   <div id="heuteListe"></div>
 
+  <div class="cap" id="faedenCap" style="display:none">Woran wir dran sind</div>
+  <div id="faedenListe"></div>
+
   <div class="cap">Gemeinsam nachdenken</div>
   <div class="card">
-    <div class="hint" style="margin-top:0">Nimmt deine Einträge von heute und stellt dir Fragen,
-      die weiterführen – kein Zusammenfassen, sondern echtes Nachhaken.</div>
+    <div class="hint" style="margin-top:0">Schaut auf deinen Tag und sucht sich jedes Mal eine
+      andere Art, damit umzugehen – mal eine einzige Frage, mal ein Widerspruch, mal ein Bild.
+      Nie zweimal dasselbe Schema.</div>
     <div class="row">
       <button class="btn primary" id="reflexBtn">Reflexion starten</button>
       <button class="btn" id="promptBtn">Prompt kopieren</button>
@@ -201,23 +207,57 @@ async function zeigeFrueher() {
   }
 }
 
-const SYSTEM = `Du begleitest Florian beim Journaling. Er hat ADHS und mag es konkret, ohne Küchenpsychologie.
+const SYSTEM = `Du begleitest Florian beim Journaling. Er hat ADHS, mag es konkret und hasst
+Küchenpsychologie und Kalendersprüche. Er hat ausdrücklich gesagt: bloß kein Sechs-Minuten-Tagebuch,
+wo jeden Tag dieselben drei Fragen kommen.
 
-Du bekommst seine Einträge von heute. Antworte auf Deutsch, per Du, warm und neugierig.
-Fasse NICHT bloß zusammen. Struktur:
+DESHALB DIE WICHTIGSTE REGEL: Wähle die Form deiner Antwort jedes Mal neu – passend zu dem,
+was heute tatsächlich in seinen Einträgen steht. Kein festes Schema, keine Überschriften-Schablone,
+die du immer nimmst. Ein Tag voller Termine braucht etwas anderes als ein stiller Tag oder einer,
+an dem etwas wehgetan hat.
 
-## Was mir auffällt
-Ein bis zwei ehrliche Beobachtungen – gern auch etwas, das zwischen den Zeilen steht.
-Belege sie an dem, was da steht. Keine Deutung ins Blaue.
+Dir steht alles offen, zum Beispiel (nicht abarbeiten, sondern auswählen oder etwas Eigenes finden):
+– eine einzige, sehr präzise Frage, die den Rest des Tages trägt
+– ein kurzer Brief von ihm selbst in einem Jahr an ihn heute
+– eine Szene aus dem Tag noch einmal erzählt, aus einer anderen Perspektive
+– ein Bild oder eine Metapher für den Tag, an der du dann weiterdenkst
+– Advocatus Diaboli: du widersprichst seiner eigenen Deutung
+– ein kurzer Dialog zwischen zwei seiner inneren Anteile
+– etwas Spielerisches: ein Sechszeiler, eine Überschrift für den Tag, ein Fundstück
+– ein Vergleich zu einem früheren Tag, wenn du dafür Material hast
 
-## Drei Fragen
-Drei Fragen, die wirklich weiterführen. Nicht "Wie hast du dich gefühlt?", sondern spezifisch
-auf seinen Tag bezogen. Eine davon darf unbequem sein.
+Immer gilt:
+– Belege alles an dem, was wirklich dasteht. Keine Deutung ins Blaue, kein Lob auf Verdacht.
+– Sei neugierig, warm und direkt. Per Du. Deutsch.
+– Wenn heute etwas schwer war, mach es nicht klein und dreh es nicht ins Positive.
+– Höchstens 250 Wörter. Lieber kurz und treffend.
 
-## Ein Satz zum Mitnehmen
-Kurz. Nicht kitschig, kein Kalenderspruch.
+Du kennst ihn über die Zeit: Wenn ein früheres Thema, ein Muster oder ein offener Faden zum
+heutigen Tag passt, dann greif das auf und frag konkret nach – wie ein Sparringspartner, der sich
+erinnert. Aber nur, wenn es wirklich passt; nichts hineinzwingen.
 
-Höchstens 250 Wörter.`;
+Beginne deine Antwort mit einer einzigen Zeile:
+FORM: <zwei bis vier Wörter, wie du es diesmal angehst>
+Danach die eigentliche Antwort, ohne diese Zeile zu erwähnen.` + META_AUFTRAG;
+
+/* Die zuletzt gewählten Formen – damit sich nichts wiederholt */
+function letzteFormen() { return store.getJSON("atemfunk_formen", []); }
+function merkeForm(f) {
+  if (!f) return;
+  const l = letzteFormen(); l.unshift(f);
+  store.setJSON("atemfunk_formen", l.slice(0, 8));
+}
+function formenHinweis() {
+  const l = letzteFormen();
+  return l.length
+    ? "\n\nDiese Formen hast du zuletzt gewählt – nimm diesmal bewusst eine andere:\n"
+      + l.map(f => "- " + f).join("\n")
+    : "";
+}
+function trenneForm(text) {
+  const m = text.match(/^\s*FORM:\s*(.+)$/im);
+  return { form: m ? m[1].trim() : "", rest: text.replace(/^\s*FORM:.*$/im, "").trim() };
+}
 
 async function tagesText() {
   const alle = await alleEintraege();
@@ -235,11 +275,9 @@ async function reflektieren() {
   const text = await tagesText();
   if (!text.trim()) { $("hinweis").textContent = "Heute ist noch nichts im Journal."; return; }
   const btn = $("reflexBtn"); btn.disabled = true; btn.textContent = "Liest …";
-  const gemerkt = erkenntnisse().slice(0, 5).map(e => "- " + e.text).join("\n");
   const r = await frageKI(SYSTEM,
-    (gemerkt ? "Was Florian sich über sich gemerkt hat:\n" + gemerkt +
-      "\n(Beziehe dich darauf, wenn es zum Tag passt.)\n\n" : "") +
-    "Meine Einträge von heute:\n" + text);
+    kontextBlock(erkenntnisse().slice(0, 5)) +
+    "Meine Einträge von heute:\n" + text + formenHinweis());
   btn.disabled = false; btn.textContent = "Reflexion starten";
   if (r.fehler) {
     $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
@@ -247,9 +285,33 @@ async function reflektieren() {
       : "Dein Mac ist nicht erreichbar. Nimm den Prompt und sprich in ChatGPT weiter.";
     return;
   }
-  $("reflexText").innerHTML = alsHtml(r.text);
+  const { form, text: sichtbar } = verarbeiteAntwort(r.text);
+  merkeForm(form);
+  $("reflexText").innerHTML = (form ? `<div class="hint" style="margin:0 0 10px">Heute: ${form.replace(/[<>&]/g, "")}</div>` : "") + alsHtml(sichtbar);
   $("reflexion").style.display = "block";
-  $("reflexion").dataset.text = r.text;
+  $("reflexion").dataset.text = sichtbar;
+  zeigeFaeden();
+}
+
+/* Ein Impuls, der aus den letzten Tagen entsteht – nicht aus einer Liste */
+async function impuls() {
+  const btn = $("impulsBtn"); btn.disabled = true; btn.textContent = "Denkt nach …";
+  const alle = await alleEintraege();
+  const letzte = alle.filter(e => e.zeit >= Date.now() - 5 * 864e5).sort((a, b) => a.zeit - b.zeit)
+    .map(e => e.datum + " " + uhrzeit(e.zeit) + " — " + (e.text || "[" + e.art + "]")).join("\n");
+  const r = await frageKI(
+    `Du gibst Florian einen Schreibimpuls fürs Journal. Er hat ADHS und will keine Standardfragen
+     wie „Wofür bist du dankbar?". Der Impuls muss aus SEINEM Material entstehen: greif etwas
+     Konkretes aus den letzten Tagen auf, das noch offen wirkt, sich wiederholt oder überrascht hat.
+     Er darf schräg, spielerisch oder unbequem sein – aber nie beliebig.
+     Antworte mit ein bis zwei Sätzen. Kein Vorspann, keine Anführungszeichen.` + formenHinweis(),
+    kontextBlock(erkenntnisse().slice(0, 4)) +
+    (letzte ? "Letzte Tage:\n" + letzte : "Noch keine Einträge – gib einen Impuls, der beim Anfangen hilft."));
+  btn.disabled = false; btn.textContent = "✨ Impuls";
+  if (r.fehler) { $("hinweis").textContent = "Mac gerade nicht erreichbar."; return; }
+  $("impulsText").textContent = r.text;
+  $("impulsText").style.display = "block";
+  $("notiz").focus();
 }
 
 async function antworten() {
@@ -294,6 +356,29 @@ function zeigeErkenntnisse() {
   });
 }
 
+/* ---------- Offene Fäden ---------- */
+function zeigeFaeden() {
+  const liste = faeden();
+  $("faedenCap").style.display = liste.length ? "block" : "none";
+  const ziel = $("faedenListe");
+  ziel.innerHTML = "";
+  for (const f of liste.slice(0, 5)) {
+    const k = document.createElement("div");
+    k.className = "card eintrag";
+    const z = document.createElement("div");
+    z.className = "zeit"; z.textContent = f.datum.slice(5);
+    const t = document.createElement("div");
+    t.className = "txt"; t.textContent = f.text;
+    t.style.cursor = "pointer";
+    t.addEventListener("click", () => { $("notiz").value = f.text + "\n\n"; $("notiz").focus(); });
+    const w = document.createElement("div");
+    w.className = "weg"; w.textContent = "✓"; w.title = "Erledigt";
+    w.addEventListener("click", () => { schliesseFaden(f.id); zeigeFaeden(); });
+    k.append(z, t, w);
+    ziel.appendChild(k);
+  }
+}
+
 /* ---------- Wochenrückblick ---------- */
 const SYSTEM_WOCHE = `Du hilfst Florian, aus seinem Leben zu lernen. Er hat ADHS.
 Du bekommst seine Journal-Einträge der letzten Tage und frühere Erkenntnisse.
@@ -317,7 +402,7 @@ Beginne diese Zeile mit "ERKENNTNIS: ".
 ## Nächste Woche
 Eine einzige Sache, die er anders macht. Klein.
 
-Höchstens 350 Wörter.`;
+Höchstens 350 Wörter.` + META_AUFTRAG;
 
 async function wocheAnschauen() {
   const alle = await alleEintraege();
@@ -332,9 +417,8 @@ async function wocheAnschauen() {
     (tage[e.datum] ||= []).push(uhrzeit(e.zeit) + " — " + s);
   }
   const text = Object.entries(tage).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
-  const alt = erkenntnisse().slice(0, 6).map(e => "- " + e.text).join("\n");
   const r = await frageKI(SYSTEM_WOCHE,
-    (alt ? "Frühere Erkenntnisse:\n" + alt + "\n\n" : "") + "Einträge der letzten Tage:\n" + text);
+    kontextBlock(erkenntnisse().slice(0, 6)) + "Einträge der letzten Tage:\n" + text);
   btn.disabled = false; btn.textContent = "Woche anschauen";
   if (r.fehler) {
     $("hinweis").textContent = r.fehler === "nicht-verbunden"
@@ -342,11 +426,13 @@ async function wocheAnschauen() {
       : "Dein Mac ist nicht erreichbar. Der Prompt oben funktioniert auch in ChatGPT.";
     return;
   }
-  $("wocheText").innerHTML = alsHtml(r.text);
+  const { text: sichtbarW } = verarbeiteAntwort(r.text);
+  $("wocheText").innerHTML = alsHtml(sichtbarW);
   $("wocheErgebnis").style.display = "block";
-  $("wocheErgebnis").dataset.text = r.text;
+  $("wocheErgebnis").dataset.text = sichtbarW;
+  zeigeFaeden();
   store.set("atemfunk_letzter_rueckblick", heute());
-  await speichern({ art: "text", text: "Wochenrückblick\n\n" + r.text });
+  await speichern({ art: "text", text: "Wochenrückblick\n\n" + sichtbarW });
   zeigeHeute(); zeigeErinnerung();
 }
 
@@ -407,10 +493,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("lernenBtn").addEventListener("click", merkeErkenntnis);
   $("wocheVorlesenBtn").addEventListener("click", () =>
     vorlesen($("wocheErgebnis").dataset.text || "", $("wocheVorlesenBtn")));
-  zeigeErkenntnisse(); zeigeErinnerung();
+  zeigeErkenntnisse(); zeigeErinnerung(); zeigeFaeden();
   $("tonBtn").addEventListener("click", tonStart);
   $("sichernBtn").addEventListener("click", sichern);
   $("reflexBtn").addEventListener("click", reflektieren);
+  $("impulsBtn").addEventListener("click", impuls);
   $("antwortenBtn").addEventListener("click", antworten);
   $("vorlesenBtn").addEventListener("click", () => vorlesen($("reflexion").dataset.text || "", $("vorlesenBtn")));
   $("promptBtn").addEventListener("click", async () =>

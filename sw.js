@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v23";
+const CACHE = "atemfunk-v24";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [

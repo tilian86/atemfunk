@@ -53,9 +53,11 @@ async function frageKI(system, user, model) {
   const basis = kiBasis();
   if (!basis) return { fehler: "nicht-verbunden" };
   try {
+    /* Rolle bewusst im Nutzertext statt im system-Feld: die CLI behandelt
+       eingebettete <system>-Blöcke misstrauisch und verweigert sie mitunter. */
     const r = await fetch(basis + "ki", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ system, user, model: model || "sonnet" }),
+      body: JSON.stringify({ system: "", user: system + "\n\n---\n\n" + user, model: model || "sonnet" }),
     });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || d.error) return { fehler: d.offline ? "mac-aus" : (d.error || "fehler") };
@@ -63,6 +65,65 @@ async function frageKI(system, user, model) {
   } catch {
     return { fehler: "mac-aus" };
   }
+}
+
+/* ---------- Gedächtnis: was über Florian bekannt ist ----------
+   Ein wachsendes Kurzprofil plus offene Fäden, an denen weitergefragt wird. */
+function profil() { return store.get("atemfunk_profil", ""); }
+function setzeProfil(t) { if (t && t.length > 20) store.set("atemfunk_profil", t.slice(0, 2200)); }
+
+function faeden() { return store.getJSON("atemfunk_faeden", []); }
+function merkeFaden(text) {
+  if (!text || text.length < 10) return;
+  const l = faeden();
+  if (l.some(f => f.text.slice(0, 40) === text.slice(0, 40))) return;   /* keine Dubletten */
+  l.unshift({ id: Date.now(), datum: heute(), text: text.trim() });
+  store.setJSON("atemfunk_faeden", l.slice(0, 12));
+}
+function schliesseFaden(id) {
+  store.setJSON("atemfunk_faeden", faeden().filter(f => f.id !== id));
+}
+
+/* Der gemeinsame Kontextblock für alle Bereiche */
+function kontextBlock(lernen) {
+  const teile = [];
+  const p = profil();
+  if (p) teile.push("Was du über Florian schon weißt:\n" + p);
+  if (lernen && lernen.length)
+    teile.push("Was er sich selbst gemerkt hat:\n" + lernen.map(e => "- " + e.text).join("\n"));
+  const f = faeden();
+  if (f.length) {
+    const alt = f.filter(x => x.datum !== heute());
+    if (alt.length) teile.push(
+      "Offene Fäden aus früheren Gesprächen (frag nach, wenn heute etwas dazu passt – aber nur dann):\n"
+      + alt.slice(0, 5).map(x => `- (${x.datum}) ${x.text}`).join("\n"));
+  }
+  return teile.length ? teile.join("\n\n") + "\n\n" : "";
+}
+
+/* Der Auftrag, das Gedächtnis mitzupflegen – wird an Prompts angehängt */
+const META_AUFTRAG = `
+
+Zum Schluss, nach deiner eigentlichen Antwort, zwei technische Zeilen (sie werden ausgeblendet):
+THEMEN: <150–400 Zeichen. Das aktualisierte Kurzprofil über Florian: wiederkehrende Themen,
+was ihm hilft, was ihn bremst, was ihm wichtig ist. Übernimm Bestehendes und ergänze nur,
+was heute wirklich dazugekommen ist. Keine Aufzählung von Tagesereignissen.>
+FADEN: <ein einziger offener Punkt, an dem du beim nächsten Mal anknüpfen willst – als Frage
+formuliert. Wenn heute nichts offen blieb: das Wort keiner>`;
+
+/* Trennt Form-, Themen- und Faden-Zeilen vom sichtbaren Text und pflegt das Gedächtnis */
+function verarbeiteAntwort(text) {
+  const form = (text.match(/^\s*FORM:\s*(.+)$/im) || [])[1] || "";
+  const themen = (text.match(/^\s*THEMEN:\s*([\s\S]*?)(?=^\s*(?:FADEN|FORM):|\s*$)/im) || [])[1] || "";
+  const faden = (text.match(/^\s*FADEN:\s*(.+)$/im) || [])[1] || "";
+  setzeProfil(themen.trim());
+  if (faden && !/^keiner\b/i.test(faden.trim())) merkeFaden(faden.trim());
+  const rest = text
+    .replace(/^\s*FORM:.*$/im, "")
+    .replace(/^\s*THEMEN:[\s\S]*?(?=^\s*FADEN:|$)/im, "")
+    .replace(/^\s*FADEN:.*$/im, "")
+    .trim();
+  return { form: form.trim(), text: rest };
 }
 
 /* ---------- Diktat (kostenlos, im Browser) ---------- */
