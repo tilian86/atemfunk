@@ -125,6 +125,31 @@
   .vid-frame.open { display: block; }
   .vid-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
 
+  /* Bibliotheks-Zeile mit Vorschaubild */
+  .trk { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 8px; border-radius: 14px;
+         background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); cursor: pointer; text-align: left; }
+  .trk.playing { background: var(--accent-soft); border-color: rgba(127,184,216,0.45); }
+  .trk:active { background: rgba(255,255,255,0.08); }
+  .trk img { width: 68px; height: 42px; object-fit: cover; border-radius: 9px; flex-shrink: 0; background: rgba(255,255,255,0.06); }
+  .trk .meta { flex: 1; min-width: 0; }
+  .trk .ttl { color: var(--ink); font-size: 13px; line-height: 1.35; }
+  .trk .sub { color: var(--ink-dim); font-size: 11px; opacity: 0.8; margin-top: 2px; }
+  .trk .del { color: var(--ink-dim); opacity: 0.55; padding: 8px; font-size: 13px; flex-shrink: 0; }
+
+  /* Player */
+  .player { position: sticky; bottom: 0; z-index: 20; margin: 10px 0 0;
+            background: rgba(19,27,58,0.94); backdrop-filter: blur(14px);
+            border: 1px solid rgba(127,184,216,0.28); border-radius: 18px; padding: 12px 14px 14px; display: none; }
+  .player.open { display: block; }
+  .player .pttl { font-size: 13px; color: var(--ink); text-align: left; margin-bottom: 8px;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .player input[type=range] { width: 100%; accent-color: var(--accent); height: 24px; }
+  .player .times { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; margin-top: -2px; }
+  .player .ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; }
+  .player .ctrl button { min-width: 44px; min-height: 44px; border-radius: 999px; cursor: pointer; font-family: inherit;
+                         background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--ink); font-size: 12px; }
+  .player .ctrl button.big { background: var(--accent-soft); border-color: rgba(127,184,216,0.5); font-size: 17px; min-width: 56px; }
+
   /* ---------- Session ---------- */
   .orb-wrap { position: relative; width: 290px; height: 290px; margin: 14px 0 26px; display: flex; align-items: center; justify-content: center; }
   .ring-svg { position: absolute; inset: 0; transform: rotate(-90deg); }
@@ -208,37 +233,30 @@
     <div class="section-cap">Andere Stimmen · extern</div>
     <a href="https://insighttimer.com/de/heckenbeck/gefuehrte-meditation/3-minuten-atemraum" target="_blank" rel="noopener"><span>Tobias Polzin</span> · 3-Minuten-Atemraum · 3 Min</a>
     <a href="https://insighttimer.com/de/britta.hoelzel/gefuehrte-meditation/kurze-atemachtsamkeit-deutsch" target="_blank" rel="noopener"><span>Britta Hölzel</span> · Kurze Atemachtsamkeit · 4 Min</a>
-    <div class="vid" role="button" tabindex="0" data-yt="6EVqc2LBBhY"><span>Anna Hahn</span> · Atemmeditation Entspannung · 5 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="00_nJsI69rk"><span>Mindlook</span> · Kurze Atem-Meditation · 5 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="FjqE9a8aIAM"><span>Akademie für Sport &amp; Gesundheit</span> · Atemmeditation · 10 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="b_Rd602B_aQ"><span>7Mind</span> · SOS-Meditation (schnell runterkommen) · 5 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="IwN6mpAsm00"><span>7Mind</span> · Grundlagen: Ankommen · 12 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="yB0aVLcMdOE"><span>Mindlook</span> · Atem-Meditation bei Stress · 11 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
   </div>
 
   <div class="links" id="librarySection">
-    <div class="section-cap">Meine Bibliothek · offline · läuft bei Bildschirm aus</div>
+    <div class="section-cap" id="capAudio" style="display:none">Meditationen · offline · läuft bei Bildschirm aus</div>
     <div id="libList"></div>
+    <div class="section-cap" id="capVideo" style="display:none; margin-top:22px">Morgen-Dehnen</div>
+    <div id="libListVideo"></div>
     <label class="vid" style="text-align:center; display:block;">＋ Audio importieren<input type="file" accept="audio/*,video/*,.m4a,.mp3,.aac,.m4b,.wav,.mp4" multiple hidden id="libImport"></label>
     <div class="vid" role="button" tabindex="0" id="libConnect" style="text-align:center">🔗 Bibliothek verbinden</div>
     <div class="voice-note" id="libNote" style="margin-top:4px">Inhalte bleiben nur auf diesem Gerät.</div>
+
+    <div class="player" id="player">
+      <div class="pttl" id="pTitle"></div>
+      <input type="range" id="pSeek" min="0" max="1000" value="0" step="1" aria-label="Position">
+      <div class="times"><span id="pCur">0:00</span><span id="pDur">0:00</span></div>
+      <div class="ctrl">
+        <button id="pBack">−15s</button>
+        <button class="big" id="pPlay">⏸</button>
+        <button id="pFwd">+30s</button>
+        <button id="pClose">✕</button>
+      </div>
+    </div>
   </div>
 
-  <div class="links" id="stretchSection">
-    <div class="section-cap">Morgen-Dehnen · läuft direkt hier</div>
-    <div class="vid" role="button" tabindex="0" data-yt="r8nw2cEmeYE"><span>Liebscher &amp; Bracht</span> · Morgenroutine Ganzkörper · 10 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="hy1YsvO30MM"><span>Ergotopia</span> · Morning Stretch Mobilisation · 11 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-    <div class="vid" role="button" tabindex="0" data-yt="tK049YhYOGo"><span>Ergotopia</span> · Dehnen &amp; Kräftigen (lang) · 21 Min<span class="play-hint">▶</span></div>
-    <div class="vid-frame"></div>
-  </div>
 </div>
 
 <!-- SESSION -->
@@ -873,6 +891,8 @@ function libStop() {
   if (libPlayingId !== null) { audio.pause(); audio.removeAttribute("src"); }
   if (libUrl) { URL.revokeObjectURL(libUrl); libUrl = null; }
   libPlayingId = null;
+  $("player").classList.remove("open");
+  $("pSeek").value = 0; $("pCur").textContent = "0:00"; $("pDur").textContent = "0:00";
   renderLib();
 }
 
@@ -889,54 +909,105 @@ $("ovClose").addEventListener("click", () => {
   ov.style.display = "none";
   if (libUrl) { URL.revokeObjectURL(libUrl); libUrl = null; }
 });
+const thumbUrls = new Map();
+function thumbFor(tr) {
+  if (tr.thumb) return tr.thumb;                    /* Stream-Vorschau (URL) */
+  if (!tr.thumbBlob) return null;
+  if (!thumbUrls.has(tr.id)) thumbUrls.set(tr.id, URL.createObjectURL(tr.thumbBlob));
+  return thumbUrls.get(tr.id);
+}
+function fmtTime(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  return Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+}
+
 async function renderLib() {
   let tracks = [];
   try { tracks = await idbTx("readonly", s => s.getAll()); } catch {}
-  const list = $("libList");
-  list.innerHTML = "";
-  tracks.sort((a, b) => a.name.localeCompare(b.name));
+  const lists = { audio: $("libList"), video: $("libListVideo") };
+  lists.audio.innerHTML = ""; lists.video.innerHTML = "";
+  tracks.sort((a, b) => (a.ord ?? 999) - (b.ord ?? 999) || a.name.localeCompare(b.name));
   for (const tr of tracks) {
+    const isVideo = !!tr.url || (tr.blob && tr.blob.type.startsWith("video"));
     const row = document.createElement("div");
-    row.className = "vid";
+    row.className = "trk" + (tr.id === libPlayingId ? " playing" : "");
     row.setAttribute("role", "button");
     row.tabIndex = 0;
-    const playing = tr.id === libPlayingId;
-    row.innerHTML = "<span>" + (playing ? "⏸ " : "▶ ") + "</span>" +
-      tr.name.replace(/[<>&]/g, "") +
-      '<span class="play-hint lib-del" title="Löschen">✕</span>';
-    row.addEventListener("click", async e => {
-      if (e.target.classList.contains("lib-del")) {
-        if (tr.id === libPlayingId) libStop();
-        try { await idbTx("readwrite", s => s.delete(tr.id)); } catch {}
-        renderLib();
-        return;
-      }
+    const img = document.createElement("img");
+    const th = thumbFor(tr);
+    if (th) img.src = th; else img.alt = "";
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const ttl = document.createElement("div");
+    ttl.className = "ttl"; ttl.textContent = tr.name;
+    const sub = document.createElement("div");
+    sub.className = "sub";
+    sub.textContent = isVideo ? "Video · streamt" : (tr.id === libPlayingId ? "läuft gerade" : "Audio · offline");
+    meta.append(ttl, sub);
+    const del = document.createElement("div");
+    del.className = "del"; del.textContent = "✕"; del.title = "Löschen";
+    row.append(img, meta, del);
+
+    del.addEventListener("click", async e => {
+      e.stopPropagation();
+      if (tr.id === libPlayingId) libStop();
+      try { await idbTx("readwrite", s => s.delete(tr.id)); } catch {}
+      renderLib();
+    });
+    row.addEventListener("click", () => {
       if (session) return; /* nicht in laufende Sitzung funken */
-      if (tr.url || (tr.blob && tr.blob.type.startsWith("video"))) {
+      if (isVideo) {
         libStop();
         if (tr.url) openVideo(tr.url);
         else { libUrl = URL.createObjectURL(tr.blob); openVideo(libUrl); }
         return;
       }
-      if (tr.id === libPlayingId) { libStop(); return; }
+      if (tr.id === libPlayingId) { audio.paused ? audio.play().catch(() => {}) : audio.pause(); return; }
       libStop();
       libUrl = URL.createObjectURL(tr.blob);
       audio.src = libUrl;
       audio.play().catch(() => {});
       libPlayingId = tr.id;
+      $("pTitle").textContent = tr.name;
+      $("player").classList.add("open");
       if ("mediaSession" in navigator) {
         try {
-          navigator.mediaSession.metadata = new MediaMetadata({ title: tr.name, artist: "Atemfunk Bibliothek", artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }] });
-          navigator.mediaSession.setActionHandler("pause", () => { audio.pause(); });
-          navigator.mediaSession.setActionHandler("play", () => { audio.play().catch(() => {}); });
+          navigator.mediaSession.metadata = new MediaMetadata({ title: tr.name, artist: "Atemfunk", artwork: [{ src: th || "icon-512.png", sizes: "512x512", type: "image/png" }] });
+          navigator.mediaSession.setActionHandler("pause", () => audio.pause());
+          navigator.mediaSession.setActionHandler("play", () => audio.play().catch(() => {}));
+          navigator.mediaSession.setActionHandler("seekbackward", () => { audio.currentTime = Math.max(0, audio.currentTime - 15); });
+          navigator.mediaSession.setActionHandler("seekforward", () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); });
+          navigator.mediaSession.setActionHandler("seekto", d => { if (d.seekTime != null) audio.currentTime = d.seekTime; });
         } catch {}
       }
       renderLib();
     });
     keyActivate(row);
-    list.appendChild(row);
+    (isVideo ? lists.video : lists.audio).appendChild(row);
   }
+  $("capAudio").style.display = lists.audio.children.length ? "block" : "none";
+  $("capVideo").style.display = lists.video.children.length ? "block" : "none";
 }
+
+/* ---------- Player-Steuerung ---------- */
+let seeking = false;
+$("pSeek").addEventListener("input", () => { seeking = true; });
+$("pSeek").addEventListener("change", () => {
+  if (audio.duration) audio.currentTime = (+$("pSeek").value / 1000) * audio.duration;
+  seeking = false;
+});
+$("pBack").addEventListener("click", () => { audio.currentTime = Math.max(0, audio.currentTime - 15); });
+$("pFwd").addEventListener("click", () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); });
+$("pPlay").addEventListener("click", () => { audio.paused ? audio.play().catch(() => {}) : audio.pause(); });
+$("pClose").addEventListener("click", () => libStop());
+audio.addEventListener("timeupdate", () => {
+  if (libPlayingId === null) return;
+  $("pCur").textContent = fmtTime(audio.currentTime);
+  $("pDur").textContent = fmtTime(audio.duration);
+  if (!seeking && audio.duration) $("pSeek").value = Math.round((audio.currentTime / audio.duration) * 1000);
+});
+audio.addEventListener("play", () => { if (libPlayingId !== null) { $("pPlay").textContent = "⏸"; renderLib(); } });
+audio.addEventListener("pause", () => { if (libPlayingId !== null) $("pPlay").textContent = "▶"; });
 audio.addEventListener("ended", () => { if (libPlayingId !== null) libStop(); });
 $("libImport").addEventListener("change", async e => {
   for (const f of e.target.files) {
@@ -958,17 +1029,36 @@ async function libSync(verbose) {
     let keys = [];
     try { keys = await idbTx("readonly", s => s.getAllKeys()); } catch {}
     const have = new Set(keys);
-    for (const t of man.tracks) {
+    const wanted = new Set();
+    for (let i = 0; i < man.tracks.length; i++) {
+      const t = man.tracks[i];
       const id = (t.stream ? "s-" : "r-") + t.key;
+      wanted.add(id);
       if (t.stream) {
-        await idbTx("readwrite", s => s.put({ id, name: t.name, url: base + t.key }));
+        await idbTx("readwrite", s => s.put({ id, name: t.name, ord: i, url: base + t.key, thumb: t.thumb ? base + t.thumb : null }));
         continue;
       }
-      if (have.has(id)) continue;
+      if (have.has(id)) {
+        const cur = await idbTx("readonly", s => s.get(id));
+        if (cur && (cur.ord !== i || cur.name !== t.name)) {
+          cur.ord = i; cur.name = t.name;
+          await idbTx("readwrite", s => s.put(cur));
+        }
+        continue;
+      }
       note.textContent = "Lade: " + t.name + " …";
       const blob = await (await fetch(base + t.key)).blob();
-      await idbTx("readwrite", s => s.put({ id, name: t.name, blob }));
+      let thumbBlob = null;
+      if (t.thumb) { try { thumbBlob = await (await fetch(base + t.thumb)).blob(); } catch {} }
+      await idbTx("readwrite", s => s.put({ id, name: t.name, ord: i, blob, thumbBlob }));
       renderLib();
+    }
+    /* aus der Bibliothek entfernte Inhalte auch lokal löschen (eigene Importe bleiben) */
+    for (const k of have) {
+      if ((String(k).startsWith("r-") || String(k).startsWith("s-")) && !wanted.has(k)) {
+        if (k === libPlayingId) libStop();
+        await idbTx("readwrite", s => s.delete(k));
+      }
     }
     note.textContent = "Bibliothek aktuell · Audios offline gespeichert.";
     $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
