@@ -183,6 +183,18 @@
   .done-title { font-size: 26px; font-weight: 300; margin-bottom: 10px; }
   .done-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 8px; line-height: 1.5; }
   .done-stats { font-size: 13px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 40px; }
+  /* Stumm-Knopf, immer oben rechts erreichbar */
+  #muteBtn {
+    position: fixed; z-index: 45;
+    top: calc(env(safe-area-inset-top) + 10px); right: 14px;
+    width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+    font-size: 18px; line-height: 1; padding: 0;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.13);
+    color: var(--ink); backdrop-filter: blur(10px);
+  }
+  #muteBtn.aus { opacity: 0.55; }
+  #muteBtn:active { background: rgba(255,255,255,0.16); }
+
   /* Untere Navigation zu den anderen Bereichen */
   .nav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -207,6 +219,8 @@
 </head>
 <body>
 <div class="stars" id="stars" aria-hidden="true"></div>
+
+<button id="muteBtn" aria-label="Klangkulisse stummschalten">🔊</button>
 
 <!-- HOME -->
 <div class="screen active" id="home">
@@ -543,6 +557,22 @@ const voiceOn = makeToggle("tglVoice", "atemfunk_voice", true, updateNote);
 const sigOn = makeToggle("tglSignals", "atemfunk_signals", true);
 const bowlOn = makeToggle("tglBowl", "atemfunk_bowl", false, updateNote);
 
+/* ---------- Stumm-Knopf: bleibt immer erreichbar ---------- */
+let stumm = store.get("atemfunk_stumm", "off") === "on";
+function renderStumm() {
+  const b = $("muteBtn");
+  b.textContent = stumm ? "🔇" : "🔊";
+  b.setAttribute("aria-label", stumm ? "Klangkulisse einschalten" : "Klangkulisse stummschalten");
+  b.classList.toggle("aus", stumm);
+}
+$("muteBtn").addEventListener("click", () => {
+  stumm = !stumm;
+  store.set("atemfunk_stumm", stumm ? "on" : "off");
+  renderStumm();
+  if (stumm) stopAmbient(); else ensureAmbient();
+});
+renderStumm();
+
 /* Stimme: weiblich (Standard) oder männlich – männliche Clips liegen unter audio/m/ */
 let voiceSex = store.get("atemfunk_voicesex", "w");
 if (voiceSex !== "m") voiceSex = "w";
@@ -777,9 +807,11 @@ function ambientUpdate(bs, elapsed) {
   } catch {}
 }
 
-/* Kulisse läuft ab dem ersten Antippen dauerhaft – Browser erlauben Ton erst nach einer Geste */
+/* Kulisse läuft ab dem ersten Antippen – dauerhaft oder nur während einer Sitzung.
+   Browser erlauben Ton ohnehin erst nach einer Geste. */
 function ensureAmbient() {
-  if (!amb && ambKey !== "aus") startAmbient();
+  if (amb || ambKey === "aus" || stumm) return;
+  startAmbient();
 }
 ["pointerdown", "keydown"].forEach(ev =>
   window.addEventListener(ev, ensureAmbient, { once: true, passive: true }));
@@ -875,7 +907,7 @@ async function startSession(min, prog) {
   const spoken = voiceOn() && !guided;                  /* gesprochene Phasenansagen */
   session = {
     min, totalSec, offen, spoken: spoken && !mitFrage, prog, bowl: bowlOn(),
-    frage: mitFrage ? frage.text : null, frageWiederholt: false,
+    frage: mitFrage ? frage.text : null, frageNr: mitFrage ? frage.nr : null, frageWiederholt: false,
     startedAt: Date.now(),
     endAt: offen ? Infinity : Date.now() + totalSec * 1000,
     leftMsAtPause: null,
@@ -891,7 +923,7 @@ async function startSession(min, prog) {
   acquireWakeLock();
   gong();
   setMediaSession(min);
-  if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage), 4200);
+  if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage, session.frageNr), 4200);
 
   if (guided) {
     audio.src = session.prog
@@ -936,7 +968,7 @@ async function startSession(min, prog) {
     }
     if (session.frage && !session.frageWiederholt && !session.offen && elapsed > session.totalSec * 0.55) {
       session.frageWiederholt = true;
-      if (voiceOn()) sprichFrage(session.frage);
+      if (voiceOn()) sprichFrage(session.frage, session.frageNr);
       else bowl(0.10);
     }
     if (session.bowl && elapsed >= session.nextBowlAt && (session.offen || elapsed < session.totalSec - 8)) {
@@ -1014,7 +1046,7 @@ function finishSession(completed) {
   $("breathDot").style.display = "none";
   $("phaseCount").textContent = "";
   $("frageImLauf").textContent = "";
-  try { speechSynthesis.cancel(); } catch {}
+  try { speechSynthesis.cancel(); frageAudio.pause(); } catch {}
   audio.pause(); audio.removeAttribute("src");
   if (actx && actx.state !== "running") actx.resume().catch(() => {}); /* eingefrorene Ausklänge nicht in die nächste Sitzung schleppen */
   $("session").classList.remove("active");   /* Bildschirm bleibt an, solange die App offen ist */
@@ -1287,8 +1319,8 @@ if (store.get("atemfunk_lib_url", "")) {
 /* ---------- Über eine Frage meditieren (Fragen aus KlarKreis) ---------- */
 let frage = null, frageDaten = null;
 
-function setzeFrage(text, quelle) {
-  frage = text ? { text, quelle } : null;
+function setzeFrage(text, quelle, nr) {
+  frage = text ? { text, quelle, nr: (typeof nr === "number" ? nr : null) } : null;
   const a = $("frageAnzeige");
   if (!frage) { a.style.display = "none"; $("frageNote").textContent = ""; return; }
   a.style.display = "block";
@@ -1308,24 +1340,22 @@ async function ladeFragen() {
 (async function baueFragen() {
   const daten = await ladeFragen();
   const ziel = $("frageThemen");
-  const themen = Object.keys(daten);
+  const themen = Object.keys(daten.themen || {});
   if (!themen.length) { $("frageSection").style.display = "none"; return; }
+  const waehle = nummern => {
+    const nr = nummern[Math.floor(Math.random() * nummern.length)];
+    setzeFrage(daten.fragen[nr], "klarkreis", nr);
+  };
   const zufall = document.createElement("div");
   zufall.className = "rhy sel"; zufall.style.flex = "1 1 100%";
   zufall.textContent = "Zufällige Frage";
-  zufall.addEventListener("click", () => {
-    const alle = Object.values(daten).flat();
-    setzeFrage(alle[Math.floor(Math.random() * alle.length)], "klarkreis");
-  });
+  zufall.addEventListener("click", () => waehle(Object.values(daten.themen).flat()));
   ziel.appendChild(zufall);
   for (const t of themen) {
     const el = document.createElement("div");
     el.className = "rhy"; el.style.flex = "1 1 28%";
-    el.innerHTML = t + "<small>" + daten[t].length + "</small>";
-    el.addEventListener("click", () => {
-      const liste = daten[t];
-      setzeFrage(liste[Math.floor(Math.random() * liste.length)], "klarkreis");
-    });
+    el.innerHTML = t + "<small>" + daten.themen[t].length + "</small>";
+    el.addEventListener("click", () => waehle(daten.themen[t]));
     ziel.appendChild(el);
   }
 })();
@@ -1362,8 +1392,21 @@ $("frageImpuls").addEventListener("click", async () => {
   }
 });
 
-/* Spricht die Frage – zu Beginn und noch einmal in der Mitte */
-function sprichFrage(text) {
+/* Spricht die Frage – zu Beginn und noch einmal in der Mitte.
+   Für die KlarKreis-Fragen gibt es fertige Aufnahmen in der App-Stimme;
+   eigene und erzeugte Fragen liest die Systemstimme vor. */
+const frageAudio = new Audio();
+function sprichFrage(text, nr) {
+  if (typeof nr === "number") {
+    try {
+      frageAudio.src = voicePath() + "fragen/" + nr + ".mp3";
+      frageAudio.play().catch(() => sprichVorlesen(text));
+      return;
+    } catch {}
+  }
+  sprichVorlesen(text);
+}
+function sprichVorlesen(text) {
   if (!("speechSynthesis" in window)) return;
   try {
     const u = new SpeechSynthesisUtterance(text);
