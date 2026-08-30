@@ -1,0 +1,81 @@
+/* Gemeinsame Grundlage für Schema- und Journal-Bereich */
+:root {
+  --bg1: #0b1026; --bg2: #131b3a; --bg3: #1a2b4a;
+  --ink: #e8ecf8; --ink-dim: #9aa5c8;
+  --accent: #7fb8d8; --accent-soft: rgba(127,184,216,0.25);
+  --gold: #d8c48f;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: radial-gradient(ellipse 120% 90% at 50% -10%, var(--bg3) 0%, var(--bg2) 45%, var(--bg1) 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  padding: calc(env(safe-area-inset-top) + 16px) 18px calc(env(safe-area-inset-bottom) + 92px);
+  -webkit-user-select: none; user-select: none;
+}
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+
+.wrap { max-width: 460px; margin: 0 auto; }
+h1 { font-size: 24px; font-weight: 300; margin-bottom: 4px; }
+.sub { font-size: 13px; color: var(--ink-dim); margin-bottom: 22px; line-height: 1.5; }
+.cap { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); opacity: 0.7; margin: 24px 0 10px; }
+
+.card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 18px; padding: 14px; margin-bottom: 12px; }
+
+textarea, input[type=text] {
+  width: 100%; background: rgba(255,255,255,0.05); color: var(--ink);
+  border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 12px 14px;
+  font: inherit; font-size: 15px; line-height: 1.5; resize: vertical;
+  -webkit-user-select: text; user-select: text;
+}
+textarea { min-height: 120px; }
+textarea::placeholder, input::placeholder { color: var(--ink-dim); opacity: 0.7; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 12px 20px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 14px; letter-spacing: 0.02em;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--ink);
+}
+.btn.primary { background: var(--accent-soft); border-color: rgba(127,184,216,0.45); }
+.btn.rec.on { background: rgba(216,120,120,0.28); border-color: rgba(230,140,140,0.6); }
+.btn:active { filter: brightness(1.25); }
+.btn[disabled] { opacity: 0.45; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+.hint { font-size: 12px; color: var(--ink-dim); margin-top: 10px; line-height: 1.5; }
+.ok { color: var(--gold); }
+
+.antwort { line-height: 1.62; font-size: 15px; -webkit-user-select: text; user-select: text; }
+.antwort h3 { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+              color: var(--accent); margin: 18px 0 6px; font-weight: 500; }
+.antwort h3:first-child { margin-top: 0; }
+.antwort p { margin-bottom: 10px; }
+.antwort ul { margin: 0 0 10px 18px; }
+.antwort li { margin-bottom: 6px; }
+.antwort strong { color: #fff; font-weight: 600; }
+
+.eintrag { display: flex; gap: 10px; align-items: flex-start; }
+.eintrag .zeit { font-size: 11px; color: var(--ink-dim); white-space: nowrap; padding-top: 2px; }
+.eintrag .txt { flex: 1; font-size: 14px; line-height: 1.5; -webkit-user-select: text; user-select: text; }
+.eintrag img { width: 100%; border-radius: 12px; margin-top: 8px; display: block; }
+.eintrag audio { width: 100%; margin-top: 8px; }
+.eintrag .weg { color: var(--ink-dim); opacity: 0.5; padding: 4px 6px; cursor: pointer; }
+
+/* Untere Navigation */
+.nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  display: flex; justify-content: center; gap: 4px;
+  padding: 8px 10px calc(env(safe-area-inset-bottom) + 8px);
+  background: rgba(11,16,38,0.92); backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.nav a {
+  flex: 1; max-width: 120px; text-align: center; text-decoration: none;
+  color: var(--ink-dim); font-size: 11px; padding: 6px 4px; border-radius: 12px;
+}
+.nav a .ico { display: block; font-size: 19px; margin-bottom: 2px; }
+.nav a.sel { color: var(--ink); background: rgba(255,255,255,0.06); }

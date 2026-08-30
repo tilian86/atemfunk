@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Journal · Atemfunk</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>Journal</h1>
+  <div class="sub">Gedanken, Sprachnotizen und Bilder über den Tag – alles bleibt auf diesem Gerät.
+    Wenn du magst, reflektieren wir abends gemeinsam darüber.</div>
+
+  <textarea id="notiz" placeholder="Was ist gerade?"></textarea>
+  <div class="row">
+    <button class="btn rec" id="diktatBtn">🎙 Diktieren</button>
+    <button class="btn rec" id="tonBtn">⏺ Sprachnotiz</button>
+    <label class="btn">📷 Bild<input type="file" accept="image/*" id="bildInput" hidden></label>
+    <button class="btn primary" id="sichernBtn">Sichern</button>
+  </div>
+  <div class="hint" id="hinweis"></div>
+
+  <div class="cap">Heute</div>
+  <div id="heuteListe"></div>
+
+  <div class="cap">Gemeinsam nachdenken</div>
+  <div class="card">
+    <div class="hint" style="margin-top:0">Nimmt deine Einträge von heute und stellt dir Fragen,
+      die weiterführen – kein Zusammenfassen, sondern echtes Nachhaken.</div>
+    <div class="row">
+      <button class="btn primary" id="reflexBtn">Reflexion starten</button>
+      <button class="btn" id="promptBtn">Prompt kopieren</button>
+    </div>
+    <div id="reflexion" style="display:none; margin-top:14px">
+      <div class="antwort" id="reflexText"></div>
+      <div class="row">
+        <button class="btn" id="vorlesenBtn">🔊 Vorlesen</button>
+        <button class="btn" id="antwortenBtn">Antworten</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cap">Wochenrückblick</div>
+  <div id="erinnerung"></div>
+  <div class="card">
+    <div class="hint" style="margin-top:0">Einmal die Woche über alles schauen: Was wiederholt sich?
+      Was hat getragen, was hat gebremst? Die Erkenntnisse bleiben gespeichert und fließen in
+      spätere Gespräche ein.</div>
+    <div class="row">
+      <button class="btn primary" id="wocheBtn">Woche anschauen</button>
+      <button class="btn" id="exportBtn">Als Textdatei</button>
+    </div>
+    <div id="wocheErgebnis" style="display:none; margin-top:14px">
+      <div class="antwort" id="wocheText"></div>
+      <div class="row">
+        <button class="btn" id="wocheVorlesenBtn">🔊 Vorlesen</button>
+        <button class="btn" id="lernenBtn">Als Erkenntnis merken</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cap">Was ich gelernt habe</div>
+  <div id="erkenntnisse"></div>
+
+  <div class="cap">Frühere Tage</div>
+  <div id="frueher"></div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+"use strict";
+
+let aufnahme = null, brocken = [];
+
+async function tonStart() {
+  const btn = $("tonBtn");
+  if (aufnahme) {
+    aufnahme.stop();
+    return;
+  }
+  try {
+    const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mr = new MediaRecorder(strom);
+    brocken = [];
+    mr.ondataavailable = e => { if (e.data.size) brocken.push(e.data); };
+    mr.onstop = async () => {
+      strom.getTracks().forEach(t => t.stop());
+      aufnahme = null;
+      btn.classList.remove("on"); btn.textContent = "⏺ Sprachnotiz";
+      const blob = new Blob(brocken, { type: mr.mimeType || "audio/webm" });
+      if (blob.size > 2000) await speichern({ art: "audio", blob, text: $("notiz").value.trim() });
+      $("notiz").value = "";
+      zeigeHeute();
+    };
+    mr.start();
+    aufnahme = mr;
+    btn.classList.add("on"); btn.textContent = "⏹ Stopp";
+  } catch {
+    $("hinweis").textContent = "Kein Zugriff aufs Mikrofon.";
+  }
+}
+
+async function speichern(eintrag) {
+  await dbTx("journal", "readwrite", s => s.put({
+    id: Date.now() + "-" + Math.random().toString(36).slice(2),
+    datum: heute(), zeit: Date.now(), ...eintrag,
+  }));
+}
+
+async function sichern() {
+  const text = $("notiz").value.trim();
+  if (!text) { $("hinweis").textContent = "Erst etwas schreiben oder diktieren."; return; }
+  await speichern({ art: "text", text });
+  $("notiz").value = "";
+  $("hinweis").textContent = "";
+  zeigeHeute();
+}
+
+$("bildInput").addEventListener("change", async e => {
+  for (const f of e.target.files) await speichern({ art: "bild", blob: f, text: $("notiz").value.trim() });
+  e.target.value = ""; $("notiz").value = "";
+  zeigeHeute();
+});
+
+const urls = new Map();
+function blobUrl(id, blob) {
+  if (!urls.has(id)) urls.set(id, URL.createObjectURL(blob));
+  return urls.get(id);
+}
+
+async function alleEintraege() {
+  try { return await dbTx("journal", "readonly", s => s.getAll()); } catch { return []; }
+}
+
+function zeichne(ziel, liste) {
+  ziel.innerHTML = "";
+  if (!liste.length) { ziel.innerHTML = '<div class="hint">Noch nichts festgehalten.</div>'; return; }
+  for (const e of liste.sort((a, b) => b.zeit - a.zeit)) {
+    const k = document.createElement("div");
+    k.className = "card eintrag";
+    const zeit = document.createElement("div");
+    zeit.className = "zeit"; zeit.textContent = uhrzeit(e.zeit);
+    const txt = document.createElement("div");
+    txt.className = "txt";
+    if (e.text) txt.textContent = e.text;
+    if (e.art === "bild" && e.blob) {
+      const img = document.createElement("img");
+      img.src = blobUrl(e.id, e.blob); img.loading = "lazy";
+      txt.appendChild(img);
+    }
+    if (e.art === "audio" && e.blob) {
+      const a = document.createElement("audio");
+      a.controls = true; a.src = blobUrl(e.id, e.blob);
+      txt.appendChild(a);
+    }
+    const weg = document.createElement("div");
+    weg.className = "weg"; weg.textContent = "✕";
+    weg.addEventListener("click", async () => {
+      await dbTx("journal", "readwrite", s => s.delete(e.id));
+      zeigeHeute(); zeigeFrueher();
+    });
+    k.append(zeit, txt, weg);
+    ziel.appendChild(k);
+  }
+}
+
+async function zeigeHeute() {
+  const alle = await alleEintraege();
+  zeichne($("heuteListe"), alle.filter(e => e.datum === heute()));
+}
+
+async function zeigeFrueher() {
+  const alle = await alleEintraege();
+  const andere = alle.filter(e => e.datum !== heute());
+  const ziel = $("frueher");
+  ziel.innerHTML = "";
+  if (!andere.length) { ziel.innerHTML = '<div class="hint">Noch keine älteren Tage.</div>'; return; }
+  const tage = [...new Set(andere.map(e => e.datum))].sort().reverse().slice(0, 14);
+  for (const tag of tage) {
+    const k = document.createElement("div");
+    k.className = "card";
+    k.style.cursor = "pointer";
+    const n = andere.filter(e => e.datum === tag).length;
+    k.innerHTML = `<div class="txt"><strong>${tag}</strong> · ${n} ${n === 1 ? "Eintrag" : "Einträge"}</div>`;
+    k.addEventListener("click", () => {
+      const offen = k.querySelector(".details");
+      if (offen) { offen.remove(); return; }
+      const d = document.createElement("div");
+      d.className = "details"; d.style.marginTop = "10px";
+      zeichne(d, andere.filter(e => e.datum === tag));
+      k.appendChild(d);
+    });
+    ziel.appendChild(k);
+  }
+}
+
+const SYSTEM = `Du begleitest Florian beim Journaling. Er hat ADHS und mag es konkret, ohne Küchenpsychologie.
+
+Du bekommst seine Einträge von heute. Antworte auf Deutsch, per Du, warm und neugierig.
+Fasse NICHT bloß zusammen. Struktur:
+
+## Was mir auffällt
+Ein bis zwei ehrliche Beobachtungen – gern auch etwas, das zwischen den Zeilen steht.
+Belege sie an dem, was da steht. Keine Deutung ins Blaue.
+
+## Drei Fragen
+Drei Fragen, die wirklich weiterführen. Nicht "Wie hast du dich gefühlt?", sondern spezifisch
+auf seinen Tag bezogen. Eine davon darf unbequem sein.
+
+## Ein Satz zum Mitnehmen
+Kurz. Nicht kitschig, kein Kalenderspruch.
+
+Höchstens 250 Wörter.`;
+
+async function tagesText() {
+  const alle = await alleEintraege();
+  const heutige = alle.filter(e => e.datum === heute()).sort((a, b) => a.zeit - b.zeit);
+  const teile = heutige.map(e => {
+    const z = uhrzeit(e.zeit);
+    if (e.art === "bild") return `${z} — [Foto]${e.text ? " " + e.text : ""}`;
+    if (e.art === "audio") return `${z} — [Sprachnotiz]${e.text ? " " + e.text : ""}`;
+    return `${z} — ${e.text}`;
+  });
+  return teile.join("\n");
+}
+
+async function reflektieren() {
+  const text = await tagesText();
+  if (!text.trim()) { $("hinweis").textContent = "Heute ist noch nichts im Journal."; return; }
+  const btn = $("reflexBtn"); btn.disabled = true; btn.textContent = "Liest …";
+  const gemerkt = erkenntnisse().slice(0, 5).map(e => "- " + e.text).join("\n");
+  const r = await frageKI(SYSTEM,
+    (gemerkt ? "Was Florian sich über sich gemerkt hat:\n" + gemerkt +
+      "\n(Beziehe dich darauf, wenn es zum Tag passt.)\n\n" : "") +
+    "Meine Einträge von heute:\n" + text);
+  btn.disabled = false; btn.textContent = "Reflexion starten";
+  if (r.fehler) {
+    $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
+      ? "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> und tippe auf „Bibliothek verbinden“."
+      : "Dein Mac ist nicht erreichbar. Nimm den Prompt und sprich in ChatGPT weiter.";
+    return;
+  }
+  $("reflexText").innerHTML = alsHtml(r.text);
+  $("reflexion").style.display = "block";
+  $("reflexion").dataset.text = r.text;
+}
+
+async function antworten() {
+  const a = prompt("Deine Antwort:");
+  if (!a) return;
+  const btn = $("antwortenBtn"); btn.disabled = true;
+  const r = await frageKI(SYSTEM,
+    "Einträge:\n" + (await tagesText()) +
+    "\n\nDeine Fragen:\n" + $("reflexion").dataset.text +
+    "\n\nFlorians Antwort:\n" + a +
+    "\n\nGeh darauf ein, kurz und konkret. Höchstens 150 Wörter, gern mit einer weiterführenden Frage.");
+  btn.disabled = false;
+  if (r.fehler) { $("hinweis").textContent = "Mac nicht erreichbar."; return; }
+  $("reflexText").innerHTML += "<h3>Du sagst</h3><p><em style='color:var(--ink-dim)'>"
+    + a.replace(/[<>&]/g, "") + "</em></p>" + alsHtml(r.text);
+  $("reflexion").dataset.text += "\n\nDu: " + a + "\n" + r.text;
+  await speichern({ art: "text", text: "Journal-Gespräch\n\n" + $("reflexion").dataset.text });
+  zeigeHeute();
+}
+
+/* ---------- Erkenntnisse: der wachsende Speicher ---------- */
+function erkenntnisse() { return store.getJSON("atemfunk_lernen", []); }
+function zeigeErkenntnisse() {
+  const liste = erkenntnisse();
+  const ziel = $("erkenntnisse");
+  ziel.innerHTML = liste.length ? "" : '<div class="hint">Noch nichts gemerkt. Nach dem ersten Wochenrückblick sammelt sich hier, was du über dich lernst.</div>';
+  liste.forEach((e, i) => {
+    const k = document.createElement("div");
+    k.className = "card eintrag";
+    const z = document.createElement("div");
+    z.className = "zeit"; z.textContent = e.datum.slice(5);
+    const t = document.createElement("div");
+    t.className = "txt"; t.textContent = e.text;
+    const w = document.createElement("div");
+    w.className = "weg"; w.textContent = "✕";
+    w.addEventListener("click", () => {
+      const l = erkenntnisse(); l.splice(i, 1);
+      store.setJSON("atemfunk_lernen", l); zeigeErkenntnisse();
+    });
+    k.append(z, t, w);
+    ziel.appendChild(k);
+  });
+}
+
+/* ---------- Wochenrückblick ---------- */
+const SYSTEM_WOCHE = `Du hilfst Florian, aus seinem Leben zu lernen. Er hat ADHS.
+Du bekommst seine Journal-Einträge der letzten Tage und frühere Erkenntnisse.
+
+Kein Zusammenfassen, kein Lob. Antworte auf Deutsch, per Du. Struktur:
+
+## Muster
+Was wiederholt sich über die Tage? Zwei bis drei Muster, jeweils belegt an konkreten Einträgen.
+Auch das, was er selbst vielleicht nicht sieht.
+
+## Was getragen hat
+Was hat in dieser Woche nachweislich geholfen? Belege es.
+
+## Was gebremst hat
+Ehrlich, ohne Vorwurf. Wenn ein früheres Muster sich wiederholt, sag das deutlich.
+
+## Erkenntnis
+EIN Satz, den er sich merken soll. Konkret, überprüfbar, in seinen Worten.
+Beginne diese Zeile mit "ERKENNTNIS: ".
+
+## Nächste Woche
+Eine einzige Sache, die er anders macht. Klein.
+
+Höchstens 350 Wörter.`;
+
+async function wocheAnschauen() {
+  const alle = await alleEintraege();
+  const grenze = Date.now() - 8 * 864e5;
+  const letzte = alle.filter(e => e.zeit >= grenze).sort((a, b) => a.zeit - b.zeit);
+  if (letzte.length < 2) { $("hinweis").textContent = "Zu wenig im Journal für einen Rückblick."; return; }
+  const btn = $("wocheBtn"); btn.disabled = true; btn.textContent = "Liest die Woche …";
+  const tage = {};
+  for (const e of letzte) {
+    const s = e.art === "bild" ? "[Foto] " + (e.text || "") :
+              e.art === "audio" ? "[Sprachnotiz] " + (e.text || "") : (e.text || "");
+    (tage[e.datum] ||= []).push(uhrzeit(e.zeit) + " — " + s);
+  }
+  const text = Object.entries(tage).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
+  const alt = erkenntnisse().slice(0, 6).map(e => "- " + e.text).join("\n");
+  const r = await frageKI(SYSTEM_WOCHE,
+    (alt ? "Frühere Erkenntnisse:\n" + alt + "\n\n" : "") + "Einträge der letzten Tage:\n" + text);
+  btn.disabled = false; btn.textContent = "Woche anschauen";
+  if (r.fehler) {
+    $("hinweis").textContent = r.fehler === "nicht-verbunden"
+      ? "Noch nicht verbunden – einmal unter „Atmen“ die Bibliothek verbinden."
+      : "Dein Mac ist nicht erreichbar. Der Prompt oben funktioniert auch in ChatGPT.";
+    return;
+  }
+  $("wocheText").innerHTML = alsHtml(r.text);
+  $("wocheErgebnis").style.display = "block";
+  $("wocheErgebnis").dataset.text = r.text;
+  store.set("atemfunk_letzter_rueckblick", heute());
+  await speichern({ art: "text", text: "Wochenrückblick\n\n" + r.text });
+  zeigeHeute(); zeigeErinnerung();
+}
+
+function merkeErkenntnis() {
+  const text = $("wocheErgebnis").dataset.text || "";
+  const treffer = text.match(/ERKENNTNIS:\s*(.+)/i);
+  const satz = (treffer ? treffer[1] : prompt("Was willst du dir merken?") || "").trim();
+  if (!satz) return;
+  const liste = erkenntnisse();
+  liste.unshift({ datum: heute(), text: satz });
+  store.setJSON("atemfunk_lernen", liste.slice(0, 60));
+  zeigeErkenntnisse();
+  $("lernenBtn").textContent = "✓ gemerkt";
+  setTimeout(() => { $("lernenBtn").textContent = "Als Erkenntnis merken"; }, 2000);
+}
+
+function zeigeErinnerung() {
+  const letzter = store.get("atemfunk_letzter_rueckblick", "");
+  const ziel = $("erinnerung");
+  if (!letzter) { ziel.innerHTML = ""; return; }
+  const tage = Math.floor((Date.now() - new Date(letzter + "T12:00:00").getTime()) / 864e5);
+  ziel.innerHTML = tage >= 7
+    ? `<div class="card" style="border-color:rgba(216,196,143,0.4)"><div class="txt ok">
+       Dein letzter Rückblick ist ${tage} Tage her. Guter Moment dafür.</div></div>`
+    : `<div class="hint" style="margin:0 0 10px">Letzter Rückblick: ${letzter}</div>`;
+}
+
+/* ---------- Export als Textdatei ---------- */
+async function exportieren() {
+  const alle = (await alleEintraege()).sort((a, b) => a.zeit - b.zeit);
+  if (!alle.length) { $("hinweis").textContent = "Noch nichts zu exportieren."; return; }
+  const zeilen = ["# Journal — Atemfunk", "", "Stand: " + heute(), ""];
+  const lern = erkenntnisse();
+  if (lern.length) {
+    zeilen.push("## Was ich gelernt habe", "");
+    lern.forEach(e => zeilen.push(`- **${e.datum}** — ${e.text}`));
+    zeilen.push("");
+  }
+  let tag = "";
+  for (const e of alle) {
+    if (e.datum !== tag) { tag = e.datum; zeilen.push("", "## " + tag, ""); }
+    const marke = e.art === "bild" ? " *(Foto)*" : e.art === "audio" ? " *(Sprachnotiz)*" : "";
+    zeilen.push(`**${uhrzeit(e.zeit)}**${marke}`, "", (e.text || "—").trim(), "");
+  }
+  const blob = new Blob([zeilen.join("\n")], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "journal-" + heute() + ".md";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  $("hinweis").textContent = alle.length + " Einträge exportiert (Bilder und Ton bleiben in der App).";
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  diktat($("notiz"), $("diktatBtn"));
+  $("wocheBtn").addEventListener("click", wocheAnschauen);
+  $("exportBtn").addEventListener("click", exportieren);
+  $("lernenBtn").addEventListener("click", merkeErkenntnis);
+  $("wocheVorlesenBtn").addEventListener("click", () =>
+    vorlesen($("wocheErgebnis").dataset.text || "", $("wocheVorlesenBtn")));
+  zeigeErkenntnisse(); zeigeErinnerung();
+  $("tonBtn").addEventListener("click", tonStart);
+  $("sichernBtn").addEventListener("click", sichern);
+  $("reflexBtn").addEventListener("click", reflektieren);
+  $("antwortenBtn").addEventListener("click", antworten);
+  $("vorlesenBtn").addEventListener("click", () => vorlesen($("reflexion").dataset.text || "", $("vorlesenBtn")));
+  $("promptBtn").addEventListener("click", async () =>
+    kopieren(SYSTEM + "\n\n---\n\nMeine Einträge von heute:\n" + (await tagesText()), $("promptBtn"), "Prompt kopieren"));
+  zeigeHeute(); zeigeFrueher();
+});
+</script>
+</body>
+</html>

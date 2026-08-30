@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Modus · Atemfunk</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>Modus-Check</h1>
+  <div class="sub">Beschreib eine Situation, die dich beschäftigt. Du bekommst eine Einordnung
+    nach dem Modusmodell der Schematherapie – und was der gesunde Erwachsene dazu sagen würde.</div>
+
+  <textarea id="lage" placeholder="Was ist passiert? Was hast du gedacht, gefühlt, getan?"></textarea>
+  <div class="row">
+    <button class="btn rec" id="diktatBtn">🎙 Diktieren</button>
+    <button class="btn primary" id="analyseBtn">Einordnen</button>
+  </div>
+  <div class="hint" id="hinweis"></div>
+
+  <div id="ergebnis" style="display:none">
+    <div class="cap">Einordnung</div>
+    <div class="card"><div class="antwort" id="antwort"></div></div>
+    <div class="row">
+      <button class="btn" id="vorlesenBtn">🔊 Vorlesen</button>
+      <button class="btn" id="weiterBtn">Nachfragen</button>
+      <button class="btn" id="speichernBtn">Ins Journal</button>
+    </div>
+  </div>
+
+  <div class="cap">Ohne Mac weitermachen</div>
+  <div class="card">
+    <div class="hint" style="margin-top:0">Kopier dir den fertigen Prompt und sprich im
+      ChatGPT-Sprachmodus weiter – dort steckt deine Situation und die Rolle als Schematherapeut schon drin.</div>
+    <div class="row">
+      <button class="btn" id="promptBtn">Prompt kopieren</button>
+      <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT öffnen</a>
+    </div>
+  </div>
+
+  <div class="cap">Die Modi im Überblick</div>
+  <div id="modi"></div>
+
+  <div class="cap">Frühere Einordnungen</div>
+  <div id="verlauf"></div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+"use strict";
+
+/* Modusmodell nach Jeffrey Young – kurz gefasst, damit es auch ohne Mac hilft */
+const MODI = [
+  ["Kind-Modi", [
+    ["Verletzbares Kind", "Fühlt sich einsam, wertlos, im Stich gelassen. Der Schmerz, der eigentlich gemeint ist."],
+    ["Wütendes Kind", "Zorn über nicht erfüllte Bedürfnisse. Impulsiv, laut, fordernd."],
+    ["Impulsives Kind", "Will sofort, ohne Rücksicht auf Folgen. Bei ADHS oft besonders präsent."],
+    ["Glückliches Kind", "Neugierig, verspielt, zufrieden. Der Zustand, wenn Bedürfnisse erfüllt sind."],
+  ]],
+  ["Bewältigungs-Modi", [
+    ["Willfährige Unterwerfung", "Anpassen, nachgeben, es allen recht machen, um Ärger zu vermeiden."],
+    ["Distanzierter Beschützer", "Abschalten, dichtmachen, Gefühle wegdrücken. Auch: Ablenkung, Serien, Handy."],
+    ["Überkompensation", "Angriff, Perfektionismus, Kontrolle, Selbstdarstellung – bloß keine Schwäche zeigen."],
+  ]],
+  ["Eltern-Modi", [
+    ["Strafender Elternteil", "Die innere Stimme, die dich runtermacht: „Du bist faul, du versagst."],
+    ["Fordernder Elternteil", "Setzt unerreichbare Maßstäbe: „Das reicht noch nicht, streng dich mehr an."],
+  ]],
+  ["Gesunder Erwachsener", [
+    ["Gesunder Erwachsener", "Sieht die Lage klar, nimmt das verletzbare Kind ernst, begrenzt die Eltern-Modi und trifft eine Entscheidung, die morgen noch stimmt."],
+  ]],
+];
+
+(function zeigeModi() {
+  const ziel = $("modi");
+  for (const [gruppe, liste] of MODI) {
+    const k = document.createElement("div");
+    k.className = "card";
+    k.innerHTML = "<h3 style='font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px'>"
+      + gruppe + "</h3>" + liste.map(([n, b]) =>
+        `<div style="margin-bottom:8px"><strong style="color:#fff">${n}</strong><div class="hint" style="margin-top:2px">${b}</div></div>`).join("");
+    ziel.appendChild(k);
+  }
+})();
+
+const SYSTEM = `Du bist ein erfahrener Schematherapeut und arbeitest mit dem Modusmodell nach Jeffrey Young.
+Der Nutzer heißt Florian, hat ADHS und kennt das Modell aus einer Gruppe.
+
+Ordne die geschilderte Situation ein. Antworte auf Deutsch, per Du, warm und klar, ohne Fachjargon-Wand
+und ohne Floskeln. Keine Diagnosen, keine Pathologisierung. Halte dich an diese Struktur:
+
+## Was da los war
+Zwei, drei Sätze, die die Situation in eigenen Worten spiegeln.
+
+## Aktive Modi
+Nenne die 2–3 Modi, die erkennbar sind (z. B. Verletzbares Kind, Strafender Elternteil,
+Distanzierter Beschützer, Überkompensation). Zu jedem: woran du ihn hier festmachst — belege es
+mit dem, was Florian geschrieben hat.
+
+## Was darunter liegt
+Welches Bedürfnis wurde nicht erfüllt? (Sicherheit, Verbindung, Autonomie, Anerkennung, Grenzen)
+
+## Der gesunde Erwachsene
+Sprich als diese Stimme direkt zu Florian: was sie zum verletzbaren Kind sagt, wie sie den
+strafenden oder fordernden Anteil begrenzt.
+
+## Ein Schritt
+Eine einzige, konkrete, heute machbare Sache. Klein genug, dass sie mit ADHS wirklich passiert.
+
+Wenn Hinweise auf akute Krise oder Selbstgefährdung auftauchen: benenne das ruhig und weise auf
+Hilfe hin (Telefonseelsorge 0800 111 0 111), statt einfach weiter einzuordnen.
+Insgesamt höchstens 350 Wörter.`;
+
+function baueBenutzerText() {
+  const lage = $("lage").value.trim();
+  const frueher = store.getJSON("atemfunk_schema", []).slice(0, 2)
+    .map(e => `Frühere Situation (${e.datum}): ${e.lage.slice(0, 200)}`).join("\n");
+  return (frueher ? frueher + "\n\n" : "") + "Aktuelle Situation:\n" + lage;
+}
+
+async function analysieren() {
+  const lage = $("lage").value.trim();
+  if (lage.length < 15) { $("hinweis").textContent = "Beschreib die Situation etwas ausführlicher."; return; }
+  const btn = $("analyseBtn");
+  btn.disabled = true; btn.textContent = "Denkt nach …";
+  $("hinweis").textContent = "";
+  const r = await frageKI(SYSTEM, baueBenutzerText());
+  btn.disabled = false; btn.textContent = "Einordnen";
+  if (r.fehler) {
+    $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
+      ? "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> und tippe dort auf „Bibliothek verbinden“."
+      : "Dein Mac ist gerade nicht erreichbar. Nimm den Prompt unten und sprich im ChatGPT-Sprachmodus weiter.";
+    return;
+  }
+  zeigeAntwort(r.text, lage);
+}
+
+function zeigeAntwort(text, lage) {
+  $("antwort").innerHTML = alsHtml(text);
+  $("ergebnis").style.display = "block";
+  $("ergebnis").dataset.text = text;
+  $("ergebnis").dataset.lage = lage;
+  const liste = store.getJSON("atemfunk_schema", []);
+  liste.unshift({ id: Date.now(), datum: heute(), lage, antwort: text });
+  store.setJSON("atemfunk_schema", liste.slice(0, 30));
+  zeigeVerlauf();
+  $("ergebnis").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function nachfragen() {
+  const frage = prompt("Was möchtest du noch wissen oder ergänzen?");
+  if (!frage) return;
+  const btn = $("weiterBtn"); btn.disabled = true; btn.textContent = "…";
+  const r = await frageKI(SYSTEM,
+    "Situation:\n" + $("ergebnis").dataset.lage +
+    "\n\nDeine bisherige Einordnung:\n" + $("ergebnis").dataset.text +
+    "\n\nFlorians Rückfrage:\n" + frage +
+    "\n\nAntworte kurz und direkt auf die Rückfrage, ohne die ganze Struktur zu wiederholen.");
+  btn.disabled = false; btn.textContent = "Nachfragen";
+  if (r.fehler) { $("hinweis").textContent = "Mac gerade nicht erreichbar."; return; }
+  $("antwort").innerHTML += "<h3>Nachgefragt</h3><p><em style='color:var(--ink-dim)'>"
+    + frage.replace(/[<>&]/g, "") + "</em></p>" + alsHtml(r.text);
+  $("ergebnis").dataset.text += "\n\nNachgefragt: " + frage + "\n" + r.text;
+}
+
+function promptText() {
+  const lage = $("lage").value.trim() || "(Situation hier beschreiben)";
+  return SYSTEM + "\n\n---\n\nMeine Situation:\n" + lage +
+    "\n\nOrdne das ein und lass uns danach im Gespräch bleiben – frag mich, was du brauchst.";
+}
+
+async function insJournal() {
+  const text = $("ergebnis").dataset.text;
+  const lage = $("ergebnis").dataset.lage;
+  try {
+    await dbTx("journal", "readwrite", s => s.put({
+      id: Date.now() + "-" + Math.random().toString(36).slice(2),
+      datum: heute(), zeit: Date.now(), art: "text",
+      text: "Modus-Check\n\nSituation: " + lage + "\n\n" + text,
+    }));
+    $("speichernBtn").textContent = "✓ gespeichert";
+    setTimeout(() => { $("speichernBtn").textContent = "Ins Journal"; }, 2000);
+  } catch { $("hinweis").textContent = "Konnte nicht speichern."; }
+}
+
+function zeigeVerlauf() {
+  const liste = store.getJSON("atemfunk_schema", []);
+  const ziel = $("verlauf");
+  ziel.innerHTML = "";
+  if (!liste.length) { ziel.innerHTML = '<div class="hint">Noch nichts eingeordnet.</div>'; return; }
+  for (const e of liste.slice(0, 8)) {
+    const k = document.createElement("div");
+    k.className = "card";
+    k.innerHTML = `<div class="hint" style="margin:0 0 6px">${e.datum}</div>
+      <div class="txt" style="font-size:14px">${e.lage.slice(0, 110).replace(/[<>&]/g, "")}${e.lage.length > 110 ? " …" : ""}</div>`;
+    k.style.cursor = "pointer";
+    k.addEventListener("click", () => {
+      $("lage").value = e.lage;
+      $("antwort").innerHTML = alsHtml(e.antwort);
+      $("ergebnis").style.display = "block";
+      $("ergebnis").dataset.text = e.antwort;
+      $("ergebnis").dataset.lage = e.lage;
+      $("ergebnis").scrollIntoView({ behavior: "smooth" });
+    });
+    ziel.appendChild(k);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  diktat($("lage"), $("diktatBtn"));
+  $("analyseBtn").addEventListener("click", analysieren);
+  $("weiterBtn").addEventListener("click", nachfragen);
+  $("speichernBtn").addEventListener("click", insJournal);
+  $("vorlesenBtn").addEventListener("click", () => vorlesen($("ergebnis").dataset.text || "", $("vorlesenBtn")));
+  $("promptBtn").addEventListener("click", () => kopieren(promptText(), $("promptBtn"), "Prompt kopieren"));
+  if (!kiBasis()) $("hinweis").innerHTML =
+    "Tipp: Verbinde einmal die Bibliothek unter <a href='index.html' style='color:var(--accent)'>Atmen</a>, dann läuft die Einordnung direkt hier.";
+  zeigeVerlauf();
+});
+</script>
+</body>
+</html>

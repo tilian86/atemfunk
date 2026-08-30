@@ -34,7 +34,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 16px);
+    padding: calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 92px);
     user-select: none;
     -webkit-user-select: none;
     overflow-x: hidden;
@@ -181,6 +181,21 @@
   .done-title { font-size: 26px; font-weight: 300; margin-bottom: 10px; }
   .done-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 8px; line-height: 1.5; }
   .done-stats { font-size: 13px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 40px; }
+  /* Untere Navigation zu den anderen Bereichen */
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: flex; justify-content: center; gap: 4px;
+    padding: 8px 10px calc(env(safe-area-inset-bottom) + 8px);
+    background: rgba(11,16,38,0.92); backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .nav a {
+    flex: 1; max-width: 120px; text-align: center; text-decoration: none;
+    color: var(--ink-dim); font-size: 11px; padding: 6px 4px; border-radius: 12px;
+  }
+  .nav a .ico { display: block; font-size: 19px; margin-bottom: 2px; }
+  .nav a.sel { color: var(--ink); background: rgba(255,255,255,0.06); }
+
   .home-btn {
     padding: 14px 40px; border-radius: 999px; cursor: pointer;
     background: var(--accent-soft); color: var(--ink); font-size: 15px; letter-spacing: 0.05em;
@@ -315,6 +330,13 @@
     <button class="home-btn" id="homeBtn">Zurück</button>
   </div>
 </div>
+
+<nav class="nav">
+  <a href="index.html" class="sel"><span class="ico">🌙</span>Atmen</a>
+  <a href="schema.html"><span class="ico">🧭</span>Modus</a>
+  <a href="journal.html"><span class="ico">📓</span>Journal</a>
+  <a href="ziele.html"><span class="ico">🎯</span>Ziele</a>
+</nav>
 
 <audio id="voiceAudio" preload="none" playsinline></audio>
 

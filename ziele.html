@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ziele · Atemfunk</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<link rel="stylesheet" href="app.css">
+<style>
+  .schritt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0;
+             border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .schritt:last-child { border-bottom: 0; }
+  .schritt .nr { color: var(--accent); font-size: 13px; min-width: 20px; padding-top: 1px; }
+  .schritt .was { flex: 1; font-size: 14px; line-height: 1.5; -webkit-user-select: text; user-select: text; }
+  .schritt .dauer { font-size: 11px; color: var(--ink-dim); margin-top: 3px; }
+  .schritt a { color: var(--ink-dim); text-decoration: none; font-size: 18px; padding: 2px 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ziele</h1>
+  <div class="sub">Sag, was du vorhast. Es wird in Schritte zerlegt, die klein genug sind,
+    dass sie mit ADHS wirklich passieren – und wandert von dort in Todoist oder deinen Kalender.</div>
+
+  <textarea id="ziel" placeholder="Zum Beispiel: Bis Ende September die Steuererklärung fertig machen. Oder: Morgen früh besser starten."></textarea>
+  <div class="row">
+    <button class="btn rec" id="diktatBtn">🎙 Diktieren</button>
+    <button class="btn primary" id="planBtn">In Schritte zerlegen</button>
+  </div>
+  <div class="hint" id="hinweis"></div>
+
+  <div id="ergebnis" style="display:none">
+    <div class="cap">Dein Plan</div>
+    <div class="card"><div id="planText"></div></div>
+    <div class="row">
+      <button class="btn" id="alleBtn">Alle zu Todoist</button>
+      <button class="btn" id="icsBtn">Als Kalender laden</button>
+      <button class="btn" id="vorlesenBtn">🔊 Vorlesen</button>
+    </div>
+    <div class="hint">Jeder Schritt öffnet Todoist mit vorausgefülltem Text – du bestätigst dort selbst.</div>
+  </div>
+
+  <div class="cap">Ohne Mac</div>
+  <div class="card">
+    <div class="hint" style="margin-top:0">Prompt kopieren und im ChatGPT-Sprachmodus weitersprechen.</div>
+    <div class="row"><button class="btn" id="promptBtn">Prompt kopieren</button></div>
+  </div>
+
+  <div class="cap">Frühere Pläne</div>
+  <div id="verlauf"></div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+"use strict";
+
+const SYSTEM = `Du hilfst Florian, Vorhaben in machbare Schritte zu zerlegen. Er hat ADHS:
+große Aufgaben blockieren, unklare Schritte werden nicht angefangen, Zeitgefühl ist schwierig.
+
+Regeln:
+- Jeder Schritt beginnt mit einem Verb und ist an einem Stück erledigbar.
+- Der erste Schritt dauert höchstens 10 Minuten und braucht keine Vorbereitung.
+- Nenne zu jedem Schritt eine realistische Dauer.
+- Höchstens 7 Schritte. Lieber weniger und dafür wirklich konkret.
+- Kein Motivationsgerede.
+
+Antworte AUSSCHLIESSLICH als JSON, ohne Text drumherum, ohne Code-Zäune:
+{"titel":"kurzer Name des Vorhabens",
+ "schritte":[{"was":"Verb + konkrete Handlung","dauer":"10 Min","tag":"heute|morgen|diese Woche"}],
+ "hinweis":"ein Satz: die wahrscheinlichste Stolperstelle und wie sie umgangen wird"}`;
+
+let plan = null;
+
+async function planen() {
+  const ziel = $("ziel").value.trim();
+  if (ziel.length < 8) { $("hinweis").textContent = "Sag etwas mehr zu deinem Vorhaben."; return; }
+  const btn = $("planBtn"); btn.disabled = true; btn.textContent = "Denkt nach …";
+  $("hinweis").textContent = "";
+  const r = await frageKI(SYSTEM, "Mein Vorhaben:\n" + ziel);
+  btn.disabled = false; btn.textContent = "In Schritte zerlegen";
+  if (r.fehler) {
+    $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
+      ? "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> und tippe auf „Bibliothek verbinden“."
+      : "Dein Mac ist nicht erreichbar. Nimm den Prompt unten für ChatGPT.";
+    return;
+  }
+  try {
+    const roh = r.text.replace(/^```(?:json)?|```$/gm, "").trim();
+    plan = JSON.parse(roh.slice(roh.indexOf("{"), roh.lastIndexOf("}") + 1));
+  } catch {
+    $("hinweis").textContent = "Antwort war unerwartet – bitte nochmal versuchen.";
+    return;
+  }
+  zeigePlan();
+  const liste = store.getJSON("atemfunk_ziele", []);
+  liste.unshift({ datum: heute(), ziel, plan });
+  store.setJSON("atemfunk_ziele", liste.slice(0, 20));
+  zeigeVerlauf();
+}
+
+function todoistLink(was, tag) {
+  const faellig = { heute: "today", morgen: "tomorrow" }[tag] || "";
+  return "https://todoist.com/add?content=" + encodeURIComponent(was) +
+         (faellig ? "&date=" + encodeURIComponent(faellig) : "");
+}
+
+function zeigePlan() {
+  const ziel = $("planText");
+  ziel.innerHTML = "<div class='antwort'><h3>" + (plan.titel || "Plan").replace(/[<>&]/g, "") + "</h3></div>";
+  plan.schritte.forEach((s, i) => {
+    const d = document.createElement("div");
+    d.className = "schritt";
+    d.innerHTML = `<div class="nr">${i + 1}</div>
+      <div class="was">${s.was.replace(/[<>&]/g, "")}<div class="dauer">${(s.dauer || "").replace(/[<>&]/g, "")} · ${(s.tag || "").replace(/[<>&]/g, "")}</div></div>`;
+    const a = document.createElement("a");
+    a.href = todoistLink(s.was, s.tag); a.target = "_blank"; a.rel = "noopener";
+    a.textContent = "＋"; a.title = "Zu Todoist";
+    d.appendChild(a);
+    ziel.appendChild(d);
+  });
+  if (plan.hinweis) {
+    const h = document.createElement("div");
+    h.className = "hint";
+    h.textContent = "Stolperstelle: " + plan.hinweis;
+    ziel.appendChild(h);
+  }
+  $("ergebnis").style.display = "block";
+  $("ergebnis").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function alleZuTodoist() {
+  if (!plan) return;
+  /* Sammelaufgabe mit allen Schritten – ein Tippen statt sieben */
+  const text = plan.titel + ": " + plan.schritte.map((s, i) => (i + 1) + ". " + s.was).join(" | ");
+  window.open(todoistLink(text, plan.schritte[0]?.tag), "_blank", "noopener");
+}
+
+function icsDatum(tag, i) {
+  const d = new Date();
+  if (tag === "morgen") d.setDate(d.getDate() + 1);
+  else if (tag === "diese Woche") d.setDate(d.getDate() + 2 + i);
+  d.setHours(9 + i, 0, 0, 0);
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "T" + p(d.getHours()) + p(d.getMinutes()) + "00";
+}
+
+function alsKalender() {
+  if (!plan) return;
+  const z = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Atemfunk//Ziele//DE"];
+  plan.schritte.forEach((s, i) => {
+    const start = icsDatum(s.tag, i);
+    const ende = start.slice(0, 9) + String(Number(start.slice(9, 11)) + 1).padStart(2, "0") + start.slice(11);
+    z.push("BEGIN:VEVENT",
+      "UID:" + Date.now() + "-" + i + "@atemfunk",
+      "DTSTAMP:" + icsDatum("heute", 0),
+      "DTSTART:" + start, "DTEND:" + ende,
+      "SUMMARY:" + (plan.titel + ": " + s.was).replace(/[\r\n,;]/g, " "),
+      "DESCRIPTION:" + (s.dauer || "").replace(/[\r\n,;]/g, " "),
+      "END:VEVENT");
+  });
+  z.push("END:VCALENDAR");
+  const blob = new Blob([z.join("\r\n")], { type: "text/calendar" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "plan.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function planAlsText() {
+  if (!plan) return "";
+  return plan.titel + "\n" + plan.schritte.map((s, i) =>
+    (i + 1) + ". " + s.was + " (" + (s.dauer || "") + ", " + (s.tag || "") + ")").join("\n") +
+    (plan.hinweis ? "\nStolperstelle: " + plan.hinweis : "");
+}
+
+function zeigeVerlauf() {
+  const liste = store.getJSON("atemfunk_ziele", []);
+  const ziel = $("verlauf");
+  ziel.innerHTML = liste.length ? "" : '<div class="hint">Noch keine Pläne.</div>';
+  for (const e of liste.slice(0, 8)) {
+    const k = document.createElement("div");
+    k.className = "card"; k.style.cursor = "pointer";
+    k.innerHTML = `<div class="hint" style="margin:0 0 4px">${e.datum}</div>
+      <div class="txt" style="font-size:14px">${(e.plan?.titel || e.ziel).slice(0, 80).replace(/[<>&]/g, "")}</div>`;
+    k.addEventListener("click", () => { plan = e.plan; $("ziel").value = e.ziel; zeigePlan(); });
+    ziel.appendChild(k);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  diktat($("ziel"), $("diktatBtn"));
+  $("planBtn").addEventListener("click", planen);
+  $("alleBtn").addEventListener("click", alleZuTodoist);
+  $("icsBtn").addEventListener("click", alsKalender);
+  $("vorlesenBtn").addEventListener("click", () => vorlesen(planAlsText(), $("vorlesenBtn")));
+  $("promptBtn").addEventListener("click", () => kopieren(
+    SYSTEM.replace(/Antworte AUSSCHLIESSLICH als JSON[\s\S]*$/,
+      "Antworte als klare Liste und bleib danach im Gespräch.") +
+    "\n\n---\n\nMein Vorhaben:\n" + ($("ziel").value.trim() || "(hier beschreiben)"),
+    $("promptBtn"), "Prompt kopieren"));
+  zeigeVerlauf();
+});
+</script>
+</body>
+</html>
