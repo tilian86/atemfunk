@@ -163,6 +163,7 @@
     will-change: transform;
   }
   .phase { font-size: 22px; font-weight: 300; letter-spacing: 0.15em; color: var(--ink); min-height: 30px; }
+  .phase-count { font-size: 30px; font-weight: 200; color: var(--accent); min-height: 34px; font-variant-numeric: tabular-nums; opacity: 0.85; }
   .timeleft { font-size: 15px; color: var(--ink-dim); margin-top: 8px; font-variant-numeric: tabular-nums; min-height: 20px; }
   .session-note { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-top: 10px; min-height: 16px; }
 
@@ -203,12 +204,18 @@
     <div class="dur" role="button" tabindex="0" data-min="3" aria-label="3 Minuten meditieren"><div class="num">3</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-min="5" aria-label="5 Minuten meditieren"><div class="num">5</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-min="10" aria-label="10 Minuten meditieren"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-min="0" aria-label="Ohne Zeitlimit meditieren"><div class="num">∞</div><div class="lbl">Offen</div></div>
   </div>
 
   <div class="rhythms" id="rhythms" role="radiogroup" aria-label="Atemrhythmus">
     <div class="rhy" role="radio" tabindex="0" data-rhy="ruhig">Ruhig<small>4 ein · 6 aus</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="box">Box<small>4 · 4 · 4 · 4</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="schlaf">Schlaf<small>4 · 7 · 8</small></div>
+  </div>
+
+  <div class="rhythms" id="voices" role="radiogroup" aria-label="Stimme" style="margin-bottom:14px">
+    <div class="rhy" role="radio" tabindex="0" data-sex="w">Weibliche Stimme</div>
+    <div class="rhy" role="radio" tabindex="0" data-sex="m">Männliche Stimme</div>
   </div>
 
   <div class="toggles">
@@ -261,10 +268,13 @@
     <svg class="ring-svg" viewBox="0 0 290 290" aria-hidden="true">
       <circle class="track" cx="145" cy="145" r="140"></circle>
       <circle class="prog" id="ringProg" cx="145" cy="145" r="140"></circle>
+      <g id="breathRing"></g>
+      <circle id="breathDot" cx="145" cy="27" r="5.5" fill="#fff" opacity="0.9" style="display:none"></circle>
     </svg>
     <div class="orb" id="orb"></div>
   </div>
   <div class="phase" id="phase" aria-live="polite">&nbsp;</div>
+  <div class="phase-count" id="phaseCount"></div>
   <div class="timeleft" id="timeleft"></div>
   <div class="session-note" id="sessionNote"></div>
   <div class="session-btns">
@@ -388,24 +398,61 @@ document.querySelectorAll("#rhythms .rhy").forEach(el => {
   });
 });
 
-/* Atemzustand: label + Füllwert 0..1 an Zeitpunkt t innerhalb des Zyklus */
+/* Atemzustand: Phase, Füllwert 0..1, Restsekunden der Phase, Position im Zyklus */
 function breathState(tSec, rhythm) {
   const total = rhythm.phases.reduce((a, p) => a + p[1], 0);
-  let p = ((tSec % total) + total) % total;
-  let cur = 0;
+  const inCycle = ((tSec % total) + total) % total;
+  let p = inCycle, cur = 0;
   for (const [name, dur] of rhythm.phases) {
     if (p < dur) {
       const eased = 0.5 - 0.5 * Math.cos(Math.PI * (p / dur));
       let value = cur;
       if (name === "Einatmen") value = cur + (1 - cur) * eased;
       else if (name === "Ausatmen") value = cur * (1 - eased);
-      return { label: name, value };
+      return { label: name, value, left: dur - p, cycle: inCycle / total };
     }
     p -= dur;
     if (name === "Einatmen") cur = 1;
     else if (name === "Ausatmen") cur = 0;
   }
-  return { label: rhythm.phases[0][0], value: 0 };
+  return { label: rhythm.phases[0][0], value: 0, left: 0, cycle: 0 };
+}
+
+/* ---------- Atemring: Phasenbögen, Marker, wandernder Punkt ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+const BR = 118;
+function polar(r, frac) {
+  const a = 2 * Math.PI * frac;
+  return [145 + r * Math.cos(a), 145 + r * Math.sin(a)];
+}
+function buildBreathRing(rhythm) {
+  const g = $("breathRing");
+  while (g.firstChild) g.removeChild(g.firstChild);
+  const total = rhythm.phases.reduce((a, p) => a + p[1], 0);
+  const farbe = { Einatmen: "rgba(168,212,236,0.9)", Halten: "rgba(216,196,143,0.75)", Ausatmen: "rgba(110,155,205,0.8)" };
+  let acc = 0;
+  for (const [name, dur] of rhythm.phases) {
+    const f0 = acc / total, f1 = (acc + dur) / total;
+    const pad = 0.006;
+    const [x0, y0] = polar(BR, f0 + pad), [x1, y1] = polar(BR, f1 - pad);
+    const path = document.createElementNS(SVGNS, "path");
+    path.setAttribute("d", `M ${x0} ${y0} A ${BR} ${BR} 0 ${(f1 - f0) > 0.5 ? 1 : 0} 1 ${x1} ${y1}`);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", farbe[name] || "rgba(255,255,255,0.5)");
+    path.setAttribute("stroke-width", "6");
+    path.setAttribute("stroke-linecap", "round");
+    g.appendChild(path);
+    /* Marker am Phasenwechsel */
+    const [mx0, my0] = polar(BR - 12, f0), [mx1, my1] = polar(BR + 12, f0);
+    const line = document.createElementNS(SVGNS, "line");
+    line.setAttribute("x1", mx0); line.setAttribute("y1", my0);
+    line.setAttribute("x2", mx1); line.setAttribute("y2", my1);
+    line.setAttribute("stroke", "rgba(255,255,255,0.55)");
+    line.setAttribute("stroke-width", "2");
+    g.appendChild(line);
+    acc += dur;
+  }
+  $("breathDot").style.display = "block";
 }
 
 /* ---------- Schalter ---------- */
@@ -428,17 +475,61 @@ const voiceOn = makeToggle("tglVoice", "atemfunk_voice", true, updateNote);
 const sigOn = makeToggle("tglSignals", "atemfunk_signals", true);
 const bowlOn = makeToggle("tglBowl", "atemfunk_bowl", false, updateNote);
 
-/* Gesprochene Phasenansagen für Box/Schlaf – vorgeladen, damit sie sofort kommen */
-const CUES = {};
-["Einatmen", "Halten", "Ausatmen"].forEach(w => {
-  const a = new Audio("audio/cues/" + w + ".mp3");
-  a.preload = "auto"; a.volume = 0.85;
-  CUES[w] = a;
+/* Stimme: weiblich (Standard) oder männlich – männliche Clips liegen unter audio/m/ */
+let voiceSex = store.get("atemfunk_voicesex", "w");
+if (voiceSex !== "m") voiceSex = "w";
+const voicePath = () => (voiceSex === "m" ? "audio/m/" : "audio/");
+function renderVoiceSex() {
+  document.querySelectorAll("#voices .rhy").forEach(el => {
+    const sel = el.dataset.sex === voiceSex;
+    el.classList.toggle("sel", sel);
+    el.setAttribute("aria-checked", sel ? "true" : "false");
+  });
+  loadCues();
+}
+document.querySelectorAll("#voices .rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => {
+    voiceSex = el.dataset.sex;
+    store.set("atemfunk_voicesex", voiceSex);
+    renderVoiceSex();
+  });
 });
+
+/* Gesprochene Phasenansagen – vorgeladen, damit sie sofort kommen */
+const CUES = {};
+function loadCues() {
+  ["Einatmen", "Halten", "Ausatmen"].forEach(w => {
+    const a = new Audio(voicePath() + "cues/" + w + ".mp3");
+    a.preload = "auto"; a.volume = 0.85;
+    CUES[w] = a;
+  });
+}
+loadCues();
+renderVoiceSex();
 function speakCue(label) {
   const a = CUES[label];
   if (!a) return;
   try { a.currentTime = 0; a.play().catch(() => {}); } catch {}
+}
+
+/* Abschluss: „Das war deine Meditation." → Zitat → Gruß je nach Tageszeit */
+function playClosing() {
+  if (!voiceOn()) return;
+  const h = new Date().getHours();
+  const gruss = h < 11 ? "gruss-morgen" : h < 18 ? "gruss-tag" : h < 22 ? "gruss-abend" : "gruss-nacht";
+  const zitat = "zitat-" + (1 + Math.floor(Math.random() * 8));
+  const folge = ["ende", zitat, gruss];
+  let i = 0;
+  const spielen = () => {
+    if (i >= folge.length) return;
+    const a = new Audio(voicePath() + "cues/" + folge[i] + ".mp3");
+    a.volume = 0.9;
+    a.addEventListener("ended", () => { i++; setTimeout(spielen, 550); });
+    a.addEventListener("error", () => { i++; spielen(); });
+    a.play().catch(() => {});
+  };
+  setTimeout(spielen, 2200);   /* erst den Schluss-Gong ausklingen lassen */
 }
 
 /* ---------- Klangkulisse ---------- */
@@ -499,22 +590,33 @@ function gong(when = 0) {
 }
 /* Dezenter, warmer Glockenton ohne Tonhöhen-Bewegung: hell = einatmen,
    tief = ausatmen, ganz leise = halten. Weicher Anschlag, langsamer Ausklang. */
+/* Ein weicher Glockenton (Grundton + leise Oktave), sanfter Anschlag, langer Ausklang */
+function bell(ctx, f, vol, len, when) {
+  const t = ctx.currentTime + when;
+  [[f, 1], [f * 2, 0.28], [f * 3, 0.08]].forEach(([ff, a]) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = ff;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol * a, t + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + len + 0.1);
+  });
+}
+/* Zwei Töne aufwärts = einatmen, abwärts = ausatmen, ein ruhiger Ton = halten.
+   Alles Töne aus dem C-Dur-Dreiklang, damit nichts schrill wirkt. */
 function breathCue(label) {
   try {
     const ctx = audioCtx();
-    const t = ctx.currentTime;
-    let f0 = 392, vol = 0.035, len = 1.6;          /* G4 – einatmen */
-    if (label === "Ausatmen") { f0 = 262; vol = 0.032; len = 2.2; }  /* C4 */
-    else if (label === "Halten") { f0 = 330; vol = 0.02; len = 1.0; } /* E4 */
-    [[f0, 1], [f0 * 2, 0.35]].forEach(([f, a]) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = "sine"; o.frequency.value = f;
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(vol * a, t + 0.09);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-      o.connect(g); g.connect(ctx.destination);
-      o.start(t); o.stop(t + len + 0.1);
-    });
+    if (label === "Einatmen") {          /* C5 → G5 */
+      bell(ctx, 523.25, 0.030, 1.6, 0);
+      bell(ctx, 784.00, 0.026, 1.8, 0.22);
+    } else if (label === "Ausatmen") {   /* G4 → C4 */
+      bell(ctx, 392.00, 0.030, 2.2, 0);
+      bell(ctx, 261.63, 0.028, 2.6, 0.26);
+    } else {                             /* E4, ruhig und leise */
+      bell(ctx, 329.63, 0.020, 1.3, 0);
+    }
   } catch {}
 }
 
@@ -698,7 +800,16 @@ const RING_LEN = 2 * Math.PI * 140;
 $("ringProg").style.strokeDasharray = RING_LEN;
 $("ringProg").style.strokeDashoffset = RING_LEN;
 
-let session = null; // { min, totalSec, endAt, leftMsAtPause, raf, endTimer, lastLabel, lastSecond, rhythm }
+let session = null; // { min, totalSec, offen, endAt, leftMsAtPause, raf, tick, endTimer, lastLabel, rhythm }
+
+/* Vergangene Sekunden – für offene Sitzungen aus der Startzeit, sonst aus der Restzeit */
+function elapsedOf(s) {
+  if (s.offen) {
+    const bis = s.leftMsAtPause ? s.pauseStartedAt : Date.now();
+    return (bis - s.startedAt - (s.pausedMs || 0)) / 1000;
+  }
+  return s.totalSec - Math.max(0, s.endAt - Date.now()) / 1000;
+}
 let wakeLock = null;
 
 async function acquireWakeLock() {
@@ -737,24 +848,29 @@ async function startSession(min) {
   $("pauseBtn").textContent = "Pause";
   $("sessionNote").textContent = "";
 
-  const totalSec = min * 60;
-  const guided = voiceOn() && rhythmKey === "ruhig";   /* eingesprochene Meditation (4-6) */
-  const spoken = voiceOn() && rhythmKey !== "ruhig";   /* gesprochene Phasenansagen */
+  const offen = min === 0;                              /* ohne Zeitlimit */
+  const totalSec = offen ? Infinity : min * 60;
+  const guided = !offen && voiceOn() && rhythmKey === "ruhig";  /* eingesprochene Meditation (4-6) */
+  const spoken = voiceOn() && !guided;                  /* gesprochene Phasenansagen */
   session = {
-    min, totalSec, spoken, bowl: bowlOn(),
-    endAt: Date.now() + totalSec * 1000,
+    min, totalSec, offen, spoken, bowl: bowlOn(),
+    startedAt: Date.now(),
+    endAt: offen ? Infinity : Date.now() + totalSec * 1000,
     leftMsAtPause: null,
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: 45,
     rhythm: RHYTHMS[rhythmKey],
   };
+  buildBreathRing(session.rhythm);
+  $("ringProg").style.strokeDashoffset = offen ? RING_LEN : RING_LEN;
+  $("stopBtn").textContent = offen ? "Fertig" : "Beenden";
 
   acquireWakeLock();
   gong();
   setMediaSession(min);
 
   if (guided) {
-    audio.src = "audio/atem-" + min + ".mp3";
+    audio.src = voicePath() + "atem-" + min + ".mp3";
     try {
       await audio.play();
     } catch {
@@ -772,6 +888,7 @@ async function startSession(min) {
 
   const armEndTimer = () => {
     clearTimeout(session.endTimer);
+    if (session.offen) return;
     session.endTimer = setTimeout(() => finishSession(true), Math.max(0, session.endAt - Date.now()) + 50);
   };
   session.armEndTimer = armEndTimer;
@@ -780,8 +897,8 @@ async function startSession(min) {
   /* Ablauf-Logik über einen Timer (läuft auch, wenn der Tab nicht sichtbar ist) */
   const tick = () => {
     if (!session || session.leftMsAtPause) return;
-    const leftMs = Math.max(0, session.endAt - Date.now());
-    const elapsed = session.totalSec - leftMs / 1000;
+    const leftMs = session.offen ? Infinity : Math.max(0, session.endAt - Date.now());
+    const elapsed = elapsedOf(session);
     const bs = breathState(elapsed, session.rhythm);
 
     if (bs.label !== session.lastLabel) {
@@ -791,30 +908,34 @@ async function startSession(min) {
       session.lastLabel = bs.label;
       phaseEl.textContent = bs.label;
     }
-    if (session.bowl && elapsed >= session.nextBowlAt && elapsed < session.totalSec - 8) {
+    if (session.bowl && elapsed >= session.nextBowlAt && (session.offen || elapsed < session.totalSec - 8)) {
       session.nextBowlAt += 45;
       bowl();
     }
     ambientUpdate(bs, elapsed);
 
-    const sec = Math.ceil(leftMs / 1000);
+    const sec = session.offen ? Math.floor(elapsed) : Math.ceil(leftMs / 1000);
     if (sec !== session.lastSecond) {
       session.lastSecond = sec;
       $("timeleft").textContent = Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
-      $("ringProg").style.strokeDashoffset = RING_LEN * (leftMs / 1000 / session.totalSec);
+      if (!session.offen) $("ringProg").style.strokeDashoffset = RING_LEN * (leftMs / 1000 / session.totalSec);
     }
-    if (leftMs <= 0) finishSession(true);
+    const rest = Math.ceil(bs.left);
+    if (rest !== session.lastCount) { session.lastCount = rest; $("phaseCount").textContent = rest > 0 ? rest : ""; }
+    if (!session.offen && leftMs <= 0) finishSession(true);
   };
   session.tick = setInterval(tick, 200);
   tick();
 
   /* Nur die Kugel-Animation hängt am Bildschirm-Takt */
+  const dot = $("breathDot");
   const draw = () => {
     if (!session) return;
     if (!session.leftMsAtPause) {
-      const leftMs = Math.max(0, session.endAt - Date.now());
-      const bs = breathState(session.totalSec - leftMs / 1000, session.rhythm);
+      const bs = breathState(elapsedOf(session), session.rhythm);
       orb.style.transform = "scale(" + (0.82 + bs.value * amp) + ")";
+      const [dx, dy] = polar(BR, bs.cycle);
+      dot.setAttribute("cx", dx); dot.setAttribute("cy", dy);
     }
     session.raf = requestAnimationFrame(draw);
   };
@@ -826,14 +947,16 @@ function togglePause(forcePause) {
   const paused = !!session.leftMsAtPause;
   const wantPause = forcePause !== undefined ? forcePause : !paused;
   if (wantPause && !paused) {
-    session.leftMsAtPause = Math.max(1, session.endAt - Date.now());
+    session.leftMsAtPause = session.offen ? Infinity : Math.max(1, session.endAt - Date.now());
+    session.pauseStartedAt = Date.now();
     clearTimeout(session.endTimer);
     audio.pause();
     if (actx) actx.suspend().catch(() => {});
     $("pauseBtn").textContent = "Weiter";
     $("phase").textContent = "Pause";
   } else if (!wantPause && paused) {
-    session.endAt = Date.now() + session.leftMsAtPause;
+    if (session.offen) session.pausedMs = (session.pausedMs || 0) + (Date.now() - session.pauseStartedAt);
+    else session.endAt = Date.now() + session.leftMsAtPause;
     session.leftMsAtPause = null;
     session.lastLabel = null;
     session.lastSecond = -1;
@@ -851,23 +974,27 @@ function finishSession(completed) {
   clearInterval(session.tick);
   clearTimeout(session.endTimer);
   const min = session.min;
-  const elapsedSec = session.leftMsAtPause
+  const offen = session.offen;
+  const elapsedSec = (!offen && session.leftMsAtPause)
     ? session.totalSec - session.leftMsAtPause / 1000
-    : session.totalSec - Math.max(0, session.endAt - Date.now()) / 1000;
+    : elapsedOf(session);
   session = null;
+  $("breathDot").style.display = "none";
+  $("phaseCount").textContent = "";
   audio.pause(); audio.removeAttribute("src");
   if (actx && actx.state !== "running") actx.resume().catch(() => {}); /* eingefrorene Ausklänge nicht in die nächste Sitzung schleppen */
   try { wakeLock?.release(); } catch {}
   wakeLock = null;
   $("session").classList.remove("active");
 
-  /* Früh beendet, aber mehr als die Hälfte geschafft → zählt trotzdem */
-  const countsAnyway = !completed && elapsedSec >= session_minHalf(min);
+  /* Offene Sitzung: ab einer Minute zählt sie. Sonst: ab der Hälfte zählt sie trotzdem. */
+  const countsAnyway = !completed && (offen ? elapsedSec >= 60 : elapsedSec >= session_minHalf(min));
   if (completed || countsAnyway) {
     gong(); gong(0.15);
-    const credited = completed ? min : Math.max(1, Math.floor(elapsedSec / 60));
+    playClosing();
+    const credited = (completed && !offen) ? min : Math.max(1, Math.floor(elapsedSec / 60));
     const { streak, stats } = recordSession(credited);
-    $("doneTitle").textContent = completed ? "Gut gemacht." : "Zählt trotzdem.";
+    $("doneTitle").textContent = (completed && !offen) ? "Gut gemacht." : (offen ? "Schön, dass du da warst." : "Zählt trotzdem.");
     $("doneSub").textContent = credited + " " + (credited === 1 ? "Minute" : "Minuten") + " Atemmeditation · " + streak + (streak === 1 ? " Tag" : " Tage") + " in Folge";
     $("doneStats").textContent = stats.sessions + (stats.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + stats.minutes + (stats.minutes === 1 ? " Minute" : " Minuten") + " insgesamt";
     $("doneScreen").classList.add("active");
@@ -1061,10 +1188,13 @@ async function libSync(verbose) {
       }
       if (have.has(id)) {
         const cur = await idbTx("readonly", s => s.get(id));
-        if (cur && (cur.ord !== i || cur.name !== t.name)) {
-          cur.ord = i; cur.name = t.name;
-          await idbTx("readwrite", s => s.put(cur));
+        if (!cur) continue;
+        let dirty = false;
+        if (cur.ord !== i || cur.name !== t.name) { cur.ord = i; cur.name = t.name; dirty = true; }
+        if (t.thumb && !cur.thumbBlob) {                 /* Bild nachladen, falls es früher fehlte */
+          try { cur.thumbBlob = await (await fetch(base + t.thumb)).blob(); dirty = true; } catch {}
         }
+        if (dirty) await idbTx("readwrite", s => s.put(cur));
         continue;
       }
       note.textContent = "Lade: " + t.name + " …";
@@ -1104,24 +1234,6 @@ if (store.get("atemfunk_lib_url", "")) {
   $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
   libSync(false);
 }
-
-/* ---------- Dehn-Videos: Player erst beim Antippen laden, nur einer offen ---------- */
-document.querySelectorAll(".vid").forEach(el => {
-  keyActivate(el);
-  el.addEventListener("click", () => {
-    const frame = el.nextElementSibling;
-    const wasOpen = frame.classList.contains("open");
-    document.querySelectorAll(".vid-frame").forEach(f => { f.classList.remove("open"); f.innerHTML = ""; });
-    if (!wasOpen) {
-      const ifr = document.createElement("iframe");
-      ifr.src = "https://www.youtube-nocookie.com/embed/" + el.dataset.yt + "?rel=0&playsinline=1&autoplay=1";
-      ifr.allow = "autoplay; encrypted-media; fullscreen; picture-in-picture";
-      ifr.allowFullscreen = true;
-      frame.appendChild(ifr);
-      frame.classList.add("open");
-    }
-  });
-});
 
 /* ---------- Hinweis, falls Audio fehlt (GET mit Range prüft auch den SW-Pfad) ---------- */
 fetch("audio/atem-3.mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
