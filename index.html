@@ -75,6 +75,9 @@
   .dur .lbl { font-size: 10px; color: var(--ink-dim); margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
 
   .rhythms { display: flex; gap: 8px; width: 100%; margin-bottom: 14px; }
+  /* Fünf Rhythmen passen auf schmalen Handys nicht in eine Zeile – umbrechen lassen */
+  #rhythms { flex-wrap: wrap; }
+  #rhythms .rhy { flex: 1 1 84px; }
   .rhy {
     flex: 1; padding: 11px 4px; border-radius: 14px; cursor: pointer; font-size: 12px;
     color: var(--ink-dim); background: rgba(255,255,255,0.03);
@@ -244,6 +247,7 @@
     <div class="rhy" role="radio" tabindex="0" data-rhy="box">Box<small>4 · 4 · 4 · 4</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="schlaf">Schlaf<small>4 · 7 · 8</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="seufzer">Beruhigen<small>Seufzer</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-rhy="frei">Frei<small>ohne Vorgabe</small></div>
   </div>
 
   <div class="rhythms" id="voices" role="radiogroup" aria-label="Stimme" style="margin-bottom:14px">
@@ -454,6 +458,9 @@ const RHYTHMS = {
   /* Physiologischer Seufzer: zweiter kurzer Zug oben drauf, dann lang ausatmen –
      der schnellste bekannte Weg, das Nervensystem herunterzufahren. */
   seufzer: { phases: [["Einatmen", 4], ["Nachatmen", 1.5], ["Ausatmen", 8]] },
+  /* Frei: kein vorgegebenes Tempo. Nur Zeit, Kulisse und ein ganz langsames
+     Schweben der Kugel – keine Ansagen, keine Töne, kein Zählen. */
+  frei:   { frei: true, phases: [["Atmen", 12]] },
 };
 let rhythmKey = store.get("atemfunk_rhythm", "ruhig");
 if (!RHYTHMS[rhythmKey]) rhythmKey = "ruhig";
@@ -479,6 +486,11 @@ document.querySelectorAll("#rhythms .rhy").forEach(el => {
 /* Atemzustand: Phase, Füllwert 0..1, Restsekunden der Phase, Position im Zyklus */
 function breathState(tSec, rhythm) {
   const total = rhythm.phases.reduce((a, p) => a + p[1], 0);
+  /* Freies Atmen: nur ein ruhiges Schweben um die Mitte, das kein Tempo vorgibt */
+  if (rhythm.frei) {
+    const inCyc = ((tSec % total) + total) % total;
+    return { label: "", value: 0.5 + 0.15 * Math.sin(2 * Math.PI * (inCyc / total)), left: 0, cycle: inCyc / total };
+  }
   const inCycle = ((tSec % total) + total) % total;
   /* Beim Seufzer bleibt der erste Zug bei 85 %, der Nachzug füllt auf 100 % */
   const peakEin = rhythm.phases.some(p => p[0] === "Nachatmen") ? 0.85 : 1;
@@ -511,6 +523,17 @@ function buildBreathRing(rhythm) {
   const g = $("breathRing");
   while (g.firstChild) g.removeChild(g.firstChild);
   const total = rhythm.phases.reduce((a, p) => a + p[1], 0);
+  /* Frei: ein stiller, gleichmäßiger Ring ohne Phasen und ohne wandernden Punkt */
+  if (rhythm.frei) {
+    const c = document.createElementNS(SVGNS, "circle");
+    c.setAttribute("cx", 145); c.setAttribute("cy", 145); c.setAttribute("r", BR);
+    c.setAttribute("fill", "none");
+    c.setAttribute("stroke", "rgba(168,212,236,0.28)");
+    c.setAttribute("stroke-width", "6");
+    g.appendChild(c);
+    $("breathDot").style.display = "none";
+    return;
+  }
   const farbe = { Einatmen: "rgba(168,212,236,0.9)", Halten: "rgba(216,196,143,0.75)", Ausatmen: "rgba(110,155,205,0.8)" };
   let acc = 0;
   for (const [name, dur] of rhythm.phases) {
@@ -682,7 +705,8 @@ renderAmbients();
 function updateNote() {
   const el = $("voiceNote");
   const parts = [];
-  if (voiceOn()) parts.push(rhythmKey === "ruhig"
+  if (rhythmKey === "frei") parts.push("Frei: kein Tempo, keine Ansage – nur Zeit und Kulisse");
+  else if (voiceOn()) parts.push(rhythmKey === "ruhig"
     ? "Stimme: geführte Meditation"
     : "Stimme sagt Einatmen · Halten · Ausatmen");
   if (bowlOn()) parts.push("Klangschale alle 45 s");
@@ -872,7 +896,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
   acquireWakeLock();
   if (actx && (!session || !session.leftMsAtPause) && actx.state !== "running") actx.resume().catch(() => {});
-  if (session && !session.leftMsAtPause && session.endAt - Date.now() <= 0) finishSession(true);
+  if (session && !session.leftMsAtPause && session.endAt - Date.now() <= 0) maybeFinish();
 });
 
 function setMediaSession(min) {
@@ -886,6 +910,29 @@ function setMediaSession(min) {
     navigator.mediaSession.setActionHandler("pause", () => togglePause(true));
     navigator.mediaSession.setActionHandler("play", () => togglePause(false));
   } catch {}
+}
+
+/* Die Zeit ist um: nicht mitten im Atemzug abbrechen, sondern die angefangene
+   Runde zu Ende führen (… einatmen, halten, ausatmen) und erst dann schließen.
+   Bei Stimmführung und beim freien Atmen gibt es keine Runde – da endet es sofort. */
+function maybeFinish() {
+  if (!session || session.offen) return;
+  if (session.ausklang) { finishSession(true); return; }        /* Runde ist zu Ende */
+  if (session.guided || session.prog || session.rhythm.frei) { finishSession(true); return; }
+  const zyklus = session.rhythm.phases.reduce((a, p) => a + p[1], 0);
+  const jetzt = Date.now();
+  const gelaufen = session.totalSec + (jetzt - session.endAt) / 1000;
+  const imZyklus = gelaufen % zyklus;
+  const rest = zyklus - imZyklus;
+  /* Runde gerade erst begonnen, schon fast fertig oder lange weggewesen:
+     dann nicht künstlich verlängern. */
+  if (imZyklus < 1.2 || rest < 0.5 || gelaufen > session.totalSec + zyklus) { finishSession(true); return; }
+  session.ausklang = true;
+  session.totalSec = gelaufen + rest;
+  session.endAt = jetzt + rest * 1000;
+  session.lastSecond = -1;
+  if (session.armEndTimer) session.armEndTimer();
+  $("sessionNote").textContent = "Diese Atemrunde noch zu Ende.";
 }
 
 async function startSession(min, prog) {
@@ -903,17 +950,20 @@ async function startSession(min, prog) {
   const totalSec = offen ? Infinity : min * 60;
   /* Programme sind immer geführt; sonst nur der ruhige 4-6-Rhythmus */
   const mitFrage = !!frage && !prog;
+  const rhythm = prog ? RHYTHMS.ruhig : RHYTHMS[rhythmKey];  /* Programme atmen ruhig mit */
   const guided = !offen && voiceOn() && !mitFrage && (!!prog || rhythmKey === "ruhig");
-  const spoken = voiceOn() && !guided;                  /* gesprochene Phasenansagen */
+  /* gesprochene Phasenansagen – beim freien Atmen bleibt es still */
+  const spoken = voiceOn() && !guided && !rhythm.frei;
   session = {
-    min, totalSec, offen, spoken: spoken && !mitFrage, prog, bowl: bowlOn(),
+    min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, bowl: bowlOn(),
     frage: mitFrage ? frage.text : null, frageNr: mitFrage ? frage.nr : null, frageWiederholt: false,
     startedAt: Date.now(),
     endAt: offen ? Infinity : Date.now() + totalSec * 1000,
     leftMsAtPause: null,
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: 45,
-    rhythm: prog ? RHYTHMS.ruhig : RHYTHMS[rhythmKey],   /* Programme atmen ruhig mit */
+    rhythm,
+    ausklang: false,          /* läuft gerade die letzte Atemrunde nach Ablauf? */
   };
   buildBreathRing(session.rhythm);
   $("ringProg").style.strokeDashoffset = offen ? RING_LEN : RING_LEN;
@@ -947,7 +997,7 @@ async function startSession(min, prog) {
   const armEndTimer = () => {
     clearTimeout(session.endTimer);
     if (session.offen) return;
-    session.endTimer = setTimeout(() => finishSession(true), Math.max(0, session.endAt - Date.now()) + 50);
+    session.endTimer = setTimeout(maybeFinish, Math.max(0, session.endAt - Date.now()) + 50);
   };
   session.armEndTimer = armEndTimer;
   armEndTimer();
@@ -985,7 +1035,7 @@ async function startSession(min, prog) {
     }
     const rest = Math.ceil(bs.left);
     if (rest !== session.lastCount) { session.lastCount = rest; $("phaseCount").textContent = rest > 0 ? rest : ""; }
-    if (!session.offen && leftMs <= 0) finishSession(true);
+    if (!session.offen && leftMs <= 0) maybeFinish();
   };
   session.tick = setInterval(tick, 200);
   tick();
