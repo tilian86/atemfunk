@@ -221,20 +221,82 @@ function wellen(feld) {
   };
 }
 
+/* Aufnehmen und von Gemini transkribieren – deutlich genauer als die Browser-Erkennung.
+   Ohne Verbindung übernimmt die eingebaute Erkennung. */
+async function diktatAufnahme(feld, knopf, welle) {
+  const basis = kiBasis();
+  if (!basis) return false;
+  let strom;
+  try { strom = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { return false; }
+  const mr = new MediaRecorder(strom);
+  const teile = [];
+  mr.ondataavailable = e => { if (e.data.size) teile.push(e.data); };
+  const fertig = new Promise(res => { mr.onstop = res; });
+  mr.start();
+  welle.an();
+  knopf.classList.add("on"); knopf.textContent = "⏹ Fertig";
+  await new Promise(res => {
+    const stopp = () => { knopf.removeEventListener("click", stopp); res(); };
+    knopf.addEventListener("click", stopp);
+  });
+  mr.stop(); await fertig;
+  strom.getTracks().forEach(t => t.stop());
+  welle.aus();
+  knopf.classList.remove("on"); knopf.textContent = "Wird geschrieben …"; knopf.disabled = true;
+  const blob = new Blob(teile, { type: mr.mimeType || "audio/webm" });
+  try {
+    const fd = new FormData();
+    fd.append("audio", blob, "notiz." + ((mr.mimeType || "").includes("mp4") ? "m4a" : "webm"));
+    const r = await fetch(basis + "stt", { method: "POST", body: fd });
+    const d = await r.json();
+    if (d.text) {
+      feld.value = (feld.value ? feld.value.trimEnd() + " " : "") + d.text.trim();
+      feld.scrollTop = feld.scrollHeight;
+    } else {
+      knopf.textContent = "🎙 Diktieren"; knopf.disabled = false;
+      return false;
+    }
+  } catch {
+    knopf.textContent = "🎙 Diktieren"; knopf.disabled = false;
+    return false;
+  }
+  knopf.textContent = "🎙 Diktieren"; knopf.disabled = false;
+  return true;
+}
+
 function diktat(feld, knopf) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { knopf.style.display = "none"; return; }
-  const welle = wellen(feld);
+  const welle0 = wellen(feld);
+  let beschaeftigt = false;
+  knopf.addEventListener("click", async e => {
+    if (beschaeftigt || !kiBasis()) return;     /* ohne Verbindung: Browser-Erkennung unten */
+    e.stopImmediatePropagation();
+    beschaeftigt = true;
+    const ok = await diktatAufnahme(feld, knopf, welle0);
+    beschaeftigt = false;
+    if (!ok && !SR) knopf.textContent = "🎙 Diktieren";
+  }, true);
+  if (!SR) { if (!kiBasis()) knopf.style.display = "none"; return; }
+  const welle = welle0;
   let erk = null, laeuft = false;
   knopf.addEventListener("click", () => {
     if (laeuft) { erk && erk.stop(); return; }
     erk = new SR();
     erk.lang = "de-DE"; erk.continuous = true; erk.interimResults = true;
     const start = feld.value ? feld.value.trimEnd() + " " : "";
+    /* Fertig erkannte Abschnitte getrennt sammeln: die Ereignisse liefern ab
+       resultIndex nur das Neue – wer alles daraus baut, löscht das Vorherige. */
+    let fest = "";
     erk.onresult = e => {
-      let txt = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
-      feld.value = start + txt;
+      let vorlaeufig = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) fest += r[0].transcript.trim() + " ";
+        else vorlaeufig += r[0].transcript;
+      }
+      feld.value = start + fest + vorlaeufig;
+      feld.scrollTop = feld.scrollHeight;
       welle.schlag();
     };
     erk.onspeechstart = () => welle.schlag();
@@ -249,12 +311,44 @@ function diktat(feld, knopf) {
   });
 }
 
-/* ---------- Vorlesen ---------- */
+/* ---------- Vorlesen: echte Stimme über den Sprachdienst, sonst Systemstimme ---------- */
 let stimmeAktiv = false;
-function vorlesen(text, knopf) {
+const leseAudio = new Audio();
+
+async function vorlesen(text, knopf) {
+  if (!text) return;
+  if (stimmeAktiv) {
+    try { speechSynthesis.cancel(); } catch {}
+    leseAudio.pause();
+    stimmeAktiv = false;
+    if (knopf) knopf.textContent = "🔊 Vorlesen";
+    return;
+  }
+  const sauber = text.replace(/[#*_>`]/g, "").replace(/\n{2,}/g, ". ").trim();
+  const basis = kiBasis();
+  if (basis && sauber.length <= 5800) {
+    if (knopf) knopf.textContent = "…";
+    try {
+      const r = await fetch(basis + "tts", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text: sauber }),
+      });
+      if (r.ok && (r.headers.get("content-type") || "").includes("audio")) {
+        leseAudio.src = URL.createObjectURL(await r.blob());
+        leseAudio.onended = () => { stimmeAktiv = false; if (knopf) knopf.textContent = "🔊 Vorlesen"; };
+        await leseAudio.play();
+        stimmeAktiv = true;
+        if (knopf) knopf.textContent = "⏹ Stopp";
+        return;
+      }
+    } catch {}
+    if (knopf) knopf.textContent = "🔊 Vorlesen";
+  }
+  vorlesenSystem(sauber, knopf);
+}
+
+function vorlesenSystem(sauber, knopf) {
   if (!("speechSynthesis" in window)) return;
-  if (stimmeAktiv) { speechSynthesis.cancel(); stimmeAktiv = false; if (knopf) knopf.textContent = "🔊 Vorlesen"; return; }
-  const sauber = text.replace(/[#*_>`]/g, "").replace(/\n{2,}/g, ". ");
   const u = new SpeechSynthesisUtterance(sauber);
   u.lang = "de-DE"; u.rate = 0.92; u.pitch = 1.0;
   const de = speechSynthesis.getVoices().filter(v => v.lang.startsWith("de"));
