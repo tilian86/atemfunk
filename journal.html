@@ -48,7 +48,11 @@
       <div class="antwort" id="reflexText"></div>
       <div class="row">
         <button class="btn" id="vorlesenBtn">🔊 Vorlesen</button>
-        <button class="btn" id="antwortenBtn">Antworten</button>
+      </div>
+      <textarea id="antwortFeld" style="min-height:64px; margin-top:12px" placeholder="Deine Antwort – Text oder Diktat"></textarea>
+      <div class="row">
+        <button class="btn rec" id="antwortDiktat">🎙 Diktieren</button>
+        <button class="btn primary" id="antwortenBtn">Senden</button>
       </div>
     </div>
   </div>
@@ -101,7 +105,22 @@ async function tonStart() {
       aufnahme = null;
       btn.classList.remove("on"); btn.textContent = "⏺ Sprachnotiz";
       const blob = new Blob(brocken, { type: mr.mimeType || "audio/webm" });
-      if (blob.size > 2000) await speichern({ art: "audio", blob, text: $("notiz").value.trim() });
+      if (blob.size > 2000) {
+        let text = $("notiz").value.trim();
+        /* Transkript dazulegen, damit die Reflexion den Inhalt kennt */
+        if (kiBasis()) {
+          $("hinweis").textContent = "Schreibt die Sprachnotiz mit …";
+          try {
+            const fd = new FormData();
+            fd.append("audio", blob, "notiz." + ((mr.mimeType || "").includes("mp4") ? "m4a" : "webm"));
+            const r = await fetch(kiBasis() + "stt", { method: "POST", body: fd });
+            const d = await r.json();
+            if (d.text) text = (text ? text + "\n" : "") + d.text.trim();
+          } catch {}
+          $("hinweis").textContent = "";
+        }
+        await speichern({ art: "audio", blob, text });
+      }
       $("notiz").value = "";
       zeigeHeute();
     };
@@ -310,19 +329,21 @@ async function impuls() {
 }
 
 async function antworten() {
-  const a = prompt("Deine Antwort:");
-  if (!a) return;
-  const btn = $("antwortenBtn"); btn.disabled = true;
+  const a = $("antwortFeld").value.trim();
+  if (a.length < 2) { $("antwortFeld").focus(); return; }
+  const fertig = warteAnzeige($("antwortenBtn"), "Antwortet …");
   const r = await frageKI(SYSTEM,
     "Einträge:\n" + (await tagesText()) +
     "\n\nDeine Fragen:\n" + $("reflexion").dataset.text +
     "\n\nFlorians Antwort:\n" + a +
     "\n\nGeh darauf ein, kurz und konkret. Höchstens 150 Wörter, gern mit einer weiterführenden Frage.");
-  btn.disabled = false;
-  if (r.fehler) { $("hinweis").textContent = "Mac nicht erreichbar."; return; }
+  fertig("Senden");
+  if (r.fehler) { zeigeFehler(r); return; }
+  const antwort = verarbeiteAntwort(r.text).text;
   $("reflexText").innerHTML += "<h3>Du sagst</h3><p><em style='color:var(--ink-dim)'>"
-    + a.replace(/[<>&]/g, "") + "</em></p>" + alsHtml(r.text);
-  $("reflexion").dataset.text += "\n\nDu: " + a + "\n" + r.text;
+    + a.replace(/[<>&]/g, "") + "</em></p>" + alsHtml(antwort);
+  $("reflexion").dataset.text += "\n\nDu: " + a + "\n" + antwort;
+  $("antwortFeld").value = "";
   await speichern({ art: "text", text: "Journal-Gespräch\n\n" + $("reflexion").dataset.text });
   zeigeHeute();
 }
@@ -497,6 +518,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("reflexBtn").addEventListener("click", reflektieren);
   $("impulsBtn").addEventListener("click", impuls);
   $("antwortenBtn").addEventListener("click", antworten);
+  diktat($("antwortFeld"), $("antwortDiktat"));
   $("vorlesenBtn").addEventListener("click", () => vorlesen($("reflexion").dataset.text || "", $("vorlesenBtn")));
   $("promptBtn").addEventListener("click", async () =>
     kopieren(SYSTEM + "\n\n---\n\nMeine Einträge von heute:\n" + (await tagesText()), $("promptBtn"), "Prompt kopieren"));

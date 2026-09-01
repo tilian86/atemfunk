@@ -30,8 +30,14 @@
     <div class="card"><div class="antwort" id="antwort"></div></div>
     <div class="row">
       <button class="btn" id="vorlesenBtn">🔊 Vorlesen</button>
-      <button class="btn" id="weiterBtn">Nachfragen</button>
       <button class="btn" id="speichernBtn">Ins Journal</button>
+      <button class="btn" id="autoLesenBtn" title="Antworten automatisch vorlesen">🔈 Auto: aus</button>
+    </div>
+    <div class="cap" style="margin-top:16px">Weiter im Gespräch</div>
+    <textarea id="weiterFeld" style="min-height:72px" placeholder="Nachfragen, widersprechen, ergänzen – wie im Gespräch."></textarea>
+    <div class="row">
+      <button class="btn rec" id="weiterDiktat">🎙 Diktieren</button>
+      <button class="btn primary" id="weiterBtn">Senden</button>
     </div>
   </div>
 
@@ -137,32 +143,53 @@ async function analysieren() {
   zeigeAntwort(verarbeiteAntwort(r.text).text, lage);
 }
 
-function zeigeAntwort(text, lage) {
+let aktuellId = null;
+let autoLesen = store.get("atemfunk_autolesen", "off") === "on";
+
+function zeigeAntwort(text, lage, id) {
   $("antwort").innerHTML = alsHtml(text);
   $("ergebnis").style.display = "block";
   $("ergebnis").dataset.text = text;
   $("ergebnis").dataset.lage = lage;
-  const liste = store.getJSON("atemfunk_schema", []);
-  liste.unshift({ id: Date.now(), datum: heute(), lage, antwort: text });
-  store.setJSON("atemfunk_schema", liste.slice(0, 30));
+  if (id) { aktuellId = id; }
+  else {
+    aktuellId = Date.now();
+    const liste = store.getJSON("atemfunk_schema", []);
+    liste.unshift({ id: aktuellId, datum: heute(), lage, antwort: text });
+    store.setJSON("atemfunk_schema", liste.slice(0, 30));
+  }
   zeigeVerlauf();
   $("ergebnis").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (autoLesen && !id) vorlesen(text, $("vorlesenBtn"));
+}
+
+/* Das laufende Gespräch im Verlauf mitschreiben */
+function verlaufAktualisieren() {
+  const liste = store.getJSON("atemfunk_schema", []);
+  const e = liste.find(x => x.id === aktuellId);
+  if (e) { e.antwort = $("ergebnis").dataset.text; store.setJSON("atemfunk_schema", liste); }
 }
 
 async function nachfragen() {
-  const frage = prompt("Was möchtest du noch wissen oder ergänzen?");
-  if (!frage) return;
-  const btn = $("weiterBtn"); btn.disabled = true; btn.textContent = "…";
-  const r = await frageKI(SYSTEM,
+  const frage = $("weiterFeld").value.trim();
+  if (frage.length < 2) { $("weiterFeld").focus(); return; }
+  const fertig = warteAnzeige($("weiterBtn"), "Antwortet …");
+  const r = await frageKI(SYSTEM.replace(META_AUFTRAG, ""),
     "Situation:\n" + $("ergebnis").dataset.lage +
-    "\n\nDeine bisherige Einordnung:\n" + $("ergebnis").dataset.text +
-    "\n\nFlorians Rückfrage:\n" + frage +
-    "\n\nAntworte kurz und direkt auf die Rückfrage, ohne die ganze Struktur zu wiederholen.");
-  btn.disabled = false; btn.textContent = "Nachfragen";
-  if (r.fehler) { $("hinweis").textContent = "Mac gerade nicht erreichbar."; return; }
-  $("antwort").innerHTML += "<h3>Nachgefragt</h3><p><em style='color:var(--ink-dim)'>"
-    + frage.replace(/[<>&]/g, "") + "</em></p>" + alsHtml(r.text);
-  $("ergebnis").dataset.text += "\n\nNachgefragt: " + frage + "\n" + r.text;
+    "\n\nBisheriges Gespräch:\n" + $("ergebnis").dataset.text +
+    "\n\nFlorian sagt jetzt:\n" + frage +
+    "\n\nGeh direkt darauf ein – wie ein Therapeut im Gespräch, nicht wie ein Gutachten. " +
+    "Keine Überschriften-Struktur wiederholen. Wenn du eine Rückfrage hast, stell genau eine. Höchstens 180 Wörter.");
+  fertig("Senden");
+  if (r.fehler) { zeigeFehler(r); return; }
+  const antwort = verarbeiteAntwort(r.text).text;
+  $("antwort").innerHTML += "<h3>Du</h3><p><em style='color:var(--ink-dim)'>"
+    + frage.replace(/[<>&]/g, "") + "</em></p><h3>Antwort</h3>" + alsHtml(antwort);
+  $("ergebnis").dataset.text += "\n\nDu: " + frage + "\n\nAntwort: " + antwort;
+  $("weiterFeld").value = "";
+  verlaufAktualisieren();
+  $("antwort").lastElementChild?.scrollIntoView({ behavior: "smooth", block: "end" });
+  if (autoLesen) vorlesen(antwort, $("vorlesenBtn"));
 }
 
 function promptText() {
@@ -198,11 +225,7 @@ function zeigeVerlauf() {
     k.style.cursor = "pointer";
     k.addEventListener("click", () => {
       $("lage").value = e.lage;
-      $("antwort").innerHTML = alsHtml(e.antwort);
-      $("ergebnis").style.display = "block";
-      $("ergebnis").dataset.text = e.antwort;
-      $("ergebnis").dataset.lage = e.lage;
-      $("ergebnis").scrollIntoView({ behavior: "smooth" });
+      zeigeAntwort(e.antwort, e.lage, e.id);
     });
     ziel.appendChild(k);
   }
@@ -212,6 +235,13 @@ document.addEventListener("DOMContentLoaded", () => {
   diktat($("lage"), $("diktatBtn"));
   $("analyseBtn").addEventListener("click", analysieren);
   $("weiterBtn").addEventListener("click", nachfragen);
+  diktat($("weiterFeld"), $("weiterDiktat"));
+  const autoBtn = $("autoLesenBtn");
+  const zeigeAuto = () => { autoBtn.textContent = autoLesen ? "🔈 Auto: an" : "🔈 Auto: aus"; };
+  zeigeAuto();
+  autoBtn.addEventListener("click", () => {
+    autoLesen = !autoLesen; store.set("atemfunk_autolesen", autoLesen ? "on" : "off"); zeigeAuto();
+  });
   $("speichernBtn").addEventListener("click", insJournal);
   $("vorlesenBtn").addEventListener("click", () => vorlesen($("ergebnis").dataset.text || "", $("vorlesenBtn")));
   $("promptBtn").addEventListener("click", () => kopieren(promptText(), $("promptBtn"), "Prompt kopieren"));

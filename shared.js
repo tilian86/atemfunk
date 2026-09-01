@@ -221,93 +221,94 @@ function wellen(feld) {
   };
 }
 
-/* Aufnehmen und von Gemini transkribieren – deutlich genauer als die Browser-Erkennung.
-   Ohne Verbindung übernimmt die eingebaute Erkennung. */
-async function diktatAufnahme(feld, knopf, welle) {
-  const basis = kiBasis();
-  if (!basis) return false;
-  let strom;
-  try { strom = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-  catch { return false; }
-  const mr = new MediaRecorder(strom);
-  const teile = [];
-  mr.ondataavailable = e => { if (e.data.size) teile.push(e.data); };
-  const fertig = new Promise(res => { mr.onstop = res; });
-  mr.start();
-  welle.an();
-  knopf.classList.add("on"); knopf.textContent = "⏹ Fertig";
-  await new Promise(res => {
-    const stopp = () => { knopf.removeEventListener("click", stopp); res(); };
-    knopf.addEventListener("click", stopp);
-  });
-  mr.stop(); await fertig;
-  strom.getTracks().forEach(t => t.stop());
-  welle.aus();
-  knopf.classList.remove("on"); knopf.textContent = "Wird geschrieben …"; knopf.disabled = true;
-  const blob = new Blob(teile, { type: mr.mimeType || "audio/webm" });
-  try {
-    const fd = new FormData();
-    fd.append("audio", blob, "notiz." + ((mr.mimeType || "").includes("mp4") ? "m4a" : "webm"));
-    const r = await fetch(basis + "stt", { method: "POST", body: fd });
-    const d = await r.json();
-    if (d.text) {
-      feld.value = (feld.value ? feld.value.trimEnd() + " " : "") + d.text.trim();
-      feld.scrollTop = feld.scrollHeight;
-    } else {
-      knopf.textContent = "🎙 Diktieren"; knopf.disabled = false;
-      return false;
-    }
-  } catch {
-    knopf.textContent = "🎙 Diktieren"; knopf.disabled = false;
-    return false;
-  }
-  knopf.textContent = "🎙 Diktieren"; knopf.disabled = false;
-  return true;
-}
-
+/* ---------- Diktat: ein Zustandsautomat, ein Klick-Handler ----------
+   Mit Verbindung: aufnehmen → Gemini schreibt (genau, auch bei langen Texten).
+   Ohne Verbindung: eingebaute Browser-Erkennung. Nie beides gleichzeitig. */
 function diktat(feld, knopf) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const welle0 = wellen(feld);
-  let beschaeftigt = false;
-  knopf.addEventListener("click", async e => {
-    if (beschaeftigt || !kiBasis()) return;     /* ohne Verbindung: Browser-Erkennung unten */
-    e.stopImmediatePropagation();
-    beschaeftigt = true;
-    const ok = await diktatAufnahme(feld, knopf, welle0);
-    beschaeftigt = false;
-    if (!ok && !SR) knopf.textContent = "🎙 Diktieren";
-  }, true);
-  if (!SR) { if (!kiBasis()) knopf.style.display = "none"; return; }
-  const welle = welle0;
-  let erk = null, laeuft = false;
-  knopf.addEventListener("click", () => {
-    if (laeuft) { erk && erk.stop(); return; }
+  const welle = wellen(feld);
+  let zustand = "frei";          // frei | aufnahme | schreibt | browser
+  let rec = null, strom = null, teile = [], erk = null, startZeit = 0, uhr = null;
+
+  const anfuegen = t => {
+    feld.value = (feld.value ? feld.value.trimEnd() + " " : "") + t.trim();
+    feld.scrollTop = feld.scrollHeight;
+    feld.dispatchEvent(new Event("input"));
+  };
+  const zeigeFrei = () => {
+    zustand = "frei"; clearInterval(uhr);
+    knopf.disabled = false; knopf.classList.remove("on"); knopf.textContent = "🎙 Diktieren";
+    welle.aus();
+  };
+
+  async function aufnahmeStart() {
+    try { strom = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { zustand = "frei"; return browserStart(); }
+    rec = new MediaRecorder(strom); teile = [];
+    rec.ondataavailable = e => { if (e.data.size) teile.push(e.data); };
+    rec.onstop = uebertragen;
+    rec.start();
+    zustand = "aufnahme"; startZeit = Date.now();
+    knopf.classList.add("on");
+    uhr = setInterval(() => {
+      const s = Math.round((Date.now() - startZeit) / 1000);
+      knopf.textContent = "⏹ Fertig · " + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    }, 500);
+    knopf.textContent = "⏹ Fertig";
+    welle.an();
+  }
+  async function uebertragen() {
+    strom.getTracks().forEach(t => t.stop());
+    zustand = "schreibt"; clearInterval(uhr);
+    knopf.classList.remove("on"); knopf.disabled = true; knopf.textContent = "Schreibt …";
+    welle.aus();
+    const blob = new Blob(teile, { type: rec.mimeType || "audio/webm" });
+    if (blob.size < 1500) { zeigeFrei(); return; }
+    try {
+      const fd = new FormData();
+      fd.append("audio", blob, "notiz." + ((rec.mimeType || "").includes("mp4") ? "m4a" : "webm"));
+      const r = await fetch(kiBasis() + "stt", { method: "POST", body: fd });
+      const d = await r.json();
+      if (d.text) anfuegen(d.text);
+      else if ($("hinweis")) $("hinweis").textContent = "Nichts verstanden – nochmal?";
+    } catch {
+      if ($("hinweis")) $("hinweis").textContent = "Übertragung fehlgeschlagen – nochmal?";
+    }
+    zeigeFrei();
+  }
+
+  function browserStart() {
+    if (!SR) { zeigeFrei(); return; }
     erk = new SR();
     erk.lang = "de-DE"; erk.continuous = true; erk.interimResults = true;
     const start = feld.value ? feld.value.trimEnd() + " " : "";
-    /* Fertig erkannte Abschnitte getrennt sammeln: die Ereignisse liefern ab
-       resultIndex nur das Neue – wer alles daraus baut, löscht das Vorherige. */
+    /* Fertige Abschnitte getrennt sammeln: Ereignisse liefern ab resultIndex nur das Neue */
     let fest = "";
     erk.onresult = e => {
       let vorlaeufig = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
-        if (r.isFinal) fest += r[0].transcript.trim() + " ";
-        else vorlaeufig += r[0].transcript;
+        if (r.isFinal) fest += r[0].transcript.trim() + " "; else vorlaeufig += r[0].transcript;
       }
       feld.value = start + fest + vorlaeufig;
       feld.scrollTop = feld.scrollHeight;
       welle.schlag();
     };
     erk.onspeechstart = () => welle.schlag();
-    erk.onend = () => {
-      laeuft = false; welle.aus();
-      knopf.classList.remove("on"); knopf.textContent = "🎙 Diktieren";
-    };
-    erk.onerror = erk.onend;
+    erk.onend = zeigeFrei; erk.onerror = zeigeFrei;
     erk.start();
-    laeuft = true; welle.an();
+    zustand = "browser";
     knopf.classList.add("on"); knopf.textContent = "⏹ Fertig";
+    welle.an();
+  }
+
+  if (!SR && !navigator.mediaDevices) { knopf.style.display = "none"; return; }
+  knopf.addEventListener("click", () => {
+    if (zustand === "aufnahme") { rec.stop(); return; }
+    if (zustand === "browser") { erk && erk.stop(); return; }
+    if (zustand === "schreibt") return;
+    if (kiBasis() && navigator.mediaDevices && window.MediaRecorder) aufnahmeStart();
+    else browserStart();
   });
 }
 

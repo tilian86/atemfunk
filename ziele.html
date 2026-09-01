@@ -149,7 +149,7 @@ function alsKalender() {
   const z = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Atemfunk//Ziele//DE"];
   plan.schritte.forEach((s, i) => {
     const start = icsDatum(s.tag, i);
-    const ende = start.slice(0, 9) + String(Number(start.slice(9, 11)) + 1).padStart(2, "0") + start.slice(11);
+    const ende = icsDatum(s.tag, i + 1);    /* eine Stunde später, auch über Mitternacht korrekt */
     z.push("BEGIN:VEVENT",
       "UID:" + Date.now() + "-" + i + "@atemfunk",
       "DTSTAMP:" + icsDatum("heute", 0),

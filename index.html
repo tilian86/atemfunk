@@ -617,6 +617,26 @@ document.querySelectorAll("#voices .rhy").forEach(el => {
   });
 });
 
+/* iOS erlaubt Ton pro Audio-Element erst nach einer Berührung. Elemente, die
+   später ohne Geste starten (Ansagen im Takt, Frage, Abschluss), werden beim
+   ersten Tippen kurz angestoßen – danach dürfen sie jederzeit spielen. */
+const schlussAudio = new Audio();
+let gesteGeschehen = false;
+function audioFreigeben() {
+  gesteGeschehen = true;
+  const alle = [schlussAudio, ...Object.values(CUES)];
+  if (typeof frageAudio !== "undefined") alle.push(frageAudio);
+  for (const a of alle) {
+    if (!a || a.dataset.frei) continue;
+    a.dataset.frei = "1";
+    try {
+      const p = a.play();
+      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => { delete a.dataset.frei; });
+    } catch { delete a.dataset.frei; }
+  }
+}
+window.addEventListener("pointerdown", audioFreigeben, { once: true, passive: true });
+
 /* Gesprochene Phasenansagen – vorgeladen, damit sie sofort kommen */
 const CUES = {};
 function loadCues() {
@@ -625,6 +645,7 @@ function loadCues() {
     a.preload = "auto"; a.volume = 0.85;
     CUES[w] = a;
   });
+  if (gesteGeschehen) audioFreigeben();   /* Stimmwechsel passiert per Tippen – gleich freigeben */
 }
 loadCues();
 renderVoiceSex();
@@ -654,15 +675,18 @@ function playClosing() {
   let i = 0;
   const spielen = () => {
     if (closing !== lauf || i >= folge.length) { if (closing === lauf) closing = null; return; }
-    const a = new Audio(voicePath() + "cues/" + folge[i] + ".mp3");
+    /* festes, beim ersten Tippen freigegebenes Element – iOS erlaubt sonst
+       keinen Start ohne Geste, und das Sitzungsende ist keine */
+    const a = schlussAudio;
     a.volume = 0.9;
     lauf.audio = a;
-    a.addEventListener("ended", () => {
+    a.onended = () => {
       if (closing !== lauf) return;
       i++;
       lauf.timer = setTimeout(spielen, 550);
-    });
-    a.addEventListener("error", () => { if (closing === lauf) { i++; spielen(); } });
+    };
+    a.onerror = () => { if (closing === lauf) { i++; spielen(); } };
+    a.src = voicePath() + "cues/" + folge[i] + ".mp3";
     a.play().catch(() => {});
   };
   lauf.timer = setTimeout(spielen, 2200);   /* erst den Schluss-Gong ausklingen lassen */
