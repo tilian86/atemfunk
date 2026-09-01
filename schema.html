@@ -129,17 +129,11 @@ function baueBenutzerText() {
 async function analysieren() {
   const lage = $("lage").value.trim();
   if (lage.length < 15) { $("hinweis").textContent = "Beschreib die Situation etwas ausführlicher."; return; }
-  const btn = $("analyseBtn");
-  btn.disabled = true; btn.textContent = "Denkt nach …";
+  const fertig = warteAnzeige($("analyseBtn"), "Denkt nach …");
   $("hinweis").textContent = "";
   const r = await frageKI(SYSTEM, baueBenutzerText());
-  btn.disabled = false; btn.textContent = "Einordnen";
-  if (r.fehler) {
-    $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
-      ? "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> und tippe dort auf „Bibliothek verbinden“."
-      : "Dein Mac ist gerade nicht erreichbar. Nimm den Prompt unten und sprich im ChatGPT-Sprachmodus weiter.";
-    return;
-  }
+  fertig("Einordnen");
+  if (r.fehler) { zeigeFehler(r); return; }
   zeigeAntwort(verarbeiteAntwort(r.text).text, lage);
 }
 

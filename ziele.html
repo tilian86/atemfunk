@@ -79,16 +79,11 @@ let plan = null;
 async function planen() {
   const ziel = $("ziel").value.trim();
   if (ziel.length < 8) { $("hinweis").textContent = "Sag etwas mehr zu deinem Vorhaben."; return; }
-  const btn = $("planBtn"); btn.disabled = true; btn.textContent = "Denkt nach …";
+  const fertig = warteAnzeige($("planBtn"), "Denkt nach …");
   $("hinweis").textContent = "";
   const r = await frageKI(SYSTEM, "Mein Vorhaben:\n" + ziel);
-  btn.disabled = false; btn.textContent = "In Schritte zerlegen";
-  if (r.fehler) {
-    $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
-      ? "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> und tippe auf „Bibliothek verbinden“."
-      : "Dein Mac ist nicht erreichbar. Nimm den Prompt unten für ChatGPT.";
-    return;
-  }
+  fertig("In Schritte zerlegen");
+  if (r.fehler) { zeigeFehler(r); return; }
   try {
     const roh = r.text.replace(/^```(?:json)?|```$/gm, "").trim();
     plan = JSON.parse(roh.slice(roh.indexOf("{"), roh.lastIndexOf("}") + 1));

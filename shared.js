@@ -49,22 +49,52 @@ function dbTx(laden, modus, fn) {
 
 /* ---------- KI über die Mac-Bridge (Max-Abo, kein API-Schlüssel) ---------- */
 function kiBasis() { return store.get("atemfunk_lib_url", ""); }
+
+/* Zeigt während der Wartezeit die Sekunden – die Antwort braucht typisch 15–30 s */
+function warteAnzeige(knopf, beschriftung) {
+  const start = Date.now();
+  const t = setInterval(() => {
+    knopf.textContent = beschriftung + " " + Math.round((Date.now() - start) / 1000) + " s";
+  }, 1000);
+  knopf.disabled = true;
+  knopf.textContent = beschriftung;
+  return endtext => { clearInterval(t); knopf.disabled = false; knopf.textContent = endtext; };
+}
+
 async function frageKI(system, user, model) {
   const basis = kiBasis();
-  if (!basis) return { fehler: "nicht-verbunden" };
+  if (!basis) return { fehler: "Noch nicht verbunden." };
+  const abbruch = new AbortController();
+  const zeitlimit = setTimeout(() => abbruch.abort(), 120000);
   try {
     /* Rolle bewusst im Nutzertext statt im system-Feld: die CLI behandelt
        eingebettete <system>-Blöcke misstrauisch und verweigert sie mitunter. */
     const r = await fetch(basis + "ki", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ system: "", user: system + "\n\n---\n\n" + user, model: model || "sonnet" }),
+      signal: abbruch.signal,
     });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok || d.error) return { fehler: d.offline ? "mac-aus" : (d.error || "fehler") };
+    if (!r.ok || d.error || !d.text)
+      return { fehler: d.error || "Unerwartete Antwort (" + r.status + ").", nochmal: true };
     return { text: (d.text || "").trim() };
-  } catch {
-    return { fehler: "mac-aus" };
+  } catch (e) {
+    return { fehler: e.name === "AbortError" ? "Zu lange gewartet – nochmal?" : "Keine Verbindung.", nochmal: true };
+  } finally {
+    clearTimeout(zeitlimit);
   }
+}
+
+/* Zeigt den echten Grund statt pauschal „Mac nicht erreichbar“ */
+function zeigeFehler(r, feldId) {
+  const el = $(feldId || "hinweis");
+  if (!el) return;
+  if (!kiBasis()) {
+    el.innerHTML = "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> "
+      + "und tippe unten auf „Bibliothek verbinden“.";
+    return;
+  }
+  el.textContent = r.fehler + (r.nochmal ? " Der Prompt unten funktioniert immer, auch in ChatGPT." : "");
 }
 
 /* ---------- Gedächtnis: was über Florian bekannt ist ----------
@@ -126,25 +156,96 @@ function verarbeiteAntwort(text) {
   return { form: form.trim(), text: rest };
 }
 
-/* ---------- Diktat (kostenlos, im Browser) ---------- */
+/* ---------- Diktat mit sichtbaren Wellen ---------- */
+/* Zeigt beim Sprechen einen Pegelausschlag, damit klar ist: es hört zu.
+   Bevorzugt echte Mikrofonpegel; wo das nicht geht (iOS gibt das Mikrofon
+   der Spracherkennung exklusiv), pulsiert die Welle beim Erkennen von Wörtern. */
+function wellen(feld) {
+  const c = document.createElement("canvas");
+  c.className = "wellen";
+  c.height = 40; c.width = 600;
+  feld.parentNode.insertBefore(c, feld.nextSibling);
+  const ctx = c.getContext("2d");
+  let werte = new Array(48).fill(0), lauf = null, strom = null, analyse = null, puls = 0;
+
+  function zeichne() {
+    const b = c.width, h = c.height;
+    ctx.clearRect(0, 0, b, h);
+    const stil = getComputedStyle(document.documentElement);
+    ctx.fillStyle = (stil.getPropertyValue("--accent") || "#7fb8d8").trim();
+    const breite = b / werte.length;
+    for (let i = 0; i < werte.length; i++) {
+      const hoehe = Math.max(2, werte[i] * h * 0.9);
+      ctx.globalAlpha = 0.35 + werte[i] * 0.65;
+      ctx.fillRect(i * breite + 1, (h - hoehe) / 2, breite - 2, hoehe);
+    }
+    ctx.globalAlpha = 1;
+  }
+  function schritt() {
+    let pegel;
+    if (analyse) {
+      const daten = new Uint8Array(analyse.frequencyBinCount);
+      analyse.getByteTimeDomainData(daten);
+      let summe = 0;
+      for (const v of daten) summe += (v - 128) * (v - 128);
+      pegel = Math.min(1, Math.sqrt(summe / daten.length) / 40);
+    } else {
+      puls *= 0.90;
+      pegel = Math.min(1, puls + 0.05 + Math.random() * 0.04);
+    }
+    werte.push(pegel); werte.shift();
+    zeichne();
+    lauf = requestAnimationFrame(schritt);
+  }
+  return {
+    async an() {
+      c.classList.add("aktiv");
+      try {
+        strom = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ctxA = new (window.AudioContext || window.webkitAudioContext)();
+        analyse = ctxA.createAnalyser(); analyse.fftSize = 512;
+        ctxA.createMediaStreamSource(strom).connect(analyse);
+        analyse._ctx = ctxA;
+      } catch { analyse = null; }
+      schritt();
+    },
+    aus() {
+      c.classList.remove("aktiv");
+      cancelAnimationFrame(lauf); lauf = null;
+      werte = new Array(48).fill(0); zeichne();
+      if (strom) { strom.getTracks().forEach(t => t.stop()); strom = null; }
+      if (analyse && analyse._ctx) { try { analyse._ctx.close(); } catch {} }
+      analyse = null;
+    },
+    schlag() { puls = Math.min(1, puls + 0.5); },
+  };
+}
+
 function diktat(feld, knopf) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { knopf.style.display = "none"; return; }
+  const welle = wellen(feld);
   let erk = null, laeuft = false;
   knopf.addEventListener("click", () => {
     if (laeuft) { erk && erk.stop(); return; }
     erk = new SR();
     erk.lang = "de-DE"; erk.continuous = true; erk.interimResults = true;
-    const start = feld.value ? feld.value + " " : "";
+    const start = feld.value ? feld.value.trimEnd() + " " : "";
     erk.onresult = e => {
       let txt = "";
       for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
       feld.value = start + txt;
+      welle.schlag();
     };
-    erk.onend = () => { laeuft = false; knopf.classList.remove("on"); knopf.textContent = "🎙 Diktieren"; };
+    erk.onspeechstart = () => welle.schlag();
+    erk.onend = () => {
+      laeuft = false; welle.aus();
+      knopf.classList.remove("on"); knopf.textContent = "🎙 Diktieren";
+    };
     erk.onerror = erk.onend;
     erk.start();
-    laeuft = true; knopf.classList.add("on"); knopf.textContent = "⏹ Fertig";
+    laeuft = true; welle.an();
+    knopf.classList.add("on"); knopf.textContent = "⏹ Fertig";
   });
 }
 

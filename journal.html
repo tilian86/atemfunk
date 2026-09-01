@@ -274,17 +274,12 @@ async function tagesText() {
 async function reflektieren() {
   const text = await tagesText();
   if (!text.trim()) { $("hinweis").textContent = "Heute ist noch nichts im Journal."; return; }
-  const btn = $("reflexBtn"); btn.disabled = true; btn.textContent = "Liest …";
+  const fertig = warteAnzeige($("reflexBtn"), "Liest …");
   const r = await frageKI(SYSTEM,
     kontextBlock(erkenntnisse().slice(0, 5)) +
     "Meine Einträge von heute:\n" + text + formenHinweis());
-  btn.disabled = false; btn.textContent = "Reflexion starten";
-  if (r.fehler) {
-    $("hinweis").innerHTML = r.fehler === "nicht-verbunden"
-      ? "Noch nicht verbunden – öffne <a href='index.html' style='color:var(--accent)'>Atmen</a> und tippe auf „Bibliothek verbinden“."
-      : "Dein Mac ist nicht erreichbar. Nimm den Prompt und sprich in ChatGPT weiter.";
-    return;
-  }
+  fertig("Reflexion starten");
+  if (r.fehler) { zeigeFehler(r); return; }
   const { form, text: sichtbar } = verarbeiteAntwort(r.text);
   merkeForm(form);
   $("reflexText").innerHTML = (form ? `<div class="hint" style="margin:0 0 10px">Heute: ${form.replace(/[<>&]/g, "")}</div>` : "") + alsHtml(sichtbar);
@@ -295,7 +290,7 @@ async function reflektieren() {
 
 /* Ein Impuls, der aus den letzten Tagen entsteht – nicht aus einer Liste */
 async function impuls() {
-  const btn = $("impulsBtn"); btn.disabled = true; btn.textContent = "Denkt nach …";
+  const fertig = warteAnzeige($("impulsBtn"), "Denkt nach …");
   const alle = await alleEintraege();
   const letzte = alle.filter(e => e.zeit >= Date.now() - 5 * 864e5).sort((a, b) => a.zeit - b.zeit)
     .map(e => e.datum + " " + uhrzeit(e.zeit) + " — " + (e.text || "[" + e.art + "]")).join("\n");
@@ -307,8 +302,8 @@ async function impuls() {
      Antworte mit ein bis zwei Sätzen. Kein Vorspann, keine Anführungszeichen.` + formenHinweis(),
     kontextBlock(erkenntnisse().slice(0, 4)) +
     (letzte ? "Letzte Tage:\n" + letzte : "Noch keine Einträge – gib einen Impuls, der beim Anfangen hilft."));
-  btn.disabled = false; btn.textContent = "✨ Impuls";
-  if (r.fehler) { $("hinweis").textContent = "Mac gerade nicht erreichbar."; return; }
+  fertig("✨ Impuls");
+  if (r.fehler) { zeigeFehler(r); return; }
   $("impulsText").textContent = r.text;
   $("impulsText").style.display = "block";
   $("notiz").focus();
@@ -409,7 +404,7 @@ async function wocheAnschauen() {
   const grenze = Date.now() - 8 * 864e5;
   const letzte = alle.filter(e => e.zeit >= grenze).sort((a, b) => a.zeit - b.zeit);
   if (letzte.length < 2) { $("hinweis").textContent = "Zu wenig im Journal für einen Rückblick."; return; }
-  const btn = $("wocheBtn"); btn.disabled = true; btn.textContent = "Liest die Woche …";
+  const fertig = warteAnzeige($("wocheBtn"), "Liest die Woche …");
   const tage = {};
   for (const e of letzte) {
     const s = e.art === "bild" ? "[Foto] " + (e.text || "") :
@@ -419,13 +414,8 @@ async function wocheAnschauen() {
   const text = Object.entries(tage).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
   const r = await frageKI(SYSTEM_WOCHE,
     kontextBlock(erkenntnisse().slice(0, 6)) + "Einträge der letzten Tage:\n" + text);
-  btn.disabled = false; btn.textContent = "Woche anschauen";
-  if (r.fehler) {
-    $("hinweis").textContent = r.fehler === "nicht-verbunden"
-      ? "Noch nicht verbunden – einmal unter „Atmen“ die Bibliothek verbinden."
-      : "Dein Mac ist nicht erreichbar. Der Prompt oben funktioniert auch in ChatGPT.";
-    return;
-  }
+  fertig("Woche anschauen");
+  if (r.fehler) { zeigeFehler(r); return; }
   const { text: sichtbarW } = verarbeiteAntwort(r.text);
   $("wocheText").innerHTML = alsHtml(sichtbarW);
   $("wocheErgebnis").style.display = "block";
