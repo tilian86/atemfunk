@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v29";
+const CACHE = "atemfunk-v30";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
@@ -23,7 +23,23 @@ const ASSETS = [
   "audio/atem-5.mp3",
   "audio/atem-7.mp3",
   "audio/atem-10.mp3",
-  "audio/atmo/wald.mp3"
+  "audio/atmo/wald.mp3",
+  "flex.json",
+  "audio/flex/atem/e1.mp3",
+  "audio/flex/atem/e2.mp3",
+  "audio/flex/atem/e3.mp3",
+  "audio/flex/atem/m1.mp3",
+  "audio/flex/atem/m2.mp3",
+  "audio/flex/atem/m3.mp3",
+  "audio/flex/atem/m4.mp3",
+  "audio/flex/atem/m5.mp3",
+  "audio/flex/atem/m6.mp3",
+  "audio/flex/atem/m7.mp3",
+  "audio/flex/atem/m8.mp3",
+  "audio/flex/atem/m9.mp3",
+  "audio/flex/atem/ms.mp3",
+  "audio/flex/atem/s1.mp3",
+  "audio/flex/atem/s2.mp3"
 ];
 
 self.addEventListener("install", e => {

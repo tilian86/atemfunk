@@ -147,6 +147,12 @@
   .player .pttl { font-size: 13px; color: var(--ink); text-align: left; margin-bottom: 8px;
                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player input[type=range] { width: 100%; accent-color: var(--accent); height: 24px; }
+  #flexKarte { padding: 14px 0 13px; }
+  #flexKarte .lbl { margin-top: 0; font-size: 12px; }
+  #flexBox { margin-top: 12px; margin-bottom: 22px; padding: 4px 14px 14px;
+             background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; }
+  #flexBox .section-cap { margin-top: 14px; }
+  #flexMin { width: 100%; accent-color: var(--accent); height: 28px; margin: 14px 0 2px; }
   .player .times { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; margin-top: -2px; }
   .player .ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; }
   .player .ctrl button { min-width: 44px; min-height: 44px; border-radius: 999px; cursor: pointer; font-family: inherit;
@@ -240,6 +246,18 @@
     <div class="dur" role="button" tabindex="0" data-min="7" aria-label="7 Minuten meditieren"><div class="num">7</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-min="10" aria-label="10 Minuten meditieren"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-min="0" aria-label="Ohne Zeitlimit meditieren"><div class="num">∞</div><div class="lbl">Offen</div></div>
+    <div class="dur" role="button" tabindex="0" id="flexKarte" aria-expanded="false" aria-controls="flexBox" aria-label="Eigene Länge wählen"><div class="lbl">⋯&nbsp;&nbsp;Eigene Länge</div></div>
+  </div>
+
+  <div class="links" id="flexBox" hidden>
+    <div class="section-cap">Art und Länge</div>
+    <div class="rhythms" id="flexArt" role="radiogroup" aria-label="Art der Meditation">
+      <div class="rhy" role="radio" tabindex="0" data-art="atem">Atem<small>ruhig werden</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="koerper">Körperreise<small>Fuß bis Kopf</small></div>
+    </div>
+    <input type="range" id="flexMin" min="3" max="45" step="1" value="12" aria-label="Länge in Minuten">
+    <button class="vid" id="flexStart" style="text-align:center; margin:8px 0 0">12 Minuten starten</button>
+    <div class="voice-note" id="flexNote">Die Anleitung wird aus Bausteinen zusammengesetzt – die Pausen wachsen mit der Länge.</div>
   </div>
 
   <div class="rhythms" id="rhythms" role="radiogroup" aria-label="Atemrhythmus">
@@ -290,6 +308,7 @@
     <div class="section-cap">Geführte Programme</div>
     <div class="vid" role="button" tabindex="0" data-prog="koerperreise" data-min="10"><span>Körperreise</span> · durch den ganzen Körper spüren · 10 Min</div>
     <div class="vid" role="button" tabindex="0" data-prog="frei" data-min="12"><span>Freie Meditation</span> · offen geführt · 12 Min</div>
+    <div class="voice-note">Andere Länge? Oben über <strong>⋯ Eigene</strong> – da baut die App die Anleitung passend zusammen.</div>
   </div>
 
   <div class="links">
@@ -959,7 +978,81 @@ function maybeFinish() {
   $("sessionNote").textContent = "Diese Atemrunde noch zu Ende.";
 }
 
-async function startSession(min, prog) {
+/* ---------- Geführte Meditation in freier Länge ----------
+   Statt einer fertigen Datei setzt die App die Anleitung aus kurzen Bausteinen
+   zusammen und legt die Stille dazwischen so, dass die Zeit auf die Sekunde
+   aufgeht. flex.json kennt die Länge jedes Bausteins. */
+let FLEX = null;
+fetch("flex.json").then(r => r.json()).then(d => { FLEX = d; }).catch(() => {});
+
+const FLEX_TITEL = { atem: "Atemmeditation", koerper: "Körperreise" };
+function flexDatei(art, key) { return voicePath() + "flex/" + art + "/" + key + ".mp3"; }
+
+/* n Bausteine gleichmäßig über die Liste verteilt – bei der Körperreise wandert
+   die Aufmerksamkeit so auch in der Kurzfassung von den Füßen bis zum Kopf. */
+function gleichVerteilt(liste, n) {
+  if (n >= liste.length) return liste.slice();
+  if (n <= 1) return [liste[0]];
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(liste[Math.round(i * (liste.length - 1) / (n - 1))]);
+  return out;
+}
+
+function bauePlan(art, totalSec) {
+  const M = FLEX && FLEX[art];
+  if (!M) return null;
+  const nr = k => parseInt(k.slice(1), 10);
+  const keys = Object.keys(M);
+  const ein = keys.filter(k => /^e\d+$/.test(k)).sort((a, b) => nr(a) - nr(b));
+  const mitte = keys.filter(k => /^m\d+$/.test(k)).sort((a, b) => nr(a) - nr(b));
+  const schluss = keys.filter(k => /^s\d+$/.test(k)).sort((a, b) => nr(a) - nr(b));
+  if (!ein.length || !schluss.length || !M.ms) return null;
+
+  const START = 3;            /* der Anfangsgong darf ausklingen */
+  const P_EIN = 7;
+  const P_SCHLUSS = 9;
+  const PUFFER = 4;           /* Ruhe vor dem Schlussgong */
+
+  const plan = [];
+  let t = START;
+  ein.forEach(k => { plan.push({ at: t, f: k }); t += M[k] + P_EIN; });
+
+  const schlussLang = schluss.reduce((a, k) => a + M[k], 0) + P_SCHLUSS * (schluss.length - 1);
+  const schlussStart = totalSec - PUFFER - schlussLang;
+  let frei = schlussStart - t;
+
+  if (frei > 25) {
+    let k = Math.max(2, Math.min(mitte.length + 1, Math.round(frei / 40)));
+    let bloecke = null, stille = 0;
+    while (k >= 1) {
+      const b = gleichVerteilt(mitte, k - 1).concat(["ms"]);
+      const gesprochen = b.reduce((a, x) => a + M[x], 0);
+      if (frei - gesprochen >= b.length * 10) { bloecke = b; stille = frei - gesprochen; break; }
+      k--;
+    }
+    if (bloecke) {
+      /* Die Pausen werden nach hinten hin länger. Länger als zwei Minuten wird
+         aber keine Lücke: was übrig bleibt, wandert an den Schluss – dort steht
+         ohnehin „ich bin still", und genau dort gehört die lange Stille hin. */
+      const g = bloecke.map((_, i) => 1 + 0.6 * (i / Math.max(1, bloecke.length - 1)));
+      const gSum = g.reduce((a, b2) => a + b2, 0);
+      const pausen = g.map(x => stille * x / gSum);
+      let rest = 0;
+      for (let i = 0; i < pausen.length - 1; i++) {
+        if (pausen[i] > 120) { rest += pausen[i] - 120; pausen[i] = 120; }
+      }
+      pausen[pausen.length - 1] += rest;
+      bloecke.forEach((f, i) => { plan.push({ at: t, f }); t += M[f] + pausen[i]; });
+    }
+  }
+
+  schluss.forEach((k, i) => {
+    plan.push({ at: schlussStart + (i === 0 ? 0 : M[schluss[0]] + P_SCHLUSS), f: k });
+  });
+  return plan.map(x => ({ at: Math.round(x.at * 10) / 10, f: x.f }));
+}
+
+async function startSession(min, prog, flexArt) {
   if (session) return;
   stopClosing();                 /* Abschlussansage der letzten Sitzung beenden */
   $("quietBtn").textContent = "Stimme aus";
@@ -973,13 +1066,14 @@ async function startSession(min, prog) {
   const offen = min === 0;                              /* ohne Zeitlimit */
   const totalSec = offen ? Infinity : min * 60;
   /* Programme sind immer geführt; sonst nur der ruhige 4-6-Rhythmus */
-  const mitFrage = !!frage && !prog;
-  const rhythm = prog ? RHYTHMS.ruhig : RHYTHMS[rhythmKey];  /* Programme atmen ruhig mit */
-  const guided = !offen && voiceOn() && !mitFrage && (!!prog || rhythmKey === "ruhig");
+  const mitFrage = !!frage && !prog && !flexArt;
+  const gefuehrt = !!prog || !!flexArt;
+  const rhythm = gefuehrt ? RHYTHMS.ruhig : RHYTHMS[rhythmKey];  /* geführte Meditationen atmen ruhig mit */
+  const guided = !offen && voiceOn() && !mitFrage && (gefuehrt || rhythmKey === "ruhig");
   /* gesprochene Phasenansagen – beim freien Atmen bleibt es still */
   const spoken = voiceOn() && !guided && !rhythm.frei;
   session = {
-    min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, bowl: bowlOn(),
+    min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, flexArt: null, plan: null, planIdx: 0, bowl: bowlOn(),
     frage: mitFrage ? frage.text : null, frageNr: mitFrage ? frage.nr : null, frageWiederholt: false,
     startedAt: Date.now(),
     endAt: offen ? Infinity : Date.now() + totalSec * 1000,
@@ -999,7 +1093,22 @@ async function startSession(min, prog) {
   setMediaSession(min);
   if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage, session.frageNr), 4200);
 
-  if (guided) {
+  if (guided && flexArt) {
+    const plan = bauePlan(flexArt, totalSec);
+    if (plan) {
+      session.flexArt = flexArt;
+      session.plan = plan;
+      /* iOS lässt ein Audio-Element erst nach einer Berührung los. Der erste
+         Baustein kommt aber erst nach ein paar Sekunden – also hier, noch im
+         Tipp-Moment, einmal kurz anspielen und gleich wieder anhalten. */
+      audio.src = flexDatei(flexArt, plan[0].f);
+      try { await audio.play(); audio.pause(); audio.currentTime = 0; } catch {}
+    } else if (session) {
+      $("sessionNote").textContent = "Anleitung noch nicht geladen – Sitzung läuft ohne Stimme.";
+    }
+  } else if (flexArt && session) {
+    $("sessionNote").textContent = "Stimme ist aus – die Sitzung läuft still.";
+  } else if (guided) {
     audio.src = session.prog
       ? voicePath() + "prog/" + session.prog + ".mp3"
       : voicePath() + "atem-" + min + ".mp3";
@@ -1048,6 +1157,18 @@ async function startSession(min, prog) {
     if (session.bowl && elapsed >= session.nextBowlAt && (session.offen || elapsed < session.totalSec - 8)) {
       session.nextBowlAt += 45;
       bowl();
+    }
+    if (session.plan) {
+      const n = session.plan[session.planIdx];
+      if (n && elapsed >= n.at) {
+        session.planIdx++;
+        const datei = flexDatei(session.flexArt, n.f);
+        try {
+          if (!audio.src.endsWith(datei)) audio.src = datei;
+          audio.currentTime = 0;
+          audio.play().catch(() => {});
+        } catch {}
+      }
     }
     ambientUpdate(bs, elapsed);
 
@@ -1151,7 +1272,7 @@ function finishSession(completed) {
 }
 function session_minHalf(min) { return (min * 60) / 2; }
 
-document.querySelectorAll(".dur").forEach(el => {
+document.querySelectorAll(".dur[data-min]").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => startSession(+el.dataset.min));
 });
@@ -1159,6 +1280,43 @@ document.querySelectorAll("[data-prog]").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => startSession(+el.dataset.min, el.dataset.prog));
 });
+
+/* ---------- Eigene Länge ---------- */
+let flexArtKey = store.get("atemfunk_flexart", "atem");
+if (!FLEX_TITEL[flexArtKey]) flexArtKey = "atem";
+let flexMinuten = parseInt(store.get("atemfunk_flexmin", "12"), 10);
+if (!(flexMinuten >= 3 && flexMinuten <= 45)) flexMinuten = 12;
+$("flexMin").value = flexMinuten;
+function renderFlex() {
+  document.querySelectorAll("#flexArt .rhy").forEach(el => {
+    const sel = el.dataset.art === flexArtKey;
+    el.classList.toggle("sel", sel);
+    el.setAttribute("aria-checked", sel ? "true" : "false");
+  });
+  $("flexStart").textContent = flexMinuten + " Minuten " + FLEX_TITEL[flexArtKey] + " starten";
+}
+document.querySelectorAll("#flexArt .rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => {
+    flexArtKey = el.dataset.art;
+    store.set("atemfunk_flexart", flexArtKey);
+    renderFlex();
+  });
+});
+$("flexMin").addEventListener("input", () => {
+  flexMinuten = +$("flexMin").value;
+  renderFlex();
+});
+$("flexMin").addEventListener("change", () => store.set("atemfunk_flexmin", String(flexMinuten)));
+keyActivate($("flexKarte"));
+$("flexKarte").addEventListener("click", () => {
+  const zu = $("flexBox").hidden;
+  $("flexBox").hidden = !zu;
+  $("flexKarte").setAttribute("aria-expanded", zu ? "true" : "false");
+  if (zu) $("flexBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
+$("flexStart").addEventListener("click", () => startSession(flexMinuten, null, flexArtKey));
+renderFlex();
 $("pauseBtn").addEventListener("click", () => togglePause());
 $("stopBtn").addEventListener("click", () => finishSession(false));
 $("homeBtn").addEventListener("click", () => {
