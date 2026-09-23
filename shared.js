@@ -71,7 +71,7 @@ async function frageKI(system, user, model) {
        eingebettete <system>-Blöcke misstrauisch und verweigert sie mitunter. */
     const r = await fetch(basis + "ki", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ system: "", user: system + "\n\n---\n\n" + user, model: model || "sonnet" }),
+      body: JSON.stringify({ system: "", user: system + "\n\n---\n\n" + user, model: model || "opus" }),
       signal: abbruch.signal,
     });
     const d = await r.json().catch(() => ({}));
