@@ -71,6 +71,11 @@
     transition: transform 0.15s, background 0.2s, border-color 0.2s;
   }
   .dur:active { transform: scale(0.96); background: var(--accent-soft); border-color: var(--accent); }
+  /* Runterkommen: eigene Reihe ganz oben, goldener Rand — der Knopf für unterwegs */
+  .runter { display: flex; gap: 8px; width: 100%; margin-bottom: 6px; }
+  .runter .dur { flex: 1 1 45%; border-color: rgba(216,196,143,0.45); background: rgba(216,196,143,0.07); }
+  .runter .dur .lbl { color: var(--gold); }
+  .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
   .dur .lbl { font-size: 10px; color: var(--ink-dim); margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
 
@@ -238,6 +243,12 @@
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
 
+  <div class="section-cap">Runterkommen</div>
+  <div class="runter">
+    <div class="dur" role="button" tabindex="0" data-prog="runter-5" data-min="5" aria-label="Runterkommen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="runter-10" data-min="10" aria-label="Runterkommen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+  </div>
+  <div class="runter-hinweis">Geführt: ankommen, Seufzer-Atmung, langes Ausatmen · für die Bank unterwegs</div>
   <div class="section-cap" id="capDur">Tippen zum Starten</div>
   <div class="durations">
     <div class="dur" role="button" tabindex="0" data-min="1" aria-label="1 Minute meditieren"><div class="num">1</div><div class="lbl">Minute</div></div>
@@ -633,6 +644,7 @@ document.querySelectorAll("#voices .rhy").forEach(el => {
     voiceSex = el.dataset.sex;
     store.set("atemfunk_voicesex", voiceSex);
     renderVoiceSex();
+    runterVorladen();
   });
 });
 
@@ -942,11 +954,11 @@ document.addEventListener("visibilitychange", () => {
   if (session && !session.leftMsAtPause && session.endAt - Date.now() <= 0) maybeFinish();
 });
 
-function setMediaSession(min) {
+function setMediaSession(min, prog) {
   if (!("mediaSession" in navigator)) return;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: "Atemmeditation · " + min + " " + (min === 1 ? "Minute" : "Minuten"),
+      title: (PROG_TITEL[prog] || "Atemmeditation") + " · " + min + " " + (min === 1 ? "Minute" : "Minuten"),
       artist: "Atemfunk",
       artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }],
     });
@@ -986,6 +998,44 @@ let FLEX = null;
 fetch("flex.json").then(r => r.json()).then(d => { FLEX = d; }).catch(() => {});
 
 const FLEX_TITEL = { atem: "Atemmeditation", koerper: "Körperreise" };
+
+/* Programme, in denen sich der Atemrhythmus ändert: [ab Sekunde, Rhythmus].
+   Die Zeitmarken kommen aus tools/runter_bauen.py und sind in beiden Stimmen
+   gleich — die Stimme zählt die Seufzer genau dann an, wenn die Kugel sie zeigt. */
+const PROG_ATEM = {
+  "runter-5":  [[0, "frei"], [71.5, "seufzer"], [193, "frei"], [204.5, "ruhig"], [264.5, "frei"]],
+  "runter-10": [[0, "frei"], [94, "seufzer"], [296.5, "frei"], [308, "ruhig"], [508, "frei"]],
+};
+const PROG_TITEL = { "runter-5": "Runterkommen", "runter-10": "Runterkommen",
+  koerperreise: "Körperreise", frei: "Freie Meditation" };
+
+/* Atemzustand der laufenden Sitzung. Mit Atemplan ist die Uhr die Tonspur
+   selbst, solange sie läuft — so bleiben Stimme und Kugel auch nach einer
+   Pause oder einem verzögerten Start auf den Punkt gleich. */
+function atemZustand(s) {
+  let t = elapsedOf(s);
+  if (!s.atemPlan) return breathState(t, s.rhythm);
+  if (s.guided && audio.getAttribute("src") && audio.currentTime > 0 && !audio.ended) t = audio.currentTime;
+  let i = 0;
+  while (i + 1 < s.atemPlan.length && t >= s.atemPlan[i + 1][0]) i++;
+  if (i !== s.planTeil) {
+    s.planTeil = i;
+    s.rhythm = RHYTHMS[s.atemPlan[i][1]];
+    buildBreathRing(s.rhythm);
+  }
+  return breathState(t - s.atemPlan[i][0], s.rhythm);
+}
+
+/* Runterkommen ist für unterwegs gedacht, wo das Netz wackelt: die Tonspur
+   der gewählten Stimme einmal vorab in den Offline-Speicher holen. */
+function runterVorladen() {
+  if (!("caches" in window) || !navigator.serviceWorker?.controller) return;
+  for (const d of ["runter-5", "runter-10"]) {
+    const url = voicePath() + "prog/" + d + ".mp3";
+    caches.match(url, { ignoreSearch: true }).then(hit => hit || fetch(url)).catch(() => {});
+  }
+}
+setTimeout(runterVorladen, 4000);
 function flexDatei(art, key) { return voicePath() + "flex/" + art + "/" + key + ".mp3"; }
 
 /* n Bausteine gleichmäßig über die Liste verteilt – bei der Körperreise wandert
@@ -1068,7 +1118,9 @@ async function startSession(min, prog, flexArt) {
   /* Programme sind immer geführt; sonst nur der ruhige 4-6-Rhythmus */
   const mitFrage = !!frage && !prog && !flexArt;
   const gefuehrt = !!prog || !!flexArt;
-  const rhythm = gefuehrt ? RHYTHMS.ruhig : RHYTHMS[rhythmKey];  /* geführte Meditationen atmen ruhig mit */
+  const atemPlan = (prog && PROG_ATEM[prog]) || null;
+  const rhythm = atemPlan ? RHYTHMS[atemPlan[0][1]]
+    : gefuehrt ? RHYTHMS.ruhig : RHYTHMS[rhythmKey];  /* geführte Meditationen atmen ruhig mit */
   const guided = !offen && voiceOn() && !mitFrage && (gefuehrt || rhythmKey === "ruhig");
   /* gesprochene Phasenansagen – beim freien Atmen bleibt es still */
   const spoken = voiceOn() && !guided && !rhythm.frei;
@@ -1080,7 +1132,7 @@ async function startSession(min, prog, flexArt) {
     leftMsAtPause: null,
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: 45,
-    rhythm,
+    rhythm, atemPlan, planTeil: 0,
     ausklang: false,          /* läuft gerade die letzte Atemrunde nach Ablauf? */
   };
   buildBreathRing(session.rhythm);
@@ -1090,7 +1142,7 @@ async function startSession(min, prog, flexArt) {
   $("frageImLauf").textContent = session.frage ? "„" + session.frage + "“" : "";
   acquireWakeLock();
   gong();
-  setMediaSession(min);
+  setMediaSession(min, prog);
   if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage, session.frageNr), 4200);
 
   if (guided && flexArt) {
@@ -1140,7 +1192,7 @@ async function startSession(min, prog, flexArt) {
     if (!session || session.leftMsAtPause) return;
     const leftMs = session.offen ? Infinity : Math.max(0, session.endAt - Date.now());
     const elapsed = elapsedOf(session);
-    const bs = breathState(elapsed, session.rhythm);
+    const bs = atemZustand(session);
 
     if (bs.label !== session.lastLabel) {
       const first = session.lastLabel === null;
@@ -1190,7 +1242,7 @@ async function startSession(min, prog, flexArt) {
   const draw = () => {
     if (!session) return;
     if (!session.leftMsAtPause) {
-      const bs = breathState(elapsedOf(session), session.rhythm);
+      const bs = atemZustand(session);
       orb.style.transform = "scale(" + (0.82 + bs.value * amp) + ")";
       const [dx, dy] = polar(BR, bs.cycle);
       dot.setAttribute("cx", dx); dot.setAttribute("cy", dy);
@@ -1272,7 +1324,7 @@ function finishSession(completed) {
 }
 function session_minHalf(min) { return (min * 60) / 2; }
 
-document.querySelectorAll(".dur[data-min]").forEach(el => {
+document.querySelectorAll(".dur[data-min]:not([data-prog])").forEach(el => {   /* Runterkommen-Karten sind auch .dur */
   keyActivate(el);
   el.addEventListener("click", () => startSession(+el.dataset.min));
 });
