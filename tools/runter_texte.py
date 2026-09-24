@@ -66,7 +66,7 @@ TEXTE = {
         ("sag", "Lass den Blick langsam wandern, ganz gemächlich, nach links und nach rechts. "
                 "Such dir etwas Ruhiges, auf dem die Augen bleiben dürfen. Ein Baum, der Himmel, der Boden vor dir."),
         ("still", 10),
-        ("sag", "Lass die Schultern sinken. Lös den Kiefer, die Zunge liegt locker im Mund. "
+        ("sag", "Lass die Schultern sinken. Der Kiefer darf locker werden, die Zunge liegt entspannt im Mund. "
                 "Die Hände liegen einfach da, wo sie liegen."),
         ("still", 8),
         ("sag", "Wenn du magst, schließ jetzt die Augen. Offen lassen geht genauso."),

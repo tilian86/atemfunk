@@ -245,8 +245,8 @@
 
   <div class="section-cap">Runterkommen</div>
   <div class="runter">
-    <div class="dur" role="button" tabindex="0" data-prog="runter-5" data-min="5" aria-label="Runterkommen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="runter-10" data-min="10" aria-label="Runterkommen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="runterkommen-5" data-min="5" aria-label="Runterkommen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="runterkommen-10" data-min="10" aria-label="Runterkommen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
   </div>
   <div class="runter-hinweis">Geführt: ankommen, Seufzer-Atmung, langes Ausatmen · für die Bank unterwegs</div>
   <div class="section-cap" id="capDur">Tippen zum Starten</div>
@@ -1003,10 +1003,10 @@ const FLEX_TITEL = { atem: "Atemmeditation", koerper: "Körperreise" };
    Die Zeitmarken kommen aus tools/runter_bauen.py und sind in beiden Stimmen
    gleich — die Stimme zählt die Seufzer genau dann an, wenn die Kugel sie zeigt. */
 const PROG_ATEM = {
-  "runter-5":  [[0, "frei"], [71.5, "seufzer"], [193, "frei"], [204.5, "ruhig"], [264.5, "frei"]],
-  "runter-10": [[0, "frei"], [94, "seufzer"], [296.5, "frei"], [308, "ruhig"], [508, "frei"]],
+  "runterkommen-5":  [[0, "frei"], [64, "seufzer"], [185.5, "frei"], [196, "ruhig"], [256, "frei"]],
+  "runterkommen-10": [[0, "frei"], [85, "seufzer"], [287.5, "frei"], [298, "ruhig"], [498, "frei"]],
 };
-const PROG_TITEL = { "runter-5": "Runterkommen", "runter-10": "Runterkommen",
+const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   koerperreise: "Körperreise", frei: "Freie Meditation" };
 
 /* Atemzustand der laufenden Sitzung. Mit Atemplan ist die Uhr die Tonspur
@@ -1030,7 +1030,7 @@ function atemZustand(s) {
    der gewählten Stimme einmal vorab in den Offline-Speicher holen. */
 function runterVorladen() {
   if (!("caches" in window) || !navigator.serviceWorker?.controller) return;
-  for (const d of ["runter-5", "runter-10"]) {
+  for (const d of ["runterkommen-5", "runterkommen-10"]) {
     const url = voicePath() + "prog/" + d + ".mp3";
     caches.match(url, { ignoreSearch: true }).then(hit => hit || fetch(url)).catch(() => {});
   }
