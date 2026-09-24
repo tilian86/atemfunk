@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v31";
+const CACHE = "atemfunk-v32";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
@@ -91,8 +91,14 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  /* HTML netz-zuerst, damit Updates ohne SW-Versionssprung ankommen */
-  if (e.request.mode === "navigate" || e.request.destination === "document") {
+  /* Seiten UND Code (JS, CSS, JSON) netz-zuerst, damit Updates ohne
+     SW-Versionssprung ankommen. Nur HTML reichte nicht: der Cache unten
+     vergleicht mit ignoreSearch, dadurch waren die ?v=-Marken wirkungslos,
+     und ein geändertes shared.js blieb hängen, bis CACHE hochgezählt wurde.
+     Audio und Bilder bleiben cache-zuerst — die sind groß und ändern sich nie. */
+  const pfad = new URL(e.request.url).pathname;
+  if (e.request.mode === "navigate" || e.request.destination === "document"
+      || /\.(js|css|json)$/.test(pfad)) {
     e.respondWith(
       fetch(e.request).then(resp => {
         if (resp.ok) {
@@ -102,7 +108,8 @@ self.addEventListener("fetch", e => {
         return resp;
       }).catch(() =>
         caches.match(e.request, { ignoreSearch: true })
-          .then(hit => hit || caches.match("index.html"))
+          /* index.html als Ersatz nur für Seiten — nicht als Antwort auf ein Skript */
+          .then(hit => hit || (e.request.mode === "navigate" ? caches.match("index.html") : Response.error()))
       )
     );
     return;
