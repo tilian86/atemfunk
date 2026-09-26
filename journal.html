@@ -83,11 +83,20 @@
   <div id="frueher"></div>
 </div>
 
-<script src="shared.js?v=31"></script>
+<script src="shared.js?v=32"></script>
 <script>
 "use strict";
 
 let aufnahme = null, brocken = [];
+
+/* Was beim Reiterwechsel nicht verloren gehen darf:
+   das laufende Reflexions-Gespräch, der letzte Wochenrückblick, halb Geschriebenes
+   und Anfragen, deren Antwort noch unterwegs ist. */
+const GESPRAECH = "atemfunk_reflexion", WOCHE = "atemfunk_woche_aktuell", OFFEN = "atemfunk_journal_offen";
+const ENTWURF_NOTIZ = "atemfunk_journal_notiz", ENTWURF_ANTWORT = "atemfunk_journal_antwort";
+let wartet = false;
+const escHtml = s => String(s ?? "").replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+function hinweisWarten() { $("hinweis").textContent = "Einen Moment – die letzte Antwort kommt noch."; }
 
 async function tonStart() {
   const btn = $("tonBtn");
@@ -122,6 +131,7 @@ async function tonStart() {
         await speichern({ art: "audio", blob, text });
       }
       $("notiz").value = "";
+      localStorage.removeItem(ENTWURF_NOTIZ);
       zeigeHeute();
     };
     mr.start();
@@ -144,6 +154,7 @@ async function sichern() {
   if (!text) { $("hinweis").textContent = "Erst etwas schreiben oder diktieren."; return; }
   await speichern({ art: "text", text });
   $("notiz").value = "";
+  localStorage.removeItem(ENTWURF_NOTIZ);
   $("hinweis").textContent = "";
   zeigeHeute();
 }
@@ -151,6 +162,7 @@ async function sichern() {
 $("bildInput").addEventListener("change", async e => {
   for (const f of e.target.files) await speichern({ art: "bild", blob: f, text: $("notiz").value.trim() });
   e.target.value = ""; $("notiz").value = "";
+  localStorage.removeItem(ENTWURF_NOTIZ);
   zeigeHeute();
 });
 
@@ -290,21 +302,90 @@ async function tagesText() {
   return teile.join("\n");
 }
 
+/* ---------- Reflexions-Gespräch: bleibt gespeichert, bis eine neue Reflexion beginnt ----------
+   { start, datum, form, verlauf: [{ wer: "ki" | "du", text }] } – gilt 18 Stunden,
+   damit auch eine Antwort nach Mitternacht noch ins selbe Gespräch fällt. */
+function gespraech() {
+  const g = store.getJSON(GESPRAECH, null);
+  return g && Array.isArray(g.verlauf) && Date.now() - g.start < 18 * 3600e3 ? g : null;
+}
+function gespraechAlsText(g) {
+  return g.verlauf.map((t, i) => i === 0 ? t.text : (t.wer === "du" ? "Du: " : "") + t.text).join("\n\n");
+}
+function zeigeGespraech(g) {
+  if (!g) { $("reflexion").style.display = "none"; return; }
+  $("reflexText").innerHTML = (g.form ? `<div class="hint" style="margin:0 0 10px">Heute: ${escHtml(g.form)}</div>` : "")
+    + g.verlauf.map(t => t.wer === "du"
+      ? "<h3>Du sagst</h3><p><em style='color:var(--ink-dim)'>" + escHtml(t.text).replace(/\n/g, "<br>") + "</em></p>"
+      : alsHtml(t.text)).join("");
+  $("reflexion").style.display = "block";
+}
+function letzteReflexAntwort() {
+  const g = gespraech();
+  const ki = g ? g.verlauf.filter(t => t.wer === "ki") : [];
+  return ki.length ? ki[ki.length - 1].text : "";
+}
+
 async function reflektieren() {
   const text = await tagesText();
   if (!text.trim()) { $("hinweis").textContent = "Heute ist noch nichts im Journal."; return; }
+  if (wartet) return hinweisWarten();
+  wartet = true;
   const fertig = warteAnzeige($("reflexBtn"), "Liest …");
-  const r = await frageKI(SYSTEM,
+  const info = { art: "reflexion" };
+  const r = await frageKIgemerkt(OFFEN, info, SYSTEM,
     kontextBlock(erkenntnisse().slice(0, 5)) +
     "Meine Einträge von heute:\n" + text + formenHinweis());
   fertig("Reflexion starten");
-  if (r.fehler) { zeigeFehler(r); return; }
-  const { form, text: sichtbar } = verarbeiteAntwort(r.text);
-  merkeForm(form);
-  $("reflexText").innerHTML = (form ? `<div class="hint" style="margin:0 0 10px">Heute: ${form.replace(/[<>&]/g, "")}</div>` : "") + alsHtml(sichtbar);
-  $("reflexion").style.display = "block";
-  $("reflexion").dataset.text = sichtbar;
-  zeigeFaeden();
+  wartet = false;
+  await nimmAntwort(r, info);
+}
+
+/* Eine fertige Antwort übernehmen – direkt oder nach dem Abholen beim nächsten Öffnen */
+async function nimmAntwort(r, info) {
+  if (!r || r.ueberholt) return;
+  if (r.fehler) {
+    zeigeFehler(r);
+    if (info.art === "antwort" && !$("antwortFeld").value.trim()) $("antwortFeld").value = info.a || "";
+    return;
+  }
+  if (info.art === "woche") return zeigeWoche(r.text, true);
+  const { form, text } = verarbeiteAntwort(r.text);
+  if (info.art === "reflexion") {
+    merkeForm(form);
+    const g = { start: Date.now(), datum: heute(), form, verlauf: [{ wer: "ki", text }] };
+    store.setJSON(GESPRAECH, g);
+    zeigeGespraech(g);
+    zeigeFaeden();
+    return;
+  }
+  const g = gespraech();
+  if (!g || g.start !== info.gespraech) return;
+  g.verlauf.push({ wer: "du", text: info.a }, { wer: "ki", text });
+  store.setJSON(GESPRAECH, g);
+  if ($("antwortFeld").value.trim() === (info.a || "").trim()) {
+    $("antwortFeld").value = "";
+    localStorage.removeItem(ENTWURF_ANTWORT);
+  }
+  zeigeGespraech(g);
+  /* Ein Journal-Eintrag pro Gespräch, der mitwächst – statt bei jeder Antwort einer neuen Kopie */
+  await speichern({ id: "gespraech-" + g.start, art: "text", text: "Journal-Gespräch\n\n" + gespraechAlsText(g) });
+  zeigeHeute();
+}
+
+/* Hat die Seite beim Warten gewechselt, liegt die Antwort beim Worker bereit */
+async function abholen() {
+  const o = store.getJSON(OFFEN, null);
+  if (!o || wartet) return;
+  wartet = true;
+  const [knopf, label] = { antwort: ["antwortenBtn", "Senden"], woche: ["wocheBtn", "Woche anschauen"] }[o.art]
+    || ["reflexBtn", "Reflexion starten"];
+  if (o.art === "antwort" && !$("antwortFeld").value.trim()) $("antwortFeld").value = o.a || "";
+  const fertig = warteAnzeige($(knopf), "Antwort kommt …");
+  const r = await offeneAnfrage(OFFEN);
+  fertig(label);
+  wartet = false;
+  if (r) await nimmAntwort(r, r.info);
 }
 
 /* Ein Impuls, der aus den letzten Tagen entsteht – nicht aus einer Liste */
@@ -331,21 +412,22 @@ async function impuls() {
 async function antworten() {
   const a = $("antwortFeld").value.trim();
   if (a.length < 2) { $("antwortFeld").focus(); return; }
+  const g = gespraech();
+  if (!g) { $("hinweis").textContent = "Starte zuerst eine Reflexion."; return; }
+  if (wartet) return hinweisWarten();
+  wartet = true;
   const fertig = warteAnzeige($("antwortenBtn"), "Antwortet …");
-  const r = await frageKI(SYSTEM,
-    "Einträge:\n" + (await tagesText()) +
-    "\n\nDeine Fragen:\n" + $("reflexion").dataset.text +
+  /* nicht „start“ nennen – den Schlüssel belegt frageKIgemerkt mit der Anfragezeit */
+  const info = { art: "antwort", gespraech: g.start, a };
+  const eintraegeText = await tagesText();
+  const r = await frageKIgemerkt(OFFEN, info, SYSTEM,
+    "Einträge:\n" + eintraegeText +
+    "\n\nDeine Fragen:\n" + gespraechAlsText(g) +
     "\n\nFlorians Antwort:\n" + a +
     "\n\nGeh darauf ein, kurz und konkret. Höchstens 150 Wörter, gern mit einer weiterführenden Frage.");
   fertig("Senden");
-  if (r.fehler) { zeigeFehler(r); return; }
-  const antwort = verarbeiteAntwort(r.text).text;
-  $("reflexText").innerHTML += "<h3>Du sagst</h3><p><em style='color:var(--ink-dim)'>"
-    + a.replace(/[<>&]/g, "") + "</em></p>" + alsHtml(antwort);
-  $("reflexion").dataset.text += "\n\nDu: " + a + "\n" + antwort;
-  $("antwortFeld").value = "";
-  await speichern({ art: "text", text: "Journal-Gespräch\n\n" + $("reflexion").dataset.text });
-  zeigeHeute();
+  wartet = false;
+  await nimmAntwort(r, info);
 }
 
 /* ---------- Erkenntnisse: der wachsende Speicher ---------- */
@@ -425,6 +507,8 @@ async function wocheAnschauen() {
   const grenze = Date.now() - 8 * 864e5;
   const letzte = alle.filter(e => e.zeit >= grenze).sort((a, b) => a.zeit - b.zeit);
   if (letzte.length < 2) { $("hinweis").textContent = "Zu wenig im Journal für einen Rückblick."; return; }
+  if (wartet) return hinweisWarten();
+  wartet = true;
   const fertig = warteAnzeige($("wocheBtn"), "Liest die Woche …");
   const tage = {};
   for (const e of letzte) {
@@ -433,14 +517,22 @@ async function wocheAnschauen() {
     (tage[e.datum] ||= []).push(uhrzeit(e.zeit) + " — " + s);
   }
   const text = Object.entries(tage).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
-  const r = await frageKI(SYSTEM_WOCHE,
+  const info = { art: "woche" };
+  const r = await frageKIgemerkt(OFFEN, info, SYSTEM_WOCHE,
     kontextBlock(erkenntnisse().slice(0, 6)) + "Einträge der letzten Tage:\n" + text);
   fertig("Woche anschauen");
-  if (r.fehler) { zeigeFehler(r); return; }
-  const { text: sichtbarW } = verarbeiteAntwort(r.text);
+  wartet = false;
+  await nimmAntwort(r, info);
+}
+
+/* neu = frisch von der KI (merken, ins Journal); sonst nur wieder anzeigen */
+async function zeigeWoche(roh, neu) {
+  const sichtbarW = neu ? verarbeiteAntwort(roh).text : roh;
   $("wocheText").innerHTML = alsHtml(sichtbarW);
   $("wocheErgebnis").style.display = "block";
   $("wocheErgebnis").dataset.text = sichtbarW;
+  if (!neu) return;
+  store.setJSON(WOCHE, { datum: heute(), text: sichtbarW });
   zeigeFaeden();
   store.set("atemfunk_letzter_rueckblick", heute());
   await speichern({ art: "text", text: "Wochenrückblick\n\n" + sichtbarW });
@@ -519,9 +611,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("impulsBtn").addEventListener("click", impuls);
   $("antwortenBtn").addEventListener("click", antworten);
   diktat($("antwortFeld"), $("antwortDiktat"));
-  $("vorlesenBtn").addEventListener("click", () => vorlesen($("reflexion").dataset.text || "", $("vorlesenBtn")));
+  $("vorlesenBtn").addEventListener("click", () => vorlesen(letzteReflexAntwort(), $("vorlesenBtn")));
   $("promptBtn").addEventListener("click", async () =>
     kopieren(SYSTEM + "\n\n---\n\nMeine Einträge von heute:\n" + (await tagesText()), $("promptBtn"), "Prompt kopieren"));
+
+  /* Zurückholen, was vor dem Reiterwechsel da war */
+  zeigeGespraech(gespraech());
+  const w = store.getJSON(WOCHE, null);
+  if (w && w.datum === heute()) zeigeWoche(w.text, false);
+  if (!$("notiz").value) $("notiz").value = store.get(ENTWURF_NOTIZ, "");
+  $("antwortFeld").value = store.get(ENTWURF_ANTWORT, "");
+  const entwuerfeSichern = () => {
+    store.set(ENTWURF_NOTIZ, $("notiz").value);
+    store.set(ENTWURF_ANTWORT, $("antwortFeld").value);
+  };
+  $("notiz").addEventListener("input", entwuerfeSichern);
+  $("antwortFeld").addEventListener("input", entwuerfeSichern);
+  window.addEventListener("pagehide", entwuerfeSichern);
+  window.addEventListener("pageshow", ev => { if (ev.persisted) abholen(); });
+  abholen();
+
   zeigeHeute(); zeigeFrueher();
 });
 </script>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Statistik · Atemfunk</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<link rel="stylesheet" href="app.css">
+<style>
+  [hidden] { display: none !important; }
+  a.btn { text-decoration: none; }
+
+  /* ---------- Kennzahlen 2 × 2 ---------- */
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi { margin: 0; padding: 12px 14px 13px; min-width: 0; }
+  .k-label { font-size: 12px; color: var(--ink-dim); }
+  .k-wert { font-size: 30px; font-weight: 400; line-height: 1.15; margin-top: 6px; white-space: nowrap; }
+  .k-einheit { font-size: 14px; color: var(--ink-dim); margin-left: 5px; }
+  .k-sub { font-size: 11px; color: var(--ink-dim); margin-top: 3px; }
+
+  /* ---------- Minuten pro Tag ----------
+     Eine Reihe, keine Legende (die Überschrift sagt, was gezeigt wird).
+     Jede Tagesspalte ist in voller Höhe Trefferfläche; Tippen oder Wischen
+     über das Diagramm wählt den nächstgelegenen Tag. */
+  .diagramm { padding: 12px 10px 6px 12px; }
+  .d-kopf { font-size: 12px; color: var(--ink-dim); margin: 0 0 10px 2px; }
+  .d-kopf strong { color: var(--ink); font-weight: 600; }
+  .d-leer { font-size: 13px; color: var(--ink-dim); line-height: 1.5; text-align: center; padding: 16px 8px 18px; }
+  .plot { --xband: 30px; --rand: 26px; position: relative; height: 184px; touch-action: pan-y; }
+  .gitter { position: absolute; left: 0; right: 0; top: 8px; bottom: var(--xband); pointer-events: none; }
+  .linie { position: absolute; left: 0; right: var(--rand); height: 1px; background: rgba(255,255,255,0.08); }
+  .linie.null { background: rgba(255,255,255,0.22); }
+  .yl { position: absolute; right: 0; width: calc(var(--rand) - 6px); transform: translateY(50%);
+        font-size: 10px; line-height: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .spalten { position: absolute; left: 0; right: var(--rand); top: 0; bottom: 0; display: flex; }
+  .tag { position: relative; flex: 1 1 0; min-width: 0; margin: 0; padding: 0; border: 0; border-radius: 8px;
+         background: none; color: var(--ink-dim); font: inherit; cursor: pointer; }
+  .tag .flaeche { position: absolute; left: 0; right: 0; top: 8px; bottom: var(--xband); }
+  .tag .balken { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+                 width: min(24px, calc(100% - 2px)); min-height: 2px;
+                 background: var(--accent); border-radius: 4px 4px 0 0; }
+  .tag .xl { position: absolute; left: 0; right: 0; bottom: 0; height: var(--xband);
+             display: flex; flex-direction: column; align-items: center; justify-content: center;
+             font-size: 10px; line-height: 1.25; font-variant-numeric: tabular-nums; }
+  .tag.heute .xl { color: var(--ink); font-weight: 700; }
+  .tag.sel { background: rgba(255,255,255,0.06); }
+  .tag.sel .balken { background: #a8d4ec; }
+  .tag:focus-visible { outline-offset: -2px; border-radius: 8px; }
+  @media (hover: hover) { .tag:hover { background: rgba(255,255,255,0.04); } }
+
+  .tip { position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; white-space: nowrap;
+         padding: 6px 10px 7px; border-radius: 10px; background: rgba(11,16,38,0.96);
+         border: 1px solid rgba(255,255,255,0.16); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+  .t-wert { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .t-tag { font-size: 11px; color: var(--ink-dim); margin-top: 1px; }
+
+  details.tabelle { margin-top: 4px; }
+  details.tabelle summary { font-size: 12px; color: var(--ink-dim); cursor: pointer; padding: 8px 2px; }
+  details.tabelle table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+  details.tabelle th, details.tabelle td { padding: 6px 4px; text-align: right; font-variant-numeric: tabular-nums;
+                                           border-bottom: 1px solid rgba(255,255,255,0.06); }
+  details.tabelle th { font-size: 11px; font-weight: 500; color: var(--ink-dim); }
+  details.tabelle th:first-child, details.tabelle td:first-child { text-align: left; }
+  details.tabelle tr:last-child td { border-bottom: 0; }
+  details.tabelle tr.heute td { font-weight: 600; }
+
+  /* ---------- Nach Art: ein gemeinsames Raster, damit alle Balken dieselbe Bahn haben ---------- */
+  .arten { display: grid; grid-template-columns: fit-content(45%) minmax(0, 1fr) auto; align-items: center;
+           column-gap: 10px; row-gap: 12px; padding: 14px; }
+  .a-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .a-bahn { position: relative; height: 10px; }
+  .a-balken { position: absolute; left: 0; top: 0; bottom: 0; min-width: 2px;
+              background: var(--accent); border-radius: 0 4px 4px 0; }
+  .a-wert { font-size: 13px; color: var(--ink-dim); text-align: right; white-space: nowrap;
+            font-variant-numeric: tabular-nums; }
+
+  /* ---------- Letzte Sitzungen ---------- */
+  .liste { padding: 2px 14px; }
+  .sitzung { display: flex; align-items: center; gap: 12px; padding: 10px 0;
+             border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .sitzung:last-child { border-bottom: 0; }
+  .s-text { flex: 1; min-width: 0; }
+  .s-titel { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s-zeit { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+  .s-min { font-size: 13px; color: var(--ink-dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Leerzustand ---------- */
+  .leer { text-align: center; padding: 28px 18px 22px; }
+  .leer-mond { font-size: 40px; margin-bottom: 12px; }
+  .leer-titel { font-size: 19px; font-weight: 300; margin-bottom: 2px; }
+  .leer .row { justify-content: center; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Statistik</h1>
+  <div class="sub">Deine Meditationen auf einen Blick.</div>
+
+  <div class="card leer" id="leer" hidden>
+    <div class="leer-mond" aria-hidden="true">🌙</div>
+    <div class="leer-titel">Noch keine Sitzung</div>
+    <div class="hint">Nach deiner ersten Meditation siehst du hier Minuten, Serie und die letzten zwei Wochen.
+      Eine Minute reicht für den Anfang.</div>
+    <div class="row"><a class="btn primary" href="index.html">Jetzt atmen</a></div>
+  </div>
+
+  <div id="inhalt" hidden>
+    <div class="kpis">
+      <div class="card kpi"><div class="k-label">Sitzungen gesamt</div><div class="k-wert" id="kSitz">0</div></div>
+      <div class="card kpi"><div class="k-label">Minuten gesamt</div><div class="k-wert" id="kMin">0</div></div>
+      <div class="card kpi">
+        <div class="k-label">Aktuelle Serie</div>
+        <div class="k-wert"><span id="kSerie">0</span><span class="k-einheit" id="kSerieE">Tage</span></div>
+        <div class="k-sub" id="kSerieSub"></div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">Beste Serie</div>
+        <div class="k-wert"><span id="kBest">0</span><span class="k-einheit" id="kBestE">Tage</span></div>
+      </div>
+    </div>
+
+    <div class="cap">Minuten pro Tag</div>
+    <div class="card diagramm" id="diagramm">
+      <div class="d-kopf" id="dKopf"></div>
+      <div class="d-leer" id="dLeer" hidden></div>
+      <div class="plot" id="plot" role="group" aria-label="Minuten pro Tag, letzte 14 Tage">
+        <div class="gitter" id="gitter" aria-hidden="true"></div>
+        <div class="spalten" id="spalten"></div>
+        <div class="tip" id="tip" aria-hidden="true" hidden></div>
+      </div>
+      <details class="tabelle" id="tabelleBox">
+        <summary>Als Tabelle</summary>
+        <table>
+          <thead><tr><th scope="col">Tag</th><th scope="col">Minuten</th><th scope="col">Sitzungen</th></tr></thead>
+          <tbody id="tabelle"></tbody>
+        </table>
+      </details>
+    </div>
+
+    <div id="artenBox" hidden>
+      <div class="cap">Nach Art</div>
+      <div class="card arten" id="arten"></div>
+    </div>
+
+    <div id="listeBox" hidden>
+      <div class="cap">Letzte Sitzungen</div>
+      <div class="card liste" id="liste"></div>
+    </div>
+
+    <div class="hint" id="seit" hidden></div>
+  </div>
+</div>
+
+<script src="shared.js?v=32"></script>
+<script>
+(() => {
+"use strict";
+/* Liest nur, was die Atmen-Seite speichert:
+   atemfunk_stats (Summen), atemfunk_streak (Serie), atemfunk_log (einzelne Sitzungen).
+   Alle Texte gehen über textContent – Titel stammen u. a. aus Dateinamen. */
+
+const TAGE = 14;
+const WT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+const WT_LANG = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
+const ART_NAME = { atmen: "Atmen", runterkommen: "Runterkommen", koerperreise: "Körperreise",
+                   frei: "Freie Meditation", atemmeditation: "Atemmeditation",
+                   frage: "Über eine Frage", bibliothek: "Bibliothek" };
+
+const zwei = n => String(n).padStart(2, "0");
+const tagKey = d => d.getFullYear() + "-" + zwei(d.getMonth() + 1) + "-" + zwei(d.getDate());
+/* Kalendertag vor n Tagen – zur Mittagszeit, damit die Zeitumstellung nichts verschiebt */
+function tagVor(n) { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
+const zahl = (n, stellen = 0) => n.toLocaleString("de-DE", { maximumFractionDigits: stellen });
+const minText = n => zahl(Math.round(n * 10) / 10, 1) + " Min";
+const anzahl = n => n === 0 ? "keine Sitzung" : n === 1 ? "1 Sitzung" : n + " Sitzungen";
+const tageText = n => n === 1 ? "Tag" : "Tage";
+function neu(tag, klasse, text) {
+  const e = document.createElement(tag);
+  if (klasse) e.className = klasse;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+const HEUTE_K = tagKey(tagVor(0)), GESTERN_K = tagKey(tagVor(1));
+function tagName(d, lang) {
+  const k = tagKey(d);
+  if (k === HEUTE_K) return "Heute";
+  if (k === GESTERN_K) return "Gestern";
+  const jahr = d.getFullYear() === new Date().getFullYear() ? "" : String(d.getFullYear());
+  return (lang ? WT_LANG : WT)[d.getDay()] + ", " + zwei(d.getDate()) + "." + zwei(d.getMonth() + 1) + "." + jahr;
+}
+
+/* ---------- Daten ---------- */
+const summen = store.getJSON("atemfunk_stats", null) || {};
+const serieRoh = store.getJSON("atemfunk_streak", null) || {};
+let eintraege = store.getJSON("atemfunk_log", []);
+if (!Array.isArray(eintraege)) eintraege = [];
+eintraege = eintraege.filter(e => e && Number.isFinite(e.t) && Number.isFinite(e.min) && e.min >= 0)
+                     .sort((a, b) => a.t - b.t);
+const sitzungen = Math.max(0, Math.round(+summen.sessions || 0));
+const minutenGesamt = Math.max(0, +summen.minutes || 0);
+
+/* ---------- Kennzahlen ---------- */
+function zeichneKennzahlen() {
+  $("kSitz").textContent = zahl(sitzungen);
+  $("kMin").textContent = zahl(Math.round(minutenGesamt));
+  /* Die Serie gilt nur, solange zuletzt heute oder gestern meditiert wurde */
+  const aktiv = serieRoh.last === HEUTE_K || serieRoh.last === GESTERN_K;
+  const serie = aktiv ? Math.max(0, Math.round(+serieRoh.count || 0)) : 0;
+  const beste = Math.max(Math.round(+serieRoh.best || 0), serie);
+  $("kSerie").textContent = zahl(serie);
+  $("kSerieE").textContent = tageText(serie);
+  $("kBest").textContent = zahl(beste);
+  $("kBestE").textContent = tageText(beste);
+  const sub = $("kSerieSub");
+  if (serieRoh.last === HEUTE_K) { sub.textContent = "✓ heute dabei"; sub.classList.add("ok"); }
+  else if (aktiv && serie > 0) sub.textContent = "heute noch offen";
+}
+
+/* Runde Achsenschritte, höchstens vier Linien über der Null */
+function skala(max) {
+  const ziel = Math.max(max, 5);
+  const schritt = [1, 2, 5, 10, 15, 20, 30, 60, 120, 180, 240, 360, 480, 720].find(s => ziel / s <= 4) || 1440;
+  return { schritt, achseMax: Math.ceil(ziel / schritt) * schritt };
+}
+
+/* ---------- Balkendiagramm: Minuten pro Tag ---------- */
+function zeichneDiagramm() {
+  const tage = [];
+  for (let i = TAGE - 1; i >= 0; i--) { const d = tagVor(i); tage.push({ d, key: tagKey(d), min: 0, n: 0 }); }
+  const nachKey = new Map(tage.map(x => [x.key, x]));
+  for (const e of eintraege) {
+    const x = nachKey.get(tagKey(new Date(e.t)));
+    if (x) { x.min += e.min; x.n++; }
+  }
+  tage.forEach(x => { x.min = Math.round(x.min * 10) / 10; });
+
+  const aktiveTage = tage.filter(x => x.n > 0).length;
+  if (!aktiveTage) {
+    $("dLeer").textContent = eintraege.length
+      ? "In den letzten 14 Tagen keine Sitzung – die nächste erscheint hier."
+      : "Ab deiner nächsten Meditation füllen sich hier die Tage.";
+    $("dLeer").hidden = false;
+    $("dKopf").hidden = true; $("plot").hidden = true; $("tabelleBox").hidden = true;
+    return;
+  }
+  $("dKopf").append("Letzte 14 Tage: ", neu("strong", "", minText(tage.reduce((a, x) => a + x.min, 0))),
+                    " an " + aktiveTage + (aktiveTage === 1 ? " Tag" : " Tagen"));
+
+  const { schritt, achseMax } = skala(Math.max(...tage.map(x => x.min)));
+  const gitter = $("gitter");
+  for (let v = 0; v <= achseMax; v += schritt) {
+    const hoehe = (v / achseMax * 100) + "%";
+    const linie = neu("div", v === 0 ? "linie null" : "linie");
+    linie.style.bottom = hoehe;
+    const yl = neu("div", "yl", zahl(v));
+    yl.style.bottom = hoehe;
+    gitter.append(linie, yl);
+  }
+
+  const spalten = $("spalten");
+  tage.forEach((x, i) => {
+    const knopf = neu("button", x.key === HEUTE_K ? "tag heute" : "tag");
+    knopf.type = "button";
+    knopf.dataset.i = i;
+    knopf.tabIndex = i === TAGE - 1 ? 0 : -1;      /* ein Tab-Halt, Pfeiltasten wandern */
+    if (x.key === HEUTE_K) knopf.setAttribute("aria-current", "date");
+    knopf.setAttribute("aria-label", tagName(x.d, true) + ": " + zahl(x.min, 1) + " Minuten, " + anzahl(x.n));
+    const flaeche = neu("span", "flaeche");
+    if (x.min > 0) {                               /* Tage ohne Sitzung bleiben leer */
+      const balken = neu("span", "balken");
+      balken.style.height = Math.min(100, x.min / achseMax * 100) + "%";
+      flaeche.append(balken);
+    }
+    const xl = neu("span", "xl");
+    xl.setAttribute("aria-hidden", "true");
+    xl.append(neu("span", "", WT[x.d.getDay()]), neu("span", "", x.d.getDate() + "."));
+    knopf.append(flaeche, xl);
+    spalten.append(knopf);
+  });
+
+  /* Hinweis über dem Balken; bei hohen Balken daneben, damit er ihn nicht verdeckt */
+  const plot = $("plot"), tip = $("tip");
+  let gewaehlt = -1, zieht = false;
+  function zeige(i) {
+    if (i === gewaehlt && !tip.hidden) return;
+    const knoepfe = spalten.children;
+    if (gewaehlt >= 0) knoepfe[gewaehlt].classList.remove("sel");
+    gewaehlt = i;
+    const x = tage[i], knopf = knoepfe[i];
+    knopf.classList.add("sel");
+    tip.replaceChildren(neu("div", "t-wert", minText(x.min)),
+                        neu("div", "t-tag", tagName(x.d) + " · " + anzahl(x.n)));
+    tip.hidden = false;
+    const p = plot.getBoundingClientRect(), k = knopf.getBoundingClientRect();
+    const f = knopf.firstChild.getBoundingClientRect();
+    const b = tip.offsetWidth, h = tip.offsetHeight;
+    const mitte = k.left + k.width / 2 - p.left;
+    let links = mitte - b / 2;
+    let y = f.bottom - p.top - f.height * Math.min(1, x.min / achseMax) - h - 6;
+    if (y < 0) {
+      y = 0;
+      links = mitte < p.width / 2 ? k.right - p.left + 4 : k.left - p.left - b - 4;
+    }
+    tip.style.left = Math.max(0, Math.min(links, p.width - b)) + "px";
+    tip.style.top = y + "px";
+  }
+  function verstecke() {
+    if (gewaehlt >= 0) spalten.children[gewaehlt].classList.remove("sel");
+    gewaehlt = -1;
+    tip.hidden = true;
+  }
+  const spalteBei = clientX => {
+    const r = spalten.getBoundingClientRect();
+    return Math.max(0, Math.min(TAGE - 1, Math.floor((clientX - r.left) / (r.width / TAGE))));
+  };
+  plot.addEventListener("pointerdown", e => { zieht = true; zeige(spalteBei(e.clientX)); });
+  plot.addEventListener("pointermove", e => { if (zieht || e.pointerType === "mouse") zeige(spalteBei(e.clientX)); });
+  ["pointerup", "pointercancel"].forEach(t => plot.addEventListener(t, () => { zieht = false; }));
+  plot.addEventListener("pointerleave", e => { if (e.pointerType === "mouse" && !plot.contains(document.activeElement)) verstecke(); });
+  document.addEventListener("pointerdown", e => { if (!plot.contains(e.target)) verstecke(); });
+  spalten.addEventListener("focusin", e => { const k = e.target.closest(".tag"); if (k) zeige(+k.dataset.i); });
+  plot.addEventListener("focusout", e => { if (!plot.contains(e.relatedTarget)) verstecke(); });
+  spalten.addEventListener("keydown", e => {
+    const k = e.target.closest(".tag");
+    if (!k) return;
+    if (e.key === "Escape") { verstecke(); return; }
+    const i = +k.dataset.i;
+    const ziel = { ArrowLeft: i - 1, ArrowRight: i + 1, Home: 0, End: TAGE - 1 }[e.key];
+    if (ziel === undefined || ziel < 0 || ziel >= TAGE) return;
+    e.preventDefault();
+    k.tabIndex = -1;
+    spalten.children[ziel].tabIndex = 0;
+    spalten.children[ziel].focus();
+  });
+  addEventListener("resize", verstecke);
+
+  /* Dieselben Zahlen als Tabelle, neuester Tag oben */
+  const tb = $("tabelle");
+  for (const x of [...tage].reverse()) {
+    const tr = neu("tr", x.key === HEUTE_K ? "heute" : "");
+    tr.append(neu("td", "", tagName(x.d)), neu("td", "", zahl(x.min, 1)), neu("td", "", String(x.n)));
+    tb.append(tr);
+  }
+}
+
+/* ---------- Aufteilung nach Art ---------- */
+function zeichneArten() {
+  if (!eintraege.length) return;
+  const proArt = new Map();
+  for (const e of eintraege) {
+    const k = typeof e.art === "string" && e.art ? e.art : "atmen";
+    proArt.set(k, (proArt.get(k) || 0) + e.min);
+  }
+  const liste = [...proArt].sort((a, b) => b[1] - a[1]);
+  const max = liste[0][1] || 1;
+  const ziel = $("arten");
+  for (const [k, min] of liste) {
+    const bahn = neu("span", "a-bahn");
+    bahn.setAttribute("aria-hidden", "true");
+    const balken = neu("span", "a-balken");
+    balken.style.width = (min / max * 100) + "%";
+    bahn.append(balken);
+    ziel.append(neu("span", "a-name", ART_NAME[k] || k.charAt(0).toUpperCase() + k.slice(1)),
+                bahn, neu("span", "a-wert", minText(min)));
+  }
+  $("artenBox").hidden = false;
+}
+
+/* ---------- Die letzten 10 Sitzungen ---------- */
+function zeichneLetzte() {
+  if (!eintraege.length) return;
+  const ziel = $("liste");
+  for (const e of eintraege.slice(-10).reverse()) {
+    const titel = (typeof e.titel === "string" && e.titel.trim()) || ART_NAME[e.art] || "Meditation";
+    const text = neu("div", "s-text");
+    text.append(neu("div", "s-titel", titel),
+                neu("div", "s-zeit", tagName(new Date(e.t)) + " · " + uhrzeit(e.t)));
+    const zeile = neu("div", "sitzung");
+    zeile.append(text, neu("div", "s-min", minText(e.min)));
+    ziel.append(zeile);
+  }
+  $("listeBox").hidden = false;
+}
+
+/* Das Protokoll gibt es erst seit diesem Update – die Summen zählen schon länger */
+function zeichneHinweis() {
+  if (sitzungen <= eintraege.length) return;
+  const el = $("seit");
+  if (eintraege.length) {
+    const d = new Date(eintraege[0].t);
+    el.textContent = "Einzelne Sitzungen werden seit " + zwei(d.getDate()) + "." + zwei(d.getMonth() + 1) + "."
+      + d.getFullYear() + " mitgeschrieben – die Summen oben zählen schon länger.";
+  } else {
+    el.textContent = "Einzelne Sitzungen werden ab jetzt mitgeschrieben – die Summen oben zählen schon länger.";
+  }
+  el.hidden = false;
+}
+
+if (!sitzungen && !eintraege.length) {
+  $("leer").hidden = false;
+} else {
+  $("inhalt").hidden = false;
+  zeichneKennzahlen();
+  zeichneDiagramm();
+  zeichneArten();
+  zeichneLetzte();
+  zeichneHinweis();
+}
+
+/* Zurück-Wischen zeigt sonst einen alten Stand aus dem Zwischenspeicher */
+addEventListener("pageshow", e => { if (e.persisted) location.reload(); });
+})();
+</script>
+</body>
+</html>

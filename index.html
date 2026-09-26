@@ -58,7 +58,10 @@
   .brand { font-size: 15px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; }
   .greeting { font-size: 28px; font-weight: 300; line-height: 1.3; margin-bottom: 6px; }
   .streak { font-size: 13px; color: var(--gold); min-height: 18px; letter-spacing: 0.02em; }
-  .stats-line { font-size: 12px; color: var(--ink-dim); opacity: 0.8; min-height: 16px; margin: 4px 0 26px; }
+  .stats-line { font-size: 12px; line-height: 16px; color: var(--ink-dim); opacity: 0.8; min-height: 16px; margin: 4px 0 26px; }
+  /* Die Zeile führt zur Statistik – Tippfläche größer als der Text, ohne das Layout zu schieben */
+  .stats-line a { display: inline-block; color: inherit; text-decoration: none; padding: 12px 14px; margin: -12px -14px; border-radius: 12px; }
+  .stats-line .mehr { color: var(--accent); white-space: nowrap; }
 
   .section-cap { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); opacity: 0.7; margin-bottom: 10px; }
 
@@ -197,6 +200,8 @@
   .done-title { font-size: 26px; font-weight: 300; margin-bottom: 10px; }
   .done-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 8px; line-height: 1.5; }
   .done-stats { font-size: 13px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 40px; }
+  #doneScreen .session-btns { flex-wrap: wrap; justify-content: center; }
+  a.sbtn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
   /* Stumm-Knopf, immer oben rechts erreichbar */
   #muteBtn {
     position: fixed; z-index: 45;
@@ -390,6 +395,7 @@
   <div class="session-btns">
     <button class="sbtn" id="quietBtn">Stimme aus</button>
     <a class="sbtn" id="journalBtn" style="display:none; text-decoration:none; align-items:center">Ins Journal</a>
+    <a class="sbtn" id="statsBtn" href="statistik.html">📊 Statistik</a>
     <button class="home-btn" id="homeBtn">Zurück</button>
   </div>
 </div>
@@ -460,13 +466,36 @@ function renderHome() {
   else if (s.last === todayStr(-1) && s.count > 0) el.textContent = s.count + (s.count === 1 ? " Tag" : " Tage") + " in Folge – weiter so";
   else el.textContent = "";
   const st = loadStats();
-  $("statsLine").textContent = st.sessions > 0
-    ? st.sessions + (st.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + st.minutes + " Min gesamt" + (s.best > 1 ? " · Rekord " + s.best + " Tage" : "")
-    : "";
+  const zeile = $("statsLine");
+  zeile.replaceChildren();
+  if (st.sessions > 0) {                     /* antippen → Statistik */
+    const link = document.createElement("a");
+    link.href = "statistik.html";
+    const mehr = document.createElement("span");
+    mehr.className = "mehr";
+    mehr.textContent = "Statistik ›";
+    link.append(st.sessions + (st.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + Math.round(st.minutes) + " Min gesamt"
+      + (s.best > 1 ? " · Rekord " + s.best + " Tage" : "") + " · ", mehr);
+    zeile.append(link);
+  }
 }
 renderHome();
 
-function recordSession(min) {
+/* Jede gezählte Sitzung landet zusätzlich im Protokoll – daraus rechnet statistik.html.
+   Eintrag: { t: Beginn in ms, min: Minuten mit einer Nachkommastelle, art, titel }.
+   Gleiches t = derselbe Eintrag (die Bibliothek bucht so nach, statt doppelt zu zählen). */
+const LOG_MAX = 1000;
+function protokolliere(e) {
+  let log = store.getJSON("atemfunk_log", []);
+  if (!Array.isArray(log)) log = [];
+  const eintrag = { t: e.t, min: Math.round(e.min * 10) / 10, art: e.art || "atmen", titel: String(e.titel || "").slice(0, 80) };
+  const i = log.findIndex(x => x && x.t === eintrag.t);
+  if (i >= 0) log[i] = eintrag; else log.push(eintrag);
+  store.setJSON("atemfunk_log", log.length > LOG_MAX ? log.slice(-LOG_MAX) : log);
+}
+
+/* min = ganze Minuten für die Summen (wie bisher); eintrag = { t, min (genau), art, titel } */
+function recordSession(min, eintrag) {
   const s = loadStreak();
   if (s.last !== todayStr()) {
     s.count = (s.last === todayStr(-1)) ? s.count + 1 : 1;
@@ -477,6 +506,7 @@ function recordSession(min) {
   const st = loadStats();
   st.sessions += 1; st.minutes += min;
   store.setJSON("atemfunk_stats", st);
+  protokolliere({ t: Date.now(), min, ...eintrag });
   return { streak: s.count, stats: st };
 }
 
@@ -1104,6 +1134,7 @@ function bauePlan(art, totalSec) {
 
 async function startSession(min, prog, flexArt) {
   if (session) return;
+  if (libPlayingId !== null) libStop();   /* laufende Bibliotheks-Aufnahme beenden (und gutschreiben) */
   stopClosing();                 /* Abschlussansage der letzten Sitzung beenden */
   $("quietBtn").textContent = "Stimme aus";
   $("home").classList.remove("active");
@@ -1124,7 +1155,18 @@ async function startSession(min, prog, flexArt) {
   const guided = !offen && voiceOn() && !mitFrage && (gefuehrt || rhythmKey === "ruhig");
   /* gesprochene Phasenansagen – beim freien Atmen bleibt es still */
   const spoken = voiceOn() && !guided && !rhythm.frei;
+  /* Für die Statistik: welche Art, unter welchem Namen */
+  const RHY_NAME = { ruhig: "Ruhig", box: "Box", schlaf: "Schlaf", seufzer: "Beruhigen", frei: "Frei" };
+  const art = mitFrage ? "frage"
+    : prog ? (prog.startsWith("runterkommen") ? "runterkommen" : prog)
+    : flexArt ? ({ atem: "atemmeditation", koerper: "koerperreise" }[flexArt] || flexArt)
+    : "atmen";
+  const titel = mitFrage ? "Frage: " + frage.text
+    : prog ? (PROG_TITEL[prog] || prog)
+    : flexArt ? (FLEX_TITEL[flexArt] || "Geführte Meditation")
+    : (offen ? "Offen" : "Atmen") + " · " + (RHY_NAME[rhythmKey] || rhythmKey);
   session = {
+    art, titel,
     min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, flexArt: null, plan: null, planIdx: 0, bowl: bowlOn(),
     frage: mitFrage ? frage.text : null, frageNr: mitFrage ? frage.nr : null, frageWiederholt: false,
     startedAt: Date.now(),
@@ -1289,6 +1331,7 @@ function finishSession(completed) {
     ? session.totalSec - session.leftMsAtPause / 1000
     : elapsedOf(session);
   const warFrage = session.frage;
+  const eintrag = { t: session.startedAt, art: session.art, titel: session.titel };
   session = null;
   $("breathDot").style.display = "none";
   $("phaseCount").textContent = "";
@@ -1304,7 +1347,9 @@ function finishSession(completed) {
     gong(); gong(0.15);
     playClosing();
     const credited = (completed && !offen) ? min : Math.max(1, Math.floor(elapsedSec / 60));
-    const { streak, stats } = recordSession(credited);
+    /* Summen zählen ganze Minuten wie bisher, das Protokoll die tatsächliche Zeit */
+    eintrag.min = (completed && !offen) ? min : elapsedSec / 60;
+    const { streak, stats } = recordSession(credited, eintrag);
     $("doneTitle").textContent = (completed && !offen) ? "Gut gemacht." : (offen ? "Schön, dass du da warst." : "Zählt trotzdem.");
     $("doneSub").textContent = credited + " " + (credited === 1 ? "Minute" : "Minuten") + " Atemmeditation · " + streak + (streak === 1 ? " Tag" : " Tage") + " in Folge";
     if (warFrage) {
@@ -1315,7 +1360,8 @@ function finishSession(completed) {
     } else {
       $("journalBtn").style.display = "none";
     }
-    $("doneStats").textContent = stats.sessions + (stats.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + stats.minutes + (stats.minutes === 1 ? " Minute" : " Minuten") + " insgesamt";
+    const gesamt = Math.round(stats.minutes);
+    $("doneStats").textContent = stats.sessions + (stats.sessions === 1 ? " Sitzung" : " Sitzungen") + " · " + gesamt + (gesamt === 1 ? " Minute" : " Minuten") + " insgesamt";
     $("doneScreen").classList.add("active");
   } else {
     $("home").classList.add("active");
@@ -1400,7 +1446,66 @@ function idbTx(mode, fn) {
 }
 
 let libPlayingId = null, libUrl = null;
+
+/* ---------- Bibliothek zählt mit (nur Audio, keine Videos) ----------
+   Eine Aufnahme wird zur Sitzung, sobald 60 s oder die Hälfte wirklich gehört sind –
+   wer bis zum Ende hört, ist also immer dabei. Gezählt wird gehörte Zeit, Spulen zählt
+   nicht. Danach wächst derselbe Eintrag mit (spätestens alle 30 s gesichert);
+   pro Abspielvorgang höchstens eine Sitzung. */
+let libLauf = null;
+function libLaufStart(tr) {
+  libLauf = { id: tr.id, titel: tr.name, t: Date.now(), gehoert: 0, dauer: 0, pos: null, uhr: 0,
+              gebucht: false, gesichert: 0, ganz: 0 };
+}
+const libSchwelle = l => l.dauer ? Math.min(60, l.dauer / 2) : 60;
+function libHoeren(ereignis) {
+  const l = libLauf;
+  if (!l || l.id !== libPlayingId || !libUrl || audio.src !== libUrl) return;
+  if (isFinite(audio.duration) && audio.duration > 0) l.dauer = audio.duration;
+  const uhr = Date.now(), tempo = audio.playbackRate || 1;
+  if (ereignis === "seeking") {
+    /* Die Stelle vor dem Spulen ist schon weg – die Uhr sagt, wie lange es bis dahin lief */
+    if (l.pos !== null) l.gehoert += Math.min((uhr - l.uhr) / 1000 * tempo, Math.max(0, (l.dauer || Infinity) - l.pos));
+    l.pos = null;
+  } else if (ereignis === "play") {
+    l.pos = audio.currentTime;
+  } else {
+    const pos = audio.currentTime;
+    if (l.pos !== null && !audio.seeking) {
+      const d = pos - l.pos;
+      /* nur echtes Weiterlaufen: nicht rückwärts, nicht schneller als die Uhr */
+      if (d > 0 && d <= (uhr - l.uhr) / 1000 * tempo + 1.5) l.gehoert += d;
+    }
+    l.pos = (audio.paused || audio.seeking) ? null : pos;
+  }
+  l.uhr = uhr;
+  if (l.gebucht ? l.gehoert - l.gesichert >= 30 : l.gehoert >= libSchwelle(l)) libBuchen();
+}
+function libBuchen() {
+  const l = libLauf;
+  if (!l || !(l.gehoert > 0) || (!l.gebucht && l.gehoert < libSchwelle(l))) return;
+  const min = l.gehoert / 60;
+  const ganz = Math.max(1, Math.round(min));      /* Summen in ganzen Minuten wie bei den Sitzungen */
+  const eintrag = { t: l.t, min, art: "bibliothek", titel: l.titel };
+  if (!l.gebucht) {
+    recordSession(ganz, eintrag);
+    l.gebucht = true;
+  } else {
+    if (ganz > l.ganz) { const st = loadStats(); st.minutes += ganz - l.ganz; store.setJSON("atemfunk_stats", st); }
+    protokolliere(eintrag);                       /* derselbe Eintrag wächst mit */
+  }
+  l.ganz = Math.max(l.ganz, ganz);
+  l.gesichert = l.gehoert;
+  renderHome();
+}
+/* Stopp, Ende, Bildschirm aus, Seitenwechsel: Gehörtes sichern */
+function libAbschluss() { if (libLauf) { libHoeren(); libBuchen(); } }
+document.addEventListener("visibilitychange", () => { if (document.hidden) libAbschluss(); });
+addEventListener("pagehide", libAbschluss);
+
 function libStop() {
+  libAbschluss();
+  libLauf = null;
   if (libPlayingId !== null) { audio.pause(); audio.removeAttribute("src"); }
   if (libUrl) { URL.revokeObjectURL(libUrl); libUrl = null; }
   libPlayingId = null;
@@ -1481,6 +1586,7 @@ async function renderLib() {
       audio.src = libUrl;
       audio.play().catch(() => {});
       libPlayingId = tr.id;
+      libLaufStart(tr);
       $("pTitle").textContent = tr.name;
       $("player").classList.add("open");
       if ("mediaSession" in navigator) {
@@ -1513,7 +1619,11 @@ $("pBack").addEventListener("click", () => { audio.currentTime = Math.max(0, aud
 $("pFwd").addEventListener("click", () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); });
 $("pPlay").addEventListener("click", () => { audio.paused ? audio.play().catch(() => {}) : audio.pause(); });
 $("pClose").addEventListener("click", () => libStop());
+audio.addEventListener("seeking", () => libHoeren("seeking"));
+audio.addEventListener("play", () => libHoeren("play"));
+audio.addEventListener("pause", () => libHoeren());
 audio.addEventListener("timeupdate", () => {
+  libHoeren();
   if (libPlayingId === null) return;
   $("pCur").textContent = fmtTime(audio.currentTime);
   $("pDur").textContent = fmtTime(audio.duration);

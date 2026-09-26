@@ -10,7 +10,8 @@ const $ = id => document.getElementById(id);
     ["journal.html", "📓", "Journal"],
     ["ziele.html", "🎯", "Ziele"],
   ];
-  const hier = (location.pathname.split("/").pop() || "index.html");
+  let hier = (location.pathname.split("/").pop() || "index.html");
+  if (hier === "statistik.html") hier = "index.html";   /* Statistik gehört zu „Atmen“ */
   const el = document.createElement("nav");
   el.className = "nav";
   el.innerHTML = seiten.map(([href, ico, txt]) =>
@@ -61,7 +62,7 @@ function warteAnzeige(knopf, beschriftung) {
   return endtext => { clearInterval(t); knopf.disabled = false; knopf.textContent = endtext; };
 }
 
-async function frageKI(system, user, model) {
+async function frageKI(system, user, model, rid) {
   const basis = kiBasis();
   if (!basis) return { fehler: "Noch nicht verbunden." };
   const abbruch = new AbortController();
@@ -71,7 +72,7 @@ async function frageKI(system, user, model) {
        eingebettete <system>-Blöcke misstrauisch und verweigert sie mitunter. */
     const r = await fetch(basis + "ki", {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ system: "", user: system + "\n\n---\n\n" + user, model: model || "opus" }),
+      body: JSON.stringify({ system: "", user: system + "\n\n---\n\n" + user, model: model || "opus", rid }),
       signal: abbruch.signal,
     });
     const d = await r.json().catch(() => ({}));
@@ -79,10 +80,59 @@ async function frageKI(system, user, model) {
       return { fehler: d.error || "Unerwartete Antwort (" + r.status + ").", nochmal: true };
     return { text: (d.text || "").trim() };
   } catch (e) {
-    return { fehler: e.name === "AbortError" ? "Zu lange gewartet – nochmal?" : "Keine Verbindung.", nochmal: true };
+    return { fehler: e.name === "AbortError" ? "Zu lange gewartet – nochmal?" : "Keine Verbindung.",
+             nochmal: true, abgerissen: true };
   } finally {
     clearTimeout(zeitlimit);
   }
+}
+
+/* ---------- Antworten überleben einen Seitenwechsel ----------
+   Jede Anfrage bekommt eine Kennung, der Worker legt die fertige Antwort darunter ab.
+   Wechselt Florian beim Warten die Seite oder sperrt das iPhone, holt die Seite die
+   Antwort beim nächsten Öffnen ab, statt sie zu verlieren. */
+function neueKennung() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+}
+
+/* Fragt alle 3 s nach der hinterlegten Antwort, höchstens bis `bis` */
+async function holeKI(rid, bis) {
+  const basis = kiBasis();
+  while (basis) {
+    try {
+      const r = await fetch(basis + "ki/" + encodeURIComponent(rid), { cache: "no-store" });
+      if (r.ok) {
+        const d = await r.json().catch(() => ({}));
+        return d.text ? { text: d.text.trim() } : { fehler: d.error || "Die Antwort kam leer an.", nochmal: true };
+      }
+    } catch {}
+    if (Date.now() > bis) break;
+    await new Promise(w => setTimeout(w, 3000));
+  }
+  return { fehler: "Die Antwort ist unterwegs verloren gegangen – bitte nochmal senden.", nochmal: true };
+}
+
+/* Wie frageKI, merkt sich die Anfrage aber unter `schluessel`, bis die Antwort da ist.
+   { ueberholt: true } = eine andere Stelle hat die Antwort schon übernommen. */
+async function frageKIgemerkt(schluessel, info, system, user, model) {
+  const rid = neueKennung(), start = Date.now();
+  store.setJSON(schluessel, { ...info, rid, start });
+  let r = await frageKI(system, user, model, rid);
+  if (r.abgerissen) r = await holeKI(rid, start + 150000);
+  if ((store.getJSON(schluessel, null) || {}).rid !== rid) return { ueberholt: true };
+  localStorage.removeItem(schluessel);
+  return r;
+}
+
+/* Beim Öffnen der Seite: noch eine Anfrage von vorhin offen? Dann deren Antwort abholen */
+async function offeneAnfrage(schluessel) {
+  const o = store.getJSON(schluessel, null);
+  if (!o || !o.rid) return null;
+  const r = await holeKI(o.rid, o.start + 150000);
+  if ((store.getJSON(schluessel, null) || {}).rid !== o.rid) return null;
+  localStorage.removeItem(schluessel);
+  return { ...r, info: o };
 }
 
 /* Zeigt den echten Grund statt pauschal „Mac nicht erreichbar“ */
@@ -312,54 +362,127 @@ function diktat(feld, knopf) {
   });
 }
 
-/* ---------- Vorlesen: echte Stimme über den Sprachdienst, sonst Systemstimme ---------- */
-let stimmeAktiv = false;
+/* ---------- Vorlesen: echte Stimme über den Sprachdienst, sonst Systemstimme ----------
+   iOS spielt Ton nur, wenn play() direkt im Fingertipp startet – die Stimme braucht aber
+   Sekunden (lange Antworten über 15 s). Deshalb schaltet schon der Tipp ein festes
+   Audio-Element mit einem stillen Schnipsel frei, und der Text kommt in Häppchen:
+   das erste ist kurz und klingt nach 1–2 s, das nächste lädt, während das vorige läuft. */
+const STILLE = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACA"
+  + "gICA".repeat(133);
 const leseAudio = new Audio();
+let leseLauf = 0, leseKnopf = null, leseWeiter = null;
 
-async function vorlesen(text, knopf) {
-  if (!text) return;
-  if (stimmeAktiv) {
-    try { speechSynthesis.cancel(); } catch {}
-    leseAudio.pause();
-    stimmeAktiv = false;
-    if (knopf) knopf.textContent = "🔊 Vorlesen";
-    return;
-  }
-  const sauber = text.replace(/[#*_>`]/g, "").replace(/\n{2,}/g, ". ").trim();
-  const basis = kiBasis();
-  if (basis && sauber.length <= 5800) {
-    if (knopf) knopf.textContent = "…";
-    try {
-      const r = await fetch(basis + "tts", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: sauber }),
-      });
-      if (r.ok && (r.headers.get("content-type") || "").includes("audio")) {
-        leseAudio.src = URL.createObjectURL(await r.blob());
-        leseAudio.onended = () => { stimmeAktiv = false; if (knopf) knopf.textContent = "🔊 Vorlesen"; };
-        await leseAudio.play();
-        stimmeAktiv = true;
-        if (knopf) knopf.textContent = "⏹ Stopp";
-        return;
-      }
-    } catch {}
-    if (knopf) knopf.textContent = "🔊 Vorlesen";
-  }
-  vorlesenSystem(sauber, knopf);
+/* Im Fingertipp aufrufen – auch bei Knöpfen, deren Antwort erst später vorgelesen wird */
+function vorleseFreigabe() {
+  if (leseAudio.paused) { leseAudio.src = STILLE; leseAudio.play().catch(() => {}); }
+  try {
+    if ("speechSynthesis" in window && !speechSynthesis.speaking) {
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    }
+  } catch {}
 }
 
-function vorlesenSystem(sauber, knopf) {
-  if (!("speechSynthesis" in window)) return;
-  const u = new SpeechSynthesisUtterance(sauber);
-  u.lang = "de-DE"; u.rate = 0.92; u.pitch = 1.0;
+function vorleseStopp() {
+  leseLauf++;
+  leseAudio.pause();
+  if (leseWeiter) { leseWeiter(false); leseWeiter = null; }
+  try { if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch {}
+  if (leseKnopf) leseKnopf.textContent = leseKnopf.dataset.label || "🔊 Vorlesen";
+  leseKnopf = null;
+}
+
+/* Zerlegt an Satzenden: erstes Häppchen kurz (schneller Start), danach größere */
+function haeppchen(text, erst = 220, dann = 700) {
+  const fliess = text.split(/\n+/).map(z => z.trim()).filter(Boolean)
+    .map(z => /[.!?…:;,]["“”»)]*$/.test(z) ? z : z + ".").join(" ");
+  const teile = [];
+  let akt = "";
+  const grenze = () => (teile.length ? dann : erst);
+  for (let s of fliess.match(/[^.!?…]+(?:[.!?…]+["“”»)]*)?\s*/g) || []) {
+    while (s.length > grenze()) {          /* Überlanger Satz: an Komma oder Leerzeichen teilen */
+      if (akt.trim()) { teile.push(akt.trim()); akt = ""; continue; }
+      const g = grenze();
+      let schnitt = Math.max(s.lastIndexOf(", ", g), s.lastIndexOf("; ", g), s.lastIndexOf(" – ", g));
+      if (schnitt < g * 0.4) schnitt = s.lastIndexOf(" ", g);
+      if (schnitt <= 0) schnitt = g;
+      teile.push(s.slice(0, schnitt + 1).trim());
+      s = s.slice(schnitt + 1);
+    }
+    if (akt && (akt + s).length > grenze()) { teile.push(akt.trim()); akt = ""; }
+    akt += s;
+  }
+  if (akt.trim()) teile.push(akt.trim());
+  return teile;
+}
+
+/* Ein Häppchen abspielen; true = zu Ende gelaufen, false = Fehler oder gestoppt */
+function spiele(url) {
+  return new Promise(fertig => {
+    leseWeiter = fertig;
+    leseAudio.onended = () => fertig(true);
+    leseAudio.onerror = () => fertig(false);
+    leseAudio.src = url;
+    leseAudio.play().catch(e => { if (e.name !== "AbortError") fertig(false); });
+  });
+}
+
+/* Tippen startet, nochmal tippen hört auf – auch während es noch lädt */
+function vorlesen(text, knopf) {
+  if (knopf && leseKnopf === knopf) { vorleseStopp(); return; }
+  return vorlesenStarten(text, knopf);
+}
+
+async function vorlesenStarten(text, knopf) {
+  vorleseStopp();
+  const teile = haeppchen((text || "").replace(/[#*_>`]/g, ""));
+  if (!teile.length) return;
+  vorleseFreigabe();
+  const lauf = leseLauf;
+  leseKnopf = knopf || null;
+  if (knopf) { knopf.dataset.label ||= knopf.textContent; knopf.textContent = "⏳ Lädt …"; }
+  const basis = kiBasis();
+  if (!basis) return vorlesenSystem(teile, lauf);
+  const stimme = t => fetch(basis + "tts", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: t }),
+  }).then(async r => r.ok && (r.headers.get("content-type") || "").includes("audio")
+    ? URL.createObjectURL(await r.blob()) : null).catch(() => null);
+  let naechstes = stimme(teile[0]);
+  for (let i = 0; i < teile.length; i++) {
+    const url = await naechstes;
+    naechstes = null;
+    if (lauf !== leseLauf) { if (url) URL.revokeObjectURL(url); return; }
+    /* Sprachdienst weg: den Rest übernimmt die Systemstimme */
+    if (!url) return vorlesenSystem(teile.slice(i), lauf);
+    if (i + 1 < teile.length) naechstes = stimme(teile[i + 1]);   /* lädt, während dieses läuft */
+    if (knopf) knopf.textContent = "⏹ Stopp";
+    const ok = await spiele(url);
+    URL.revokeObjectURL(url);
+    if (lauf !== leseLauf || !ok) {
+      if (naechstes) naechstes.then(u => u && URL.revokeObjectURL(u));
+      /* Abspielen verweigert (iOS ohne Tipp): die Systemstimme versuchen */
+      if (lauf === leseLauf) vorlesenSystem(teile.slice(i), lauf);
+      return;
+    }
+  }
+  vorleseStopp();
+}
+
+function vorlesenSystem(teile, lauf) {
+  if (!("speechSynthesis" in window) || lauf !== leseLauf) { if (lauf === leseLauf) vorleseStopp(); return; }
   const de = speechSynthesis.getVoices().filter(v => v.lang.startsWith("de"));
   const gut = de.find(v => /premium|enhanced|siri/i.test(v.name)) || de[0];
-  if (gut) u.voice = gut;
-  u.onend = () => { stimmeAktiv = false; if (knopf) knopf.textContent = "🔊 Vorlesen"; };
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
-  stimmeAktiv = true;
-  if (knopf) knopf.textContent = "⏹ Stopp";
+  try { if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch {}
+  teile.forEach((t, i) => {
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "de-DE"; u.rate = 0.92; u.pitch = 1.0;
+    if (gut) u.voice = gut;
+    if (i === teile.length - 1) u.onend = u.onerror = () => { if (lauf === leseLauf) vorleseStopp(); };
+    speechSynthesis.speak(u);
+  });
+  if (leseKnopf) leseKnopf.textContent = "⏹ Stopp";
 }
 
 /* ---------- Text mit einfacher Auszeichnung darstellen ---------- */

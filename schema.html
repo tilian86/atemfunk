@@ -11,6 +11,33 @@
 <link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
 <meta name="theme-color" content="#0b1026">
 <link rel="stylesheet" href="app.css">
+<style>
+  /* Modus-Landkarte: dieselbe Einordnung als Bild, von oben nach unten gelesen */
+  #karte { margin-top: 14px; }
+  .k-kasten { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+              border-radius: 16px; padding: 12px 14px; }
+  .k-ausloeser { border-style: dashed; }
+  .k-titel { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); }
+  .k-kopf { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .k-name { font-size: 16px; color: #fff; margin-top: 4px; }
+  .k-text { font-size: 15px; margin-top: 4px; line-height: 1.45; }
+  .k-stimme { font-size: 15px; font-style: italic; margin-top: 6px; line-height: 1.45; }
+  .k-zeichen { font-size: 13px; color: var(--ink-dim); margin-top: 6px; line-height: 1.45; }
+  .k-pfeil { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0;
+             color: var(--ink-dim); font-size: 12px; }
+  .k-pfeil::before { content: ""; width: 1px; height: 10px; background: rgba(255,255,255,0.25); }
+  .k-pfeil::after { content: "↓"; line-height: 1; opacity: 0.7; }
+  .k-meter { display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0; }
+  .k-meter i { width: 14px; height: 6px; border-radius: 3px; background: rgba(224,149,95,0.22); }
+  .k-meter i.an { background: #e0955f; }
+  .k-meter b { font-weight: 400; font-size: 12px; color: var(--ink-dim); margin-left: 5px; }
+  .k-beduerfnis { border-color: rgba(127,184,216,0.45); }
+  .k-beduerfnis .k-titel { color: var(--accent); }
+  .k-erwachsen { border-color: rgba(216,196,143,0.5); margin-top: 12px; }
+  .k-erwachsen .k-titel, .k-schritt span { color: var(--gold); }
+  .k-schritt { margin-top: 10px; font-size: 14px; line-height: 1.45; }
+  .k-schritt span { display: block; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 2px; }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -22,6 +49,7 @@
   <div class="row">
     <button class="btn rec" id="diktatBtn">🎙 Diktieren</button>
     <button class="btn primary" id="analyseBtn">Einordnen</button>
+    <button class="btn" id="neuBtn" style="display:none">＋ Neu</button>
   </div>
   <div class="hint" id="hinweis"></div>
 
@@ -30,9 +58,11 @@
     <div class="card"><div class="antwort" id="antwort"></div></div>
     <div class="row">
       <button class="btn" id="vorlesenBtn">🔊 Vorlesen</button>
+      <button class="btn" id="karteBtn">🗺️ Grafisch</button>
       <button class="btn" id="speichernBtn">Ins Journal</button>
       <button class="btn" id="autoLesenBtn" title="Antworten automatisch vorlesen">🔈 Auto: aus</button>
     </div>
+    <div id="karte" style="display:none" role="group" aria-label="Modus-Landkarte"></div>
     <div class="cap" style="margin-top:16px">Weiter im Gespräch</div>
     <textarea id="weiterFeld" style="min-height:72px" placeholder="Nachfragen, widersprechen, ergänzen – wie im Gespräch."></textarea>
     <div class="row">
@@ -58,7 +88,7 @@
   <div id="verlauf"></div>
 </div>
 
-<script src="shared.js?v=31"></script>
+<script src="shared.js?v=32"></script>
 <script>
 "use strict";
 
@@ -124,72 +154,180 @@ Wenn Hinweise auf akute Krise oder Selbstgefährdung auftauchen: benenne das ruh
 Hilfe hin (Telefonseelsorge 0800 111 0 111), statt einfach weiter einzuordnen.
 Insgesamt höchstens 350 Wörter.` + META_AUFTRAG;
 
-function baueBenutzerText() {
-  const lage = $("lage").value.trim();
-  const frueher = store.getJSON("atemfunk_schema", []).slice(0, 2)
+/* ---------- Gespräche speichern ----------
+   Jedes Gespräch ist ein Eintrag in atemfunk_schema:
+   { id, datum, lage, verlauf: [{ wer: "ki" | "du", text }], antwort (Fließtext), karte? }
+   Das offene Gespräch steht in atemfunk_schema_aktuell und kommt beim Öffnen der Seite
+   zurück – auch nach einem Wechsel zu „Atmen“ und zurück. */
+const LISTE = "atemfunk_schema", AKTUELL = "atemfunk_schema_aktuell", OFFEN = "atemfunk_schema_offen";
+const ENTWURF = "atemfunk_schema_entwurf", WEITER = "atemfunk_schema_weiter";
+
+const esc = s => String(s ?? "").replace(/[<>&"]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+
+function eintraege() { return store.getJSON(LISTE, []); }
+function eintrag(id) { return eintraege().find(e => e.id === id) || null; }
+
+/* Ältere Einträge haben das Gespräch nur als Fließtext mit „Du:“/„Antwort:“ */
+function verlaufVon(e) {
+  if (Array.isArray(e.verlauf)) return e.verlauf;
+  const t = (e.antwort || "").split(/\n\n(Du|Antwort): /);
+  const v = [{ wer: "ki", text: t[0] }];
+  for (let i = 1; i < t.length; i += 2) v.push({ wer: t[i] === "Du" ? "du" : "ki", text: t[i + 1] || "" });
+  return v;
+}
+function gespraechText(v) {
+  return v.map((t, i) => i === 0 ? t.text : (t.wer === "du" ? "Du: " : "Antwort: ") + t.text).join("\n\n");
+}
+function sichere(e) {
+  e.antwort = gespraechText(e.verlauf);
+  const liste = eintraege();
+  const i = liste.findIndex(x => x.id === e.id);
+  if (i >= 0) liste[i] = e; else liste.unshift(e);
+  store.setJSON(LISTE, liste.slice(0, 30));
+}
+
+function baueBenutzerText(lage) {
+  const frueher = eintraege().slice(0, 2)
     .map(e => `Frühere Situation (${e.datum}): ${e.lage.slice(0, 200)}`).join("\n");
   return kontextBlock(store.getJSON("atemfunk_lernen", []).slice(0, 4)) +
          (frueher ? frueher + "\n\n" : "") + "Aktuelle Situation:\n" + lage;
 }
 
+let aktuell = null;          // das offene Gespräch
+let wartet = false;          // läuft eine Anfrage? Dann nichts doppelt schicken oder abholen
+let autoLesen = store.get("atemfunk_autolesen", "off") === "on";
+
 async function analysieren() {
   const lage = $("lage").value.trim();
   if (lage.length < 15) { $("hinweis").textContent = "Beschreib die Situation etwas ausführlicher."; return; }
-  const fertig = warteAnzeige($("analyseBtn"), "Denkt nach …");
+  if (wartet) { $("hinweis").textContent = "Einen Moment – die letzte Antwort kommt noch."; return; }
+  if (autoLesen) vorleseFreigabe();      /* iOS: Ton nur, wenn dieser Tipp ihn freischaltet */
   $("hinweis").textContent = "";
-  const r = await frageKI(SYSTEM, baueBenutzerText());
+  wartet = true;
+  const fertig = warteAnzeige($("analyseBtn"), "Denkt nach …");
+  const info = { art: "einordnung", lage };
+  const r = await frageKIgemerkt(OFFEN, info, SYSTEM, baueBenutzerText(lage));
   fertig("Einordnen");
-  if (r.fehler) { zeigeFehler(r); return; }
-  zeigeAntwort(verarbeiteAntwort(r.text).text, lage);
-}
-
-let aktuellId = null;
-let autoLesen = store.get("atemfunk_autolesen", "off") === "on";
-
-function zeigeAntwort(text, lage, id) {
-  $("antwort").innerHTML = alsHtml(text);
-  $("ergebnis").style.display = "block";
-  $("ergebnis").dataset.text = text;
-  $("ergebnis").dataset.lage = lage;
-  if (id) { aktuellId = id; }
-  else {
-    aktuellId = Date.now();
-    const liste = store.getJSON("atemfunk_schema", []);
-    liste.unshift({ id: aktuellId, datum: heute(), lage, antwort: text });
-    store.setJSON("atemfunk_schema", liste.slice(0, 30));
-  }
-  zeigeVerlauf();
-  $("ergebnis").scrollIntoView({ behavior: "smooth", block: "start" });
-  if (autoLesen && !id) vorlesen(text, $("vorlesenBtn"));
-}
-
-/* Das laufende Gespräch im Verlauf mitschreiben */
-function verlaufAktualisieren() {
-  const liste = store.getJSON("atemfunk_schema", []);
-  const e = liste.find(x => x.id === aktuellId);
-  if (e) { e.antwort = $("ergebnis").dataset.text; store.setJSON("atemfunk_schema", liste); }
+  wartet = false;
+  nimmAntwort(r, info, true);
 }
 
 async function nachfragen() {
   const frage = $("weiterFeld").value.trim();
-  if (frage.length < 2) { $("weiterFeld").focus(); return; }
+  if (frage.length < 2 || !aktuell) { $("weiterFeld").focus(); return; }
+  if (wartet) { $("hinweis").textContent = "Einen Moment – die letzte Antwort kommt noch."; return; }
+  if (autoLesen) vorleseFreigabe();
+  $("hinweis").textContent = "";
+  wartet = true;
+  const e = aktuell;
   const fertig = warteAnzeige($("weiterBtn"), "Antwortet …");
-  const r = await frageKI(SYSTEM.replace(META_AUFTRAG, ""),
-    "Situation:\n" + $("ergebnis").dataset.lage +
-    "\n\nBisheriges Gespräch:\n" + $("ergebnis").dataset.text +
+  const info = { art: "nachfrage", id: e.id, frage };
+  const r = await frageKIgemerkt(OFFEN, info, SYSTEM.replace(META_AUFTRAG, ""),
+    "Situation:\n" + e.lage +
+    "\n\nBisheriges Gespräch:\n" + gespraechText(verlaufVon(e)) +
     "\n\nFlorian sagt jetzt:\n" + frage +
     "\n\nGeh direkt darauf ein – wie ein Therapeut im Gespräch, nicht wie ein Gutachten. " +
     "Keine Überschriften-Struktur wiederholen. Wenn du eine Rückfrage hast, stell genau eine. Höchstens 180 Wörter.");
   fertig("Senden");
-  if (r.fehler) { zeigeFehler(r); return; }
-  const antwort = verarbeiteAntwort(r.text).text;
-  $("antwort").innerHTML += "<h3>Du</h3><p><em style='color:var(--ink-dim)'>"
-    + frage.replace(/[<>&]/g, "") + "</em></p><h3>Antwort</h3>" + alsHtml(antwort);
-  $("ergebnis").dataset.text += "\n\nDu: " + frage + "\n\nAntwort: " + antwort;
+  wartet = false;
+  nimmAntwort(r, info, true);
+}
+
+/* Eine fertige Antwort übernehmen – direkt oder nach dem Abholen beim nächsten Öffnen */
+function nimmAntwort(r, info, jetzt) {
+  if (!r || r.ueberholt) return;
+  if (r.fehler) {
+    zeigeFehler(r);
+    /* Nichts vom Geschriebenen verlieren */
+    if (info.art === "einordnung" && !$("lage").value.trim()) $("lage").value = info.lage;
+    if (info.art === "nachfrage" && !$("weiterFeld").value.trim()) $("weiterFeld").value = info.frage;
+    return;
+  }
+  const text = verarbeiteAntwort(r.text).text;
+  let e;
+  if (info.art === "einordnung") {
+    e = { id: Date.now(), datum: heute(), lage: info.lage, verlauf: [{ wer: "ki", text }] };
+    localStorage.removeItem(ENTWURF);
+  } else {
+    e = eintrag(info.id);
+    if (!e) return;
+    e.verlauf = [...verlaufVon(e), { wer: "du", text: info.frage }, { wer: "ki", text }];
+    if ($("weiterFeld").value.trim() === info.frage.trim()) { $("weiterFeld").value = ""; localStorage.removeItem(WEITER); }
+  }
+  sichere(e);
+  oeffne(e, info.art === "einordnung" ? "anfang" : "ende");
+  if (jetzt && autoLesen) vorlesenStarten(text, $("vorlesenBtn"));
+}
+
+/* Hat die Seite beim Warten gewechselt, liegt die Antwort beim Worker bereit */
+async function abholen() {
+  const o = store.getJSON(OFFEN, null);
+  if (!o || wartet) return;
+  wartet = true;
+  if (o.art === "nachfrage") {
+    if (!aktuell || aktuell.id !== o.id) { const e = eintrag(o.id); if (e) oeffne(e); }
+    if (!$("weiterFeld").value.trim()) $("weiterFeld").value = o.frage || "";
+  } else {
+    $("lage").value = o.lage || "";
+  }
+  const knopf = o.art === "nachfrage" ? $("weiterBtn") : $("analyseBtn");
+  const fertig = warteAnzeige(knopf, "Antwort kommt …");
+  $("hinweis").textContent = "Die Antwort von vorhin wird abgeholt …";
+  const r = await offeneAnfrage(OFFEN);
+  fertig(o.art === "nachfrage" ? "Senden" : "Einordnen");
+  wartet = false;
+  $("hinweis").textContent = "";
+  if (r) nimmAntwort(r, r.info, false);
+}
+
+function zeigeGespraech(e) {
+  const v = verlaufVon(e);
+  let letzte = -1;
+  v.forEach((t, i) => { if (t.wer === "ki" && i) letzte = i; });
+  $("antwort").innerHTML = v.map((t, i) => t.wer === "du"
+    ? "<h3>Du</h3><p><em style='color:var(--ink-dim)'>" + esc(t.text).replace(/\n/g, "<br>") + "</em></p>"
+    : (i ? `<h3${i === letzte ? ' id="zuletzt"' : ""}>Antwort</h3>` : "") + alsHtml(t.text)).join("");
+}
+
+function oeffne(e, scroll) {
+  const wechsel = !aktuell || aktuell.id !== e.id;
+  aktuell = e;
+  store.set(AKTUELL, String(e.id));
+  $("lage").value = e.lage;
+  localStorage.removeItem(ENTWURF);
+  zeigeGespraech(e);
+  $("ergebnis").style.display = "block";
+  $("neuBtn").style.display = "";
+  $("karte").style.display = "none";
+  $("karteBtn").textContent = "🗺️ Grafisch";
+  if (wechsel) {
+    const w = store.getJSON(WEITER, null);
+    $("weiterFeld").value = w && w.id === e.id ? w.text : "";
+  }
+  zeigeVerlauf();
+  if (scroll === "anfang") $("ergebnis").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll === "ende") ($("zuletzt") || $("antwort")).scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function neueSituation() {
+  vorleseStopp();
+  aktuell = null;
+  store.set(AKTUELL, "");
+  localStorage.removeItem(ENTWURF);
+  $("lage").value = "";
   $("weiterFeld").value = "";
-  verlaufAktualisieren();
-  $("antwort").lastElementChild?.scrollIntoView({ behavior: "smooth", block: "end" });
-  if (autoLesen) vorlesen(antwort, $("vorlesenBtn"));
+  $("ergebnis").style.display = "none";
+  $("neuBtn").style.display = "none";
+  $("hinweis").textContent = "";
+  zeigeVerlauf();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  $("lage").focus();
+}
+
+function letzteAntwort() {
+  const v = aktuell ? verlaufVon(aktuell) : [];
+  for (let i = v.length - 1; i >= 0; i--) if (v[i].wer === "ki") return v[i].text;
+  return "";
 }
 
 function promptText() {
@@ -199,13 +337,13 @@ function promptText() {
 }
 
 async function insJournal() {
-  const text = $("ergebnis").dataset.text;
-  const lage = $("ergebnis").dataset.lage;
+  if (!aktuell) return;
   try {
+    /* Feste Kennung je Gespräch: nochmal speichern aktualisiert den Eintrag statt ihn zu verdoppeln */
     await dbTx("journal", "readwrite", s => s.put({
-      id: Date.now() + "-" + Math.random().toString(36).slice(2),
+      id: "modus-" + aktuell.id,
       datum: heute(), zeit: Date.now(), art: "text",
-      text: "Modus-Check\n\nSituation: " + lage + "\n\n" + text,
+      text: "Modus-Check\n\nSituation: " + aktuell.lage + "\n\n" + gespraechText(verlaufVon(aktuell)),
     }));
     $("speichernBtn").textContent = "✓ gespeichert";
     setTimeout(() => { $("speichernBtn").textContent = "Ins Journal"; }, 2000);
@@ -213,42 +351,154 @@ async function insJournal() {
 }
 
 function zeigeVerlauf() {
-  const liste = store.getJSON("atemfunk_schema", []);
+  const liste = eintraege();
   const ziel = $("verlauf");
   ziel.innerHTML = "";
   if (!liste.length) { ziel.innerHTML = '<div class="hint">Noch nichts eingeordnet.</div>'; return; }
-  for (const e of liste.slice(0, 8)) {
+  for (const e of liste) {
     const k = document.createElement("div");
     k.className = "card";
-    k.innerHTML = `<div class="hint" style="margin:0 0 6px">${e.datum}</div>
-      <div class="txt" style="font-size:14px">${e.lage.slice(0, 110).replace(/[<>&]/g, "")}${e.lage.length > 110 ? " …" : ""}</div>`;
     k.style.cursor = "pointer";
-    k.addEventListener("click", () => {
-      $("lage").value = e.lage;
-      zeigeAntwort(e.antwort, e.lage, e.id);
-    });
+    const n = verlaufVon(e).filter(t => t.wer === "du").length;
+    const offen = aktuell && aktuell.id === e.id;
+    k.innerHTML = `<div class="hint" style="margin:0 0 6px">${esc(e.datum)}${e.id > 1e12 ? " · " + uhrzeit(e.id) : ""}`
+      + `${n ? " · " + n + (n === 1 ? " Nachfrage" : " Nachfragen") : ""}${offen ? " · <span class='ok'>gerade offen</span>" : ""}</div>
+      <div class="txt" style="font-size:14px">${esc(e.lage.slice(0, 110))}${e.lage.length > 110 ? " …" : ""}</div>`;
+    k.addEventListener("click", () => oeffne(eintrag(e.id) || e, "anfang"));
     ziel.appendChild(k);
   }
 }
 
+/* ---------- Modus-Landkarte: auf Wunsch dieselbe Lage als Bild ---------- */
+const KARTE_AUFTRAG = `Du bist Schematherapeut und arbeitest mit dem Modusmodell nach Jeffrey Young.
+Zerlege die Situation und das Gespräch unten in eine Modus-Landkarte zum Anschauen.
+Antworte NUR mit einem JSON-Objekt – kein Vorspann, kein Codeblock, in den Texten keine geraden Anführungszeichen:
+{"ausloeser":"…","kette":[{"gruppe":"kind","modus":"…","staerke":2,"stimme":"…","zeichen":"…","uebergang":"…"}],"beduerfnis":"…","beduerfnis_satz":"…","erwachsener":"…","schritt":"…"}
+
+- ausloeser: was konkret passiert ist, höchstens 12 Wörter.
+- kette: die 2–4 aktiven Modi in der Reihenfolge, in der einer den nächsten angestoßen hat.
+  gruppe: genau "kind", "eltern" oder "bewaeltigung".
+  modus: Name aus dem Modell, z. B. Verletzbares Kind, Wütendes Kind, Impulsives Kind, Strafender Elternteil,
+  Fordernder Elternteil, Distanzierter Beschützer, Willfährige Unterwerfung, Überkompensation.
+  staerke: 1 = leise, 2 = deutlich, 3 = laut.
+  stimme: was dieser Anteil innerlich sagt, höchstens 12 Wörter.
+  zeichen: woran man ihn in Florians Schilderung erkennt, höchstens 12 Wörter.
+  uebergang: ein bis drei Wörter, wie das Vorige zu diesem Modus führt, z. B. „weckt“, „darauf schimpft“,
+  „um das nicht zu spüren“.
+- beduerfnis: ein Wort (Sicherheit, Verbindung, Autonomie, Anerkennung, Grenzen oder Spiel).
+- beduerfnis_satz: was genau gefehlt hat, höchstens 14 Wörter.
+- erwachsener: was der gesunde Erwachsene direkt zu Florian sagt, höchstens 25 Wörter.
+- schritt: ein konkreter, heute machbarer Schritt, höchstens 14 Wörter.
+
+Nimm nur, was in Situation und Gespräch steht. Deutsch, per Du. Gib genau das JSON aus.`;
+
+const GRUPPE = { kind: "Kind-Modus", eltern: "Eltern-Modus", bewaeltigung: "Bewältigung" };
+const LAUT = ["", "leise", "deutlich", "laut"];
+
+function liesKarte(text) {
+  try {
+    const d = JSON.parse((String(text).match(/\{[\s\S]*\}/) || [""])[0]);
+    const kette = (Array.isArray(d.kette) ? d.kette : []).filter(m => m && m.modus).slice(0, 5);
+    return kette.length ? { ...d, kette } : null;
+  } catch { return null; }
+}
+
+function zeichneKarte(d) {
+  let html = `<div class="k-kasten k-ausloeser"><div class="k-titel">Auslöser</div>
+    <div class="k-text">${esc(d.ausloeser)}</div></div>`;
+  for (const m of d.kette) {
+    const st = Math.min(3, Math.max(1, Math.round(Number(m.staerke) || 2)));
+    html += `<div class="k-pfeil"><span>${esc(m.uebergang)}</span></div>
+      <div class="k-kasten">
+        <div class="k-kopf"><span class="k-titel">${esc(GRUPPE[m.gruppe] || "Modus")}</span>
+          <span class="k-meter" role="img" aria-label="Stärke: ${LAUT[st]}">`
+      + [1, 2, 3].map(i => `<i class="${i <= st ? "an" : ""}"></i>`).join("") + `<b>${LAUT[st]}</b></span></div>
+        <div class="k-name">${esc(m.modus)}</div>
+        ${m.stimme ? `<div class="k-stimme">„${esc(m.stimme)}“</div>` : ""}
+        ${m.zeichen ? `<div class="k-zeichen">${esc(m.zeichen)}</div>` : ""}
+      </div>`;
+  }
+  if (d.beduerfnis) html += `<div class="k-pfeil"><span>darunter</span></div>
+    <div class="k-kasten k-beduerfnis"><div class="k-titel">Bedürfnis</div>
+      <div class="k-name">${esc(d.beduerfnis)}</div>
+      ${d.beduerfnis_satz ? `<div class="k-zeichen">${esc(d.beduerfnis_satz)}</div>` : ""}</div>`;
+  if (d.erwachsener) html += `<div class="k-kasten k-erwachsen"><div class="k-titel">Gesunder Erwachsener</div>
+      <div class="k-stimme">„${esc(d.erwachsener)}“</div>
+      ${d.schritt ? `<div class="k-schritt"><span>Ein Schritt</span>${esc(d.schritt)}</div>` : ""}</div>`;
+  $("karte").innerHTML = html;
+}
+
+async function karteZeigen() {
+  const box = $("karte");
+  if (box.style.display === "block") { box.style.display = "none"; $("karteBtn").textContent = "🗺️ Grafisch"; return; }
+  if (!aktuell) return;
+  let e = aktuell;
+  const n = verlaufVon(e).length;
+  if (!e.karte || e.karte.n !== n) {
+    const fertig = warteAnzeige($("karteBtn"), "Zeichnet …");
+    $("hinweis").textContent = "";
+    const r = await frageKI(KARTE_AUFTRAG,
+      "Situation:\n" + e.lage + "\n\nGespräch:\n" + gespraechText(verlaufVon(e)));
+    fertig("🗺️ Grafisch");
+    if (r.fehler) { zeigeFehler(r); return; }
+    const daten = liesKarte(r.text);
+    if (!daten) { $("hinweis").textContent = "Die Grafik kam unvollständig an – tipp nochmal auf „Grafisch“."; return; }
+    /* Frisch aus dem Speicher holen: in der Wartezeit kann eine Nachfrage dazugekommen sein */
+    e = eintrag(e.id) || e;
+    e.karte = { n, daten };
+    sichere(e);
+    if (!aktuell || aktuell.id !== e.id) return;
+    aktuell = e;
+  }
+  zeichneKarte(e.karte.daten);
+  box.style.display = "block";
+  $("karteBtn").textContent = "🗺️ Ausblenden";
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   diktat($("lage"), $("diktatBtn"));
+  diktat($("weiterFeld"), $("weiterDiktat"));
   $("analyseBtn").addEventListener("click", analysieren);
   $("weiterBtn").addEventListener("click", nachfragen);
-  diktat($("weiterFeld"), $("weiterDiktat"));
+  $("neuBtn").addEventListener("click", neueSituation);
+  $("karteBtn").addEventListener("click", karteZeigen);
   const autoBtn = $("autoLesenBtn");
   const zeigeAuto = () => { autoBtn.textContent = autoLesen ? "🔈 Auto: an" : "🔈 Auto: aus"; };
   zeigeAuto();
   autoBtn.addEventListener("click", () => {
     autoLesen = !autoLesen; store.set("atemfunk_autolesen", autoLesen ? "on" : "off"); zeigeAuto();
+    if (autoLesen) vorleseFreigabe();
   });
   $("speichernBtn").addEventListener("click", insJournal);
-  $("vorlesenBtn").addEventListener("click", () => vorlesen($("ergebnis").dataset.text || "", $("vorlesenBtn")));
+  $("vorlesenBtn").addEventListener("click", () => vorlesen(letzteAntwort(), $("vorlesenBtn")));
   $("promptBtn").addEventListener("click", () => kopieren(promptText(), $("promptBtn"), "Prompt kopieren"));
+
+  /* Entwürfe mitschreiben, damit beim Reiterwechsel nichts verloren geht */
+  const entwuerfeSichern = () => {
+    if (!aktuell || $("lage").value.trim() !== aktuell.lage.trim()) store.set(ENTWURF, $("lage").value);
+    else localStorage.removeItem(ENTWURF);
+    if (aktuell) store.setJSON(WEITER, { id: aktuell.id, text: $("weiterFeld").value });
+  };
+  $("lage").addEventListener("input", entwuerfeSichern);
+  $("weiterFeld").addEventListener("input", entwuerfeSichern);
+  window.addEventListener("pagehide", entwuerfeSichern);
+
+  /* Das offene Gespräch zurückholen. Beim ersten Start dieser Fassung gibt es noch
+     keine Merkung – dann das jüngste Gespräch der letzten 24 Stunden öffnen. */
+  const entwurf = store.get(ENTWURF, "");
+  const gemerkt = store.get(AKTUELL, null);
+  let e = gemerkt ? eintrag(Number(gemerkt)) : null;
+  if (gemerkt === null) { const j = eintraege()[0]; if (j && Date.now() - j.id < 864e5) e = j; }
+  if (e) oeffne(e); else zeigeVerlauf();
+  if (entwurf && (!e || entwurf.trim() !== e.lage.trim())) { $("lage").value = entwurf; store.set(ENTWURF, entwurf); }
+
   if (!kiBasis()) $("hinweis").innerHTML =
     "Tipp: Verbinde einmal die Bibliothek unter <a href='index.html' style='color:var(--accent)'>Atmen</a>, dann läuft die Einordnung direkt hier.";
-  zeigeVerlauf();
+  abholen();
 });
+/* Aus dem Zurück-Speicher des Browsers wiederhergestellt: offene Antwort abholen */
+window.addEventListener("pageshow", ev => { if (ev.persisted) abholen(); });
 </script>
 </body>
 </html>

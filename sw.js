@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v32";
+const CACHE = "atemfunk-v33";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
@@ -11,6 +11,7 @@ const ASSETS = [
   "schema.html",
   "journal.html",
   "ziele.html",
+  "statistik.html",
   "icon-180.png",
   "icon-512.png",
   "audio/cues/Einatmen.mp3",
