@@ -160,7 +160,14 @@
   #flexBox { margin-top: 12px; margin-bottom: 22px; padding: 4px 14px 14px;
              background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; }
   #flexBox .section-cap { margin-top: 14px; }
-  #flexMin { width: 100%; accent-color: var(--accent); height: 28px; margin: 14px 0 2px; }
+  #flexMin { width: 100%; accent-color: var(--accent); height: 28px; margin: 10px 0 2px; }
+  /* Sechs Arten: drei je Zeile */
+  #flexArt { flex-wrap: wrap; margin-bottom: 10px; }
+  #flexArt .rhy { flex: 1 1 30%; }
+  .flexQuick { display: flex; gap: 6px; margin-top: 12px; }
+  .flexQuick button { flex: 1; min-height: 34px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 12px;
+                      color: var(--ink-dim); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+  .flexQuick button.sel { color: var(--ink); background: var(--accent-soft); border-color: rgba(127,184,216,0.5); }
   .player .times { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; margin-top: -2px; }
   .player .ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 8px; }
   .player .ctrl button { min-width: 44px; min-height: 44px; border-radius: 999px; cursor: pointer; font-family: inherit;
@@ -269,11 +276,19 @@
     <div class="section-cap">Art und Länge</div>
     <div class="rhythms" id="flexArt" role="radiogroup" aria-label="Art der Meditation">
       <div class="rhy" role="radio" tabindex="0" data-art="atem">Atem<small>ruhig werden</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="koerper">Körperreise<small>Fuß bis Kopf</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="koerperscan">Körperscan<small>Fuß bis Kopf</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="gedanken">Gedanken<small>ziehen lassen</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="loslassen">Loslassen<small>Spannung abgeben</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="wohlwollen">Wohlwollen<small>für dich und andere</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="weite">Offene Weite<small>alles da sein lassen</small></div>
     </div>
-    <input type="range" id="flexMin" min="3" max="45" step="1" value="12" aria-label="Länge in Minuten">
+    <div class="flexQuick" id="flexQuick" role="group" aria-label="Schnellwahl der Länge">
+      <button type="button" data-min="1">1</button><button type="button" data-min="3">3</button><button type="button" data-min="5">5</button>
+      <button type="button" data-min="10">10</button><button type="button" data-min="15">15</button><button type="button" data-min="20">20</button>
+    </div>
+    <input type="range" id="flexMin" min="1" max="45" step="1" value="12" aria-label="Länge in Minuten">
     <button class="vid" id="flexStart" style="text-align:center; margin:8px 0 0">12 Minuten starten</button>
-    <div class="voice-note" id="flexNote">Die Anleitung wird aus Bausteinen zusammengesetzt – die Pausen wachsen mit der Länge.</div>
+    <div class="voice-note" id="flexNote">Die Anleitung wird aus Bausteinen zusammengesetzt – die Pausen wachsen mit der Länge. Eine Minute ist nur ein kurzes Ankommen.</div>
   </div>
 
   <div class="rhythms" id="rhythms" role="radiogroup" aria-label="Atemrhythmus">
@@ -1025,9 +1040,10 @@ function maybeFinish() {
    zusammen und legt die Stille dazwischen so, dass die Zeit auf die Sekunde
    aufgeht. flex.json kennt die Länge jedes Bausteins. */
 let FLEX = null;
-fetch("flex.json").then(r => r.json()).then(d => { FLEX = d; }).catch(() => {});
+fetch("flex.json", { cache: "no-cache" }).then(r => r.json()).then(d => { FLEX = d; }).catch(() => {});
 
-const FLEX_TITEL = { atem: "Atemmeditation", koerper: "Körperreise" };
+const FLEX_TITEL = { atem: "Atemmeditation", koerperscan: "Körperscan", gedanken: "Gedanken beobachten",
+                     loslassen: "Loslassen", wohlwollen: "Wohlwollen", weite: "Offene Weite" };
 
 /* Programme, in denen sich der Atemrhythmus ändert: [ab Sekunde, Rhythmus].
    Die Zeitmarken kommen aus tools/runter_bauen.py und sind in beiden Stimmen
@@ -1072,7 +1088,8 @@ function flexDatei(art, key) { return voicePath() + "flex/" + art + "/" + key + 
    die Aufmerksamkeit so auch in der Kurzfassung von den Füßen bis zum Kopf. */
 function gleichVerteilt(liste, n) {
   if (n >= liste.length) return liste.slice();
-  if (n <= 1) return [liste[0]];
+  if (n <= 0) return [];
+  if (n === 1) return [liste[0]];
   const out = [];
   for (let i = 0; i < n; i++) out.push(liste[Math.round(i * (liste.length - 1) / (n - 1))]);
   return out;
@@ -1087,7 +1104,11 @@ function bauePlan(art, totalSec) {
   const mitte = keys.filter(k => /^m\d+$/.test(k)).sort((a, b) => nr(a) - nr(b));
   const schluss = keys.filter(k => /^s\d+$/.test(k)).sort((a, b) => nr(a) - nr(b));
   if (!ein.length || !schluss.length || !M.ms) return null;
+  return planAus(M, ein, mitte, schluss, totalSec)
+      || planAus(M, ein.slice(0, 1), mitte, schluss.slice(0, 1), totalSec);   /* 1–2 Min: nur Ankommen, Stille, Zurück */
+}
 
+function planAus(M, ein, mitte, schluss, totalSec) {
   const START = 3;            /* der Anfangsgong darf ausklingen */
   const P_EIN = 7;
   const P_SCHLUSS = 9;
@@ -1100,6 +1121,7 @@ function bauePlan(art, totalSec) {
   const schlussLang = schluss.reduce((a, k) => a + M[k], 0) + P_SCHLUSS * (schluss.length - 1);
   const schlussStart = totalSec - PUFFER - schlussLang;
   let frei = schlussStart - t;
+  if (frei < 12 && (ein.length > 1 || schluss.length > 1)) return null;   /* passt nicht → kürzere Fassung */
 
   if (frei > 25) {
     let k = Math.max(2, Math.min(mitte.length + 1, Math.round(frei / 40)));
@@ -1159,7 +1181,7 @@ async function startSession(min, prog, flexArt) {
   const RHY_NAME = { ruhig: "Ruhig", box: "Box", schlaf: "Schlaf", seufzer: "Beruhigen", frei: "Frei" };
   const art = mitFrage ? "frage"
     : prog ? (prog.startsWith("runterkommen") ? "runterkommen" : prog)
-    : flexArt ? ({ atem: "atemmeditation", koerper: "koerperreise" }[flexArt] || flexArt)
+    : flexArt ? ({ atem: "atemmeditation", koerperscan: "koerperreise" }[flexArt] || flexArt)
     : "atmen";
   const titel = mitFrage ? "Frage: " + frage.text
     : prog ? (PROG_TITEL[prog] || prog)
@@ -1385,7 +1407,7 @@ document.querySelectorAll("[data-prog]").forEach(el => {
 let flexArtKey = store.get("atemfunk_flexart", "atem");
 if (!FLEX_TITEL[flexArtKey]) flexArtKey = "atem";
 let flexMinuten = parseInt(store.get("atemfunk_flexmin", "12"), 10);
-if (!(flexMinuten >= 3 && flexMinuten <= 45)) flexMinuten = 12;
+if (!(flexMinuten >= 1 && flexMinuten <= 45)) flexMinuten = 12;
 $("flexMin").value = flexMinuten;
 function renderFlex() {
   document.querySelectorAll("#flexArt .rhy").forEach(el => {
@@ -1393,8 +1415,15 @@ function renderFlex() {
     el.classList.toggle("sel", sel);
     el.setAttribute("aria-checked", sel ? "true" : "false");
   });
-  $("flexStart").textContent = flexMinuten + " Minuten " + FLEX_TITEL[flexArtKey] + " starten";
+  $("flexStart").textContent = (flexMinuten === 1 ? "1 Minute " : flexMinuten + " Minuten ") + FLEX_TITEL[flexArtKey] + " starten";
+  $("flexMin").value = flexMinuten;
+  document.querySelectorAll("#flexQuick button").forEach(b => b.classList.toggle("sel", +b.dataset.min === flexMinuten));
 }
+document.querySelectorAll("#flexQuick button").forEach(b => b.addEventListener("click", () => {
+  flexMinuten = +b.dataset.min;
+  store.set("atemfunk_flexmin", String(flexMinuten));
+  renderFlex();
+}));
 document.querySelectorAll("#flexArt .rhy").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => {
