@@ -1,4 +1,4 @@
-const CACHE = "atemfunk-v33";
+const CACHE = "atemfunk-v34";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
@@ -61,9 +61,20 @@ self.addEventListener("activate", e => {
 
 /* iOS-Media-Loader fordert Audio mit Range-Headern an und braucht eine echte
    206-Antwort – eine volle 200 aus dem Cache lässt <audio> auf iOS scheitern. */
-async function rangeResponse(request) {
+const holtGerade = new Set();
+async function rangeResponse(request, e) {
   const hit = await caches.match(request, { ignoreSearch: true });
-  if (!hit) return fetch(request);
+  if (!hit) {
+    /* iOS lädt Ton ausschließlich in Häppchen – Teilantworten kann man nicht ablegen.
+       Deshalb nebenbei einmal die ganze Datei holen, damit sie beim nächsten Mal
+       offline da ist (sonst wäre auf dem iPhone nur die Grundausstattung offline). */
+    const url = request.url;
+    if (!holtGerade.has(url)) {
+      holtGerade.add(url);
+      e.waitUntil(caches.open(CACHE).then(c => c.add(url)).catch(() => {}).finally(() => holtGerade.delete(url)));
+    }
+    return fetch(request);
+  }
   const buf = await hit.arrayBuffer();
   const m = /bytes=(\d+)-(\d*)/.exec(request.headers.get("range") || "");
   if (!m) return hit;
@@ -88,7 +99,7 @@ self.addEventListener("fetch", e => {
   if (new URL(e.request.url).origin !== location.origin) return;
 
   if (e.request.headers.has("range")) {
-    e.respondWith(rangeResponse(e.request));
+    e.respondWith(rangeResponse(e.request, e));
     return;
   }
 

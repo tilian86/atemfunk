@@ -87,7 +87,12 @@ async function planen() {
   try {
     const roh = r.text.replace(/^```(?:json)?|```$/gm, "").trim();
     plan = JSON.parse(roh.slice(roh.indexOf("{"), roh.lastIndexOf("}") + 1));
+    /* nur brauchbare Schritte behalten – sonst bricht die Anzeige mitten im Aufbau ab */
+    plan.schritte = (Array.isArray(plan.schritte) ? plan.schritte : []).filter(s => s && typeof s.was === "string");
+    if (!plan.schritte.length) throw new Error("keine Schritte");
+    plan.titel = String(plan.titel || "Plan");
   } catch {
+    plan = null;
     $("hinweis").textContent = "Antwort war unerwartet – bitte nochmal versuchen.";
     return;
   }
@@ -105,6 +110,7 @@ function todoistLink(was, tag) {
 }
 
 function zeigePlan() {
+  if (!plan || !Array.isArray(plan.schritte)) return;
   const ziel = $("planText");
   ziel.innerHTML = "<div class='antwort'><h3>" + (plan.titel || "Plan").replace(/[<>&]/g, "") + "</h3></div>";
   plan.schritte.forEach((s, i) => {
@@ -135,11 +141,15 @@ function alleZuTodoist() {
   window.open(todoistLink(text, plan.schritte[0]?.tag), "_blank", "noopener");
 }
 
-function icsDatum(tag, i) {
+/* Beginn eines Schritts: heute/morgen um 9 + i Uhr, „diese Woche“ ab übermorgen ein Tag je Schritt */
+function icsBeginn(tag, i) {
   const d = new Date();
   if (tag === "morgen") d.setDate(d.getDate() + 1);
   else if (tag === "diese Woche") d.setDate(d.getDate() + 2 + i);
   d.setHours(9 + i, 0, 0, 0);
+  return d;
+}
+function icsText(d) {
   const p = n => String(n).padStart(2, "0");
   return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "T" + p(d.getHours()) + p(d.getMinutes()) + "00";
 }
@@ -148,12 +158,12 @@ function alsKalender() {
   if (!plan) return;
   const z = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Atemfunk//Ziele//DE"];
   plan.schritte.forEach((s, i) => {
-    const start = icsDatum(s.tag, i);
-    const ende = icsDatum(s.tag, i + 1);    /* eine Stunde später, auch über Mitternacht korrekt */
+    const start = icsBeginn(s.tag, i);
+    const ende = new Date(start.getTime() + 3600e3);    /* genau eine Stunde */
     z.push("BEGIN:VEVENT",
       "UID:" + Date.now() + "-" + i + "@atemfunk",
-      "DTSTAMP:" + icsDatum("heute", 0),
-      "DTSTART:" + start, "DTEND:" + ende,
+      "DTSTAMP:" + icsText(new Date()),
+      "DTSTART:" + icsText(start), "DTEND:" + icsText(ende),
       "SUMMARY:" + (plan.titel + ": " + s.was).replace(/[\r\n,;]/g, " "),
       "DESCRIPTION:" + (s.dauer || "").replace(/[\r\n,;]/g, " "),
       "END:VEVENT");

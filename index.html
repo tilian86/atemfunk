@@ -984,11 +984,11 @@ document.addEventListener("visibilitychange", () => {
   if (session && !session.leftMsAtPause && session.endAt - Date.now() <= 0) maybeFinish();
 });
 
-function setMediaSession(min, prog) {
+function setMediaSession(titel, min) {
   if (!("mediaSession" in navigator)) return;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: (PROG_TITEL[prog] || "Atemmeditation") + " · " + min + " " + (min === 1 ? "Minute" : "Minuten"),
+      title: titel + (min ? " · " + min + (min === 1 ? " Minute" : " Minuten") : ""),
       artist: "Atemfunk",
       artwork: [{ src: "icon-512.png", sizes: "512x512", type: "image/png" }],
     });
@@ -1184,7 +1184,7 @@ async function startSession(min, prog, flexArt) {
   $("frageImLauf").textContent = session.frage ? "„" + session.frage + "“" : "";
   acquireWakeLock();
   gong();
-  setMediaSession(min, prog);
+  setMediaSession(session.titel, min);
   if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage, session.frageNr), 4200);
 
   if (guided && flexArt) {
@@ -1302,6 +1302,8 @@ function togglePause(forcePause) {
     session.leftMsAtPause = session.offen ? Infinity : Math.max(1, session.endAt - Date.now());
     session.pauseStartedAt = Date.now();
     clearTimeout(session.endTimer);
+    /* nur weiterspielen, was gerade lief – ein wartender Baustein startet sonst zu früh */
+    session.tonLief = !!audio.src && !audio.paused && !audio.ended;
     audio.pause();
     if (actx) actx.suspend().catch(() => {});
     $("pauseBtn").textContent = "Weiter";
@@ -1312,7 +1314,7 @@ function togglePause(forcePause) {
     session.leftMsAtPause = null;
     session.lastLabel = null;
     session.lastSecond = -1;
-    if (audio.src && voiceOn() && !audio.ended) audio.play().catch(() => {});
+    if (session.tonLief && voiceOn()) audio.play().catch(() => {});
     if (actx) actx.resume().catch(() => {});
     if (session.armEndTimer) session.armEndTimer();
     $("pauseBtn").textContent = "Pause";
@@ -1430,8 +1432,15 @@ $("quietBtn").addEventListener("click", () => {
 /* ---------- Meine Bibliothek: importierte Audios in IndexedDB, Wiedergabe über <audio> ---------- */
 function idb() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open("atemfunk", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("tracks", { keyPath: "id" });
+    /* Dieselbe Version wie db() in shared.js: eine kleinere Nummer scheitert mit
+       VersionError, sobald das Journal die Datenbank einmal angehoben hat – dann
+       wäre die Bibliothek hier plötzlich leer. */
+    const r = indexedDB.open("atemfunk", 2);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains("tracks")) d.createObjectStore("tracks", { keyPath: "id" });
+      if (!d.objectStoreNames.contains("journal")) d.createObjectStore("journal", { keyPath: "id" });
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
@@ -1541,7 +1550,8 @@ function fmtTime(s) {
 
 async function renderLib() {
   let tracks = [];
-  try { tracks = await idbTx("readonly", s => s.getAll()); } catch {}
+  try { tracks = await idbTx("readonly", s => s.getAll()); }
+  catch { $("libNote").textContent = "Speicher nicht erreichbar – App einmal neu laden."; }
   const lists = { audio: $("libList"), video: $("libListVideo") };
   lists.audio.innerHTML = ""; lists.video.innerHTML = "";
   tracks.sort((a, b) => (a.ord ?? 999) - (b.ord ?? 999) || a.name.localeCompare(b.name));
@@ -1769,20 +1779,24 @@ $("frageImpuls").addEventListener("click", async () => {
     "Formuliere EINE einzige Frage, über die Florian in einer stillen Meditation nachsinnen kann. " +
     "Sie soll aus seinem Material kommen, offen sein und sich nicht in einem Satz beantworten lassen. " +
     "Keine Ja-Nein-Frage, kein Ratschlag, keine Erklärung. Antworte nur mit der Frage selbst.";
+  const abbruch = new AbortController();               /* sonst bliebe der Knopf bei „Sucht …“ hängen */
+  const zeitlimit = setTimeout(() => abbruch.abort(), 120000);
   try {
     const r = await fetch(basis + "ki", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ system: "", user: auftrag + "\n\n---\n\n" +
         (profil ? "Was du über ihn weißt:\n" + profil + "\n\n" : "") +
         (lernen ? "Seine Erkenntnisse:\n" + lernen : "Noch wenig bekannt – nimm eine ruhige Grundfrage.") }),
+      signal: abbruch.signal,
     });
     const d = await r.json();
-    btn.textContent = "Aus meinem Journal";
     if (d.text) setzeFrage(d.text.trim().replace(/^[„"']|[""']$/g, ""), "ki");
     else $("frageNote").textContent = "Mac gerade nicht erreichbar.";
-  } catch {
+  } catch (e) {
+    $("frageNote").textContent = e.name === "AbortError" ? "Zu lange gewartet – nochmal?" : "Mac gerade nicht erreichbar.";
+  } finally {
+    clearTimeout(zeitlimit);
     btn.textContent = "Aus meinem Journal";
-    $("frageNote").textContent = "Mac gerade nicht erreichbar.";
   }
 });
 

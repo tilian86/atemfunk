@@ -194,13 +194,15 @@ formuliert. Wenn heute nichts offen blieb: das Wort keiner>`;
 /* Trennt Form-, Themen- und Faden-Zeilen vom sichtbaren Text und pflegt das Gedächtnis */
 function verarbeiteAntwort(text) {
   const form = (text.match(/^\s*FORM:\s*(.+)$/im) || [])[1] || "";
-  const themen = (text.match(/^\s*THEMEN:\s*([\s\S]*?)(?=^\s*(?:FADEN|FORM):|\s*$)/im) || [])[1] || "";
+  /* THEMEN darf über mehrere Zeilen gehen – bis FADEN/FORM, eine Leerzeile oder das Ende */
+  const THEMEN_ENDE = "(?=\\n\\s*(?:FADEN|FORM):|\\n\\s*\\n|\\s*$(?![\\s\\S]))";
+  const themen = (text.match(new RegExp("^\\s*THEMEN:\\s*([\\s\\S]*?)" + THEMEN_ENDE, "im")) || [])[1] || "";
   const faden = (text.match(/^\s*FADEN:\s*(.+)$/im) || [])[1] || "";
   setzeProfil(themen.trim());
   if (faden && !/^keiner\b/i.test(faden.trim())) merkeFaden(faden.trim());
   const rest = text
     .replace(/^\s*FORM:.*$/im, "")
-    .replace(/^\s*THEMEN:[\s\S]*?(?=^\s*FADEN:|$)/im, "")
+    .replace(new RegExp("^\\s*THEMEN:[\\s\\S]*?" + THEMEN_ENDE, "im"), "")
     .replace(/^\s*FADEN:.*$/im, "")
     .trim();
   return { form: form.trim(), text: rest };
