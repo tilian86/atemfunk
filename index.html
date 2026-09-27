@@ -281,6 +281,7 @@
       <div class="rhy" role="radio" tabindex="0" data-art="loslassen">Loslassen<small>Spannung abgeben</small></div>
       <div class="rhy" role="radio" tabindex="0" data-art="wohlwollen">Wohlwollen<small>für dich und andere</small></div>
       <div class="rhy" role="radio" tabindex="0" data-art="weite">Offene Weite<small>alles da sein lassen</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="gehen">Gehen<small>Schritt für Schritt</small></div>
     </div>
     <div class="flexQuick" id="flexQuick" role="group" aria-label="Schnellwahl der Länge">
       <button type="button" data-min="1">1</button><button type="button" data-min="3">3</button><button type="button" data-min="5">5</button>
@@ -1043,7 +1044,7 @@ let FLEX = null;
 fetch("flex.json", { cache: "no-cache" }).then(r => r.json()).then(d => { FLEX = d; }).catch(() => {});
 
 const FLEX_TITEL = { atem: "Atemmeditation", koerperscan: "Körperscan", gedanken: "Gedanken beobachten",
-                     loslassen: "Loslassen", wohlwollen: "Wohlwollen", weite: "Offene Weite" };
+                     loslassen: "Loslassen", wohlwollen: "Wohlwollen", weite: "Offene Weite", gehen: "Gehmeditation" };
 
 /* Programme, in denen sich der Atemrhythmus ändert: [ab Sekunde, Rhythmus].
    Die Zeitmarken kommen aus tools/runter_bauen.py und sind in beiden Stimmen
@@ -1173,7 +1174,8 @@ async function startSession(min, prog, flexArt) {
   const gefuehrt = !!prog || !!flexArt;
   const atemPlan = (prog && PROG_ATEM[prog]) || null;
   const rhythm = atemPlan ? RHYTHMS[atemPlan[0][1]]
-    : gefuehrt ? RHYTHMS.ruhig : RHYTHMS[rhythmKey];  /* geführte Meditationen atmen ruhig mit */
+    : gefuehrt ? (flexArt === "gehen" ? RHYTHMS.frei : RHYTHMS.ruhig)   /* geführte Meditationen atmen ruhig mit – beim Gehen gibt die Kugel kein Tempo vor */
+    : RHYTHMS[rhythmKey];
   const guided = !offen && voiceOn() && !mitFrage && (gefuehrt || rhythmKey === "ruhig");
   /* gesprochene Phasenansagen – beim freien Atmen bleibt es still */
   const spoken = voiceOn() && !guided && !rhythm.frei;
