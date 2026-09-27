@@ -155,13 +155,12 @@
   .player .pttl { font-size: 13px; color: var(--ink); text-align: left; margin-bottom: 8px;
                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .player input[type=range] { width: 100%; accent-color: var(--accent); height: 24px; }
-  #flexKarte { padding: 14px 0 13px; }
-  #flexKarte .lbl { margin-top: 0; font-size: 12px; }
-  #flexBox { margin-top: 12px; margin-bottom: 22px; padding: 4px 14px 14px;
-             background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; }
-  #flexBox .section-cap { margin-top: 14px; }
+  #nochmal { color: var(--ink); background: var(--accent-soft); border-color: rgba(127,184,216,0.5); margin: 0 0 18px; }
+  #nochmal small { display: block; color: var(--ink-dim); font-size: 11px; margin-top: 2px; }
+  #flexStart.puls { animation: puls 1.2s ease-in-out 3; }
+  @keyframes puls { 50% { box-shadow: 0 0 0 6px rgba(127,184,216,0.25); } }
   #flexMin { width: 100%; accent-color: var(--accent); height: 28px; margin: 10px 0 2px; }
-  /* Sechs Arten: drei je Zeile */
+  /* Acht Arten: drei je Zeile */
   #flexArt { flex-wrap: wrap; margin-bottom: 10px; }
   #flexArt .rhy { flex: 1 1 30%; }
   .flexQuick { display: flex; gap: 6px; margin-top: 12px; }
@@ -254,13 +253,36 @@
   <h1 class="greeting" id="greeting">Zeit zum Atmen.</h1>
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
+  <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
 
   <div class="section-cap">Runterkommen</div>
   <div class="runter">
     <div class="dur" role="button" tabindex="0" data-prog="runterkommen-5" data-min="5" aria-label="Runterkommen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="runterkommen-10" data-min="10" aria-label="Runterkommen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
   </div>
+
   <div class="runter-hinweis">Geführt: ankommen, Seufzer-Atmung, langes Ausatmen · für die Bank unterwegs</div>
+
+  <div class="links" id="flexBox">
+    <div class="section-cap">Geführte Meditationen</div>
+    <div class="rhythms" id="flexArt" role="radiogroup" aria-label="Art der Meditation">
+      <div class="rhy" role="radio" tabindex="0" data-art="atmung">Atem<small>ruhig werden</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="koerperscan">Körperscan<small>Fuß bis Kopf</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="gedanken">Gedanken<small>ziehen lassen</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="loslassen">Loslassen<small>Spannung abgeben</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="wohlwollen">Wohlwollen<small>für dich und andere</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="weite">Offene Weite<small>alles da sein lassen</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="gehen">Gehen<small>Schritt für Schritt</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-art="frei">Freie Meditation<small>wenig Worte</small></div>
+    </div>
+    <div class="flexQuick" id="flexQuick" role="group" aria-label="Schnellwahl der Länge">
+      <button type="button" data-min="1">1</button><button type="button" data-min="3">3</button><button type="button" data-min="5">5</button>
+      <button type="button" data-min="10">10</button><button type="button" data-min="15">15</button><button type="button" data-min="20">20</button>
+    </div>
+    <input type="range" id="flexMin" min="1" max="45" step="1" value="12" aria-label="Länge in Minuten">
+    <button class="vid" id="flexStart" style="text-align:center; margin:8px 0 0">12 Minuten starten</button>
+    <div class="voice-note" id="flexNote">Art antippen, Länge wählen – die Anleitung wird passend zusammengesetzt, die Pausen wachsen mit der Länge. Eine Minute ist nur ein kurzes Ankommen.</div>
+
   <div class="section-cap" id="capDur">Tippen zum Starten</div>
   <div class="durations">
     <div class="dur" role="button" tabindex="0" data-min="1" aria-label="1 Minute meditieren"><div class="num">1</div><div class="lbl">Minute</div></div>
@@ -269,27 +291,8 @@
     <div class="dur" role="button" tabindex="0" data-min="7" aria-label="7 Minuten meditieren"><div class="num">7</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-min="10" aria-label="10 Minuten meditieren"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-min="0" aria-label="Ohne Zeitlimit meditieren"><div class="num">∞</div><div class="lbl">Offen</div></div>
-    <div class="dur" role="button" tabindex="0" id="flexKarte" aria-expanded="false" aria-controls="flexBox" aria-label="Eigene Länge wählen"><div class="lbl">⋯&nbsp;&nbsp;Eigene Länge</div></div>
   </div>
 
-  <div class="links" id="flexBox" hidden>
-    <div class="section-cap">Art und Länge</div>
-    <div class="rhythms" id="flexArt" role="radiogroup" aria-label="Art der Meditation">
-      <div class="rhy" role="radio" tabindex="0" data-art="atem">Atem<small>ruhig werden</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="koerperscan">Körperscan<small>Fuß bis Kopf</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="gedanken">Gedanken<small>ziehen lassen</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="loslassen">Loslassen<small>Spannung abgeben</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="wohlwollen">Wohlwollen<small>für dich und andere</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="weite">Offene Weite<small>alles da sein lassen</small></div>
-      <div class="rhy" role="radio" tabindex="0" data-art="gehen">Gehen<small>Schritt für Schritt</small></div>
-    </div>
-    <div class="flexQuick" id="flexQuick" role="group" aria-label="Schnellwahl der Länge">
-      <button type="button" data-min="1">1</button><button type="button" data-min="3">3</button><button type="button" data-min="5">5</button>
-      <button type="button" data-min="10">10</button><button type="button" data-min="15">15</button><button type="button" data-min="20">20</button>
-    </div>
-    <input type="range" id="flexMin" min="1" max="45" step="1" value="12" aria-label="Länge in Minuten">
-    <button class="vid" id="flexStart" style="text-align:center; margin:8px 0 0">12 Minuten starten</button>
-    <div class="voice-note" id="flexNote">Die Anleitung wird aus Bausteinen zusammengesetzt – die Pausen wachsen mit der Länge. Eine Minute ist nur ein kurzes Ankommen.</div>
   </div>
 
   <div class="rhythms" id="rhythms" role="radiogroup" aria-label="Atemrhythmus">
@@ -334,13 +337,6 @@
       <button class="vid" id="frageImpuls" style="flex:1; text-align:center; margin:0">Aus meinem Journal</button>
     </div>
     <div class="voice-note" id="frageNote"></div>
-  </div>
-
-  <div class="links" id="progSection">
-    <div class="section-cap">Geführte Programme</div>
-    <div class="vid" role="button" tabindex="0" data-prog="koerperreise" data-min="10"><span>Körperreise</span> · durch den ganzen Körper spüren · 10 Min</div>
-    <div class="vid" role="button" tabindex="0" data-prog="frei" data-min="12"><span>Freie Meditation</span> · offen geführt · 12 Min</div>
-    <div class="voice-note">Andere Länge? Oben über <strong>⋯ Eigene</strong> – da baut die App die Anleitung passend zusammen.</div>
   </div>
 
   <div class="links">
@@ -494,7 +490,24 @@ function renderHome() {
       + (s.best > 1 ? " · Rekord " + s.best + " Tage" : "") + " · ", mehr);
     zeile.append(link);
   }
+  renderNochmal();
 }
+/* „Nochmal"-Karte: die letzte Sitzung mit einem Tipp wieder starten */
+function renderNochmal() {
+  const el = $("nochmal");
+  let z = null;
+  try { z = JSON.parse(store.get("atemfunk_zuletzt", "null")); } catch {}
+  if (!z || !z.titel) { el.hidden = true; return; }
+  el.replaceChildren();
+  const t = document.createElement("span");
+  t.textContent = "▶ " + z.titel + (z.min ? " · " + z.min + " Min" : " · offen");
+  const sm = document.createElement("small");
+  sm.textContent = "Nochmal, mit einem Tipp";
+  el.append(t, sm);
+  el.hidden = false;
+  el.onclick = () => startSession(z.min, z.prog || undefined, z.flexArt || undefined);
+}
+keyActivate($("nochmal"));
 renderHome();
 
 /* Jede gezählte Sitzung landet zusätzlich im Protokoll – daraus rechnet statistik.html.
@@ -540,7 +553,6 @@ const RHYTHMS = {
 };
 let rhythmKey = store.get("atemfunk_rhythm", "ruhig");
 if (!RHYTHMS[rhythmKey]) rhythmKey = "ruhig";
-
 
 function renderRhythms() {
   document.querySelectorAll("#rhythms .rhy").forEach(el => {
@@ -1043,8 +1055,9 @@ function maybeFinish() {
 let FLEX = null;
 fetch("flex.json", { cache: "no-cache" }).then(r => r.json()).then(d => { FLEX = d; }).catch(() => {});
 
-const FLEX_TITEL = { atem: "Atemmeditation", koerperscan: "Körperscan", gedanken: "Gedanken beobachten",
-                     loslassen: "Loslassen", wohlwollen: "Wohlwollen", weite: "Offene Weite", gehen: "Gehmeditation" };
+const FLEX_TITEL = { atmung: "Atemmeditation", koerperscan: "Körperscan", gedanken: "Gedanken beobachten",
+                     loslassen: "Loslassen", wohlwollen: "Wohlwollen", weite: "Offene Weite", gehen: "Gehmeditation",
+                     frei: "Freie Meditation" };
 
 /* Programme, in denen sich der Atemrhythmus ändert: [ab Sekunde, Rhythmus].
    Die Zeitmarken kommen aus tools/runter_bauen.py und sind in beiden Stimmen
@@ -1183,12 +1196,13 @@ async function startSession(min, prog, flexArt) {
   const RHY_NAME = { ruhig: "Ruhig", box: "Box", schlaf: "Schlaf", seufzer: "Beruhigen", frei: "Frei" };
   const art = mitFrage ? "frage"
     : prog ? (prog.startsWith("runterkommen") ? "runterkommen" : prog)
-    : flexArt ? ({ atem: "atemmeditation", koerperscan: "koerperreise" }[flexArt] || flexArt)
+    : flexArt ? ({ atmung: "atemmeditation", koerperscan: "koerperreise" }[flexArt] || flexArt)
     : "atmen";
   const titel = mitFrage ? "Frage: " + frage.text
     : prog ? (PROG_TITEL[prog] || prog)
     : flexArt ? (FLEX_TITEL[flexArt] || "Geführte Meditation")
     : (offen ? "Offen" : "Atmen") + " · " + (RHY_NAME[rhythmKey] || rhythmKey);
+  if (!mitFrage) store.set("atemfunk_zuletzt", JSON.stringify({ min, prog: prog || null, flexArt: flexArt || null, titel }));
   session = {
     art, titel,
     min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, flexArt: null, plan: null, planIdx: 0, bowl: bowlOn(),
@@ -1216,6 +1230,13 @@ async function startSession(min, prog, flexArt) {
     if (plan) {
       session.flexArt = flexArt;
       session.plan = plan;
+      /* Alle Bausteine der Sitzung gleich holen – unterwegs (Bank, Gehen) reißt
+         das Netz gern ab, und ein fehlender Satz wäre einfach Stille. Der
+         Service Worker legt Audio beim ersten Laden in den Cache. */
+      if ("caches" in window) plan.forEach(p => {
+        const u = flexDatei(flexArt, p.f);
+        caches.match(u, { ignoreSearch: true }).then(hit => hit || fetch(u)).catch(() => {});
+      });
       /* iOS lässt ein Audio-Element erst nach einer Berührung los. Der erste
          Baustein kommt aber erst nach ein paar Sekunden – also hier, noch im
          Tipp-Moment, einmal kurz anspielen und gleich wieder anhalten. */
@@ -1406,8 +1427,8 @@ document.querySelectorAll("[data-prog]").forEach(el => {
 });
 
 /* ---------- Eigene Länge ---------- */
-let flexArtKey = store.get("atemfunk_flexart", "atem");
-if (!FLEX_TITEL[flexArtKey]) flexArtKey = "atem";
+let flexArtKey = store.get("atemfunk_flexart", "atmung");
+if (!FLEX_TITEL[flexArtKey]) flexArtKey = "atmung";
 let flexMinuten = parseInt(store.get("atemfunk_flexmin", "12"), 10);
 if (!(flexMinuten >= 1 && flexMinuten <= 45)) flexMinuten = 12;
 $("flexMin").value = flexMinuten;
@@ -1439,15 +1460,24 @@ $("flexMin").addEventListener("input", () => {
   renderFlex();
 });
 $("flexMin").addEventListener("change", () => store.set("atemfunk_flexmin", String(flexMinuten)));
-keyActivate($("flexKarte"));
-$("flexKarte").addEventListener("click", () => {
-  const zu = $("flexBox").hidden;
-  $("flexBox").hidden = !zu;
-  $("flexKarte").setAttribute("aria-expanded", zu ? "true" : "false");
-  if (zu) $("flexBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
-});
 $("flexStart").addEventListener("click", () => startSession(flexMinuten, null, flexArtKey));
 renderFlex();
+/* Direktstart-Link, z. B. als Homescreen-Symbol oder Siri-Kurzbefehl: ?start=gehen&min=10
+   Ton braucht auf iOS eine Berührung – darum nur vorwählen und den Startknopf anbieten. */
+{
+  const q = new URLSearchParams(location.search);
+  const st = q.get("start"), mn = parseInt(q.get("min") || "", 10);
+  if (st && FLEX_TITEL[st]) {
+    flexArtKey = st;
+    if (mn >= 1 && mn <= 45) flexMinuten = mn;
+    renderFlex();
+    setTimeout(() => {
+      $("flexBox").scrollIntoView({ behavior: "smooth", block: "start" });
+      $("flexStart").classList.add("puls");
+      $("flexStart").focus({ preventScroll: true });
+    }, 300);
+  }
+}
 $("pauseBtn").addEventListener("click", () => togglePause());
 $("stopBtn").addEventListener("click", () => finishSession(false));
 $("homeBtn").addEventListener("click", () => {
