@@ -7,7 +7,7 @@ Stimmen, Schlüsselrotation, Beschneiden und Cache kommen aus runter_bauen.py
 gemessen über alle Bausteine zusammen (−21 LUFS wie der Rest der App), damit
 die Sätze untereinander so laut bleiben, wie die Stimme sie gesprochen hat.
 
-Aufruf: python3 tools/flex_bauen.py [m|w] [art …]   (ohne Argumente: alles)
+Aufruf: python3 tools/flex_bauen.py [m|w] [art …] [--nur-neu]   (ohne Argumente: alles)
 Geänderter Klang → neuer Ordnername, der Service Worker liefert Audio
 cache-first und ignoriert ?v=.
 """
@@ -20,7 +20,7 @@ from flex_texte import ARTEN
 
 ZIEL = {"w": AUDIO + "/flex", "m": AUDIO + "/m/flex"}
 VORLAUF, NACHLAUF = 0.25, 0.6
-KEYS = [k for k in next(iter(ARTEN.values())) if k not in ("titel", "kurz")]
+def keys_von(art): return [k for k in ARTEN[art] if k not in ("titel", "kurz")]
 
 
 def lautheit(a):
@@ -33,14 +33,16 @@ def lautheit(a):
     return float(json.loads(mess[anf:mess.index("}", anf) + 1])["input_i"])
 
 
-def bauen(stimme, arten):
-    clips = {(art, k): clip(stimme, ARTEN[art][k]) for art in arten for k in KEYS}
+def bauen(stimme, arten, nur_neu=False):
+    clips = {(art, k): clip(stimme, ARTEN[art][k]) for art in arten for k in keys_von(art)}
     luecke = np.zeros(int(0.5 * SR), dtype=np.float32)
     alle = np.concatenate([x for a in clips.values() for x in (a, luecke)])
     gain = 10 ** ((-21 - lautheit(alle)) / 20)
     print(f"{stimme}: Verstärkung {20 * np.log10(gain):+.1f} dB")
     laengen = {}
     for (art, k), a in clips.items():
+        if nur_neu and os.path.exists(f"{ZIEL[stimme]}/{art}/{k}.mp3"):
+            continue
         b = a * gain
         spitze = float(np.max(np.abs(b)))
         if spitze > 0.79:            # −2 dBFS
@@ -59,18 +61,22 @@ def bauen(stimme, arten):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    nur_neu = "--nur-neu" in args          # vorhandene Dateien unangetastet lassen (Cache auf den Geräten)
     stimmen = [a for a in args if a in ("m", "w")] or ["m", "w"]
     arten = [a for a in args if a in ARTEN] or list(ARTEN)
     pfad = os.path.join(AUDIO, "..", "flex.json")
     flex = json.load(open(pfad))
     neu = {}
     for s in stimmen:
-        for key, sek in bauen(s, arten).items():
+        for key, sek in bauen(s, arten, nur_neu).items():
             neu[key] = max(neu.get(key, 0), sek)
     for (art, k), sek in neu.items():
         alt = flex.get(art, {}).get(k, 0) if len(stimmen) == 1 else 0   # nur eine Stimme gebaut → die andere bleibt maßgeblich
         flex.setdefault(art, {})[k] = max(alt, sek)
+    for art in arten:                       # verwaiste Einträge (gelöschte Bausteine) entfernen
+        for k in list(flex.get(art, {})):
+            if k not in keys_von(art): del flex[art][k]
     json.dump(flex, open(pfad, "w"), indent=1, ensure_ascii=False, sort_keys=True)
     open(pfad, "a").write("\n")
     for art in arten:
-        print(art, {k: flex[art][k] for k in KEYS})
+        print(art, {k: flex[art][k] for k in keys_von(art)})

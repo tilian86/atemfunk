@@ -1,6 +1,6 @@
 """Bausteine der geführten Meditationen in freier Länge (Karte „Eigene Länge").
 
-Schema je Art: e1, e2 = Einstieg · m1..m8 = Mitte (werden gleichmäßig über die
+Schema je Art: e1, e2 = Einstieg · t = Übergang (nur in zusammengestellten Meditationen) · m1..m8 = Mitte (werden gleichmäßig über die
 Länge verteilt, bei 3 Min also m1 + m8) · ms = „ich bin still" vor der langen
 Stille · s1, s2 = Schluss. Bei 1 Minute nimmt die App nur e1 + ms + s1, darum
 sind diese drei kurz gehalten.
@@ -21,6 +21,7 @@ ARTEN = {
         "m6": "Vielleicht ist gerade gar kein Gedanke da. Auch das ist in Ordnung. Dann spürst du einfach den Atem, bis der nächste kommt.",
         "m7": "Achte darauf, wie ein Gedanke von selbst verblasst, wenn du ihn nicht festhältst. Er braucht deine Aufmerksamkeit, um zu bleiben.",
         "m8": "Du bist nicht deine Gedanken. Du bist der, der sie bemerkt. Das ist ein kleiner, aber wichtiger Unterschied.",
+        "t": "Öffne die Aufmerksamkeit jetzt für die Gedanken. Du musst nichts mit ihnen machen. Nur bemerken, wie sie kommen und wieder gehen.",
         "ms": "Ich bin jetzt eine Weile still. Bleib am Ufer und schau zu, was vorbeikommt.",
         "s1": "Lass das Bild vom Fluss langsam los. Spür wieder den Boden unter dir und das Gewicht deines Körpers.",
         "s2": "Ein tiefer Atemzug. Wenn du bereit bist, öffne die Augen. Die Gedanken gehen weiter, und du kannst ihnen jetzt etwas gelassener zusehen.",
@@ -37,6 +38,7 @@ ARTEN = {
         "m6": "Die Hände. Die Finger, die Handflächen, die Handrücken. Dann die Arme hinauf bis zu den Schultern. Die Schultern dürfen ein Stück nach unten sinken.",
         "m7": "Der Nacken und der Hals. Der Kiefer. Oft halten wir hier fest, ohne es zu merken. Lass die Zähne ein wenig auseinander.",
         "m8": "Das Gesicht. Die Augen hinter den Lidern, die Stirn, die Schläfen. Die Kopfhaut bis zum Hinterkopf. Alles darf weich werden.",
+        "t": "Lass den Atem im Hintergrund weitergehen und wandere jetzt mit der Aufmerksamkeit durch den Körper, von den Füßen bis zum Kopf.",
         "ms": "Spür jetzt den ganzen Körper auf einmal, von den Füßen bis zum Kopf. Ich bin eine Weile still.",
         "s1": "Komm langsam zurück. Beweg die Finger und die Zehen. Vielleicht magst du dich strecken.",
         "s2": "Nimm einen tiefen Atemzug. Und wenn du bereit bist, öffne die Augen.",
@@ -53,6 +55,7 @@ ARTEN = {
         "m6": "Stell dir vor, du atmest in die Stelle, die sich am engsten anfühlt. Und beim Ausatmen wird sie ein wenig weiter. Nicht ganz. Ein wenig reicht.",
         "m7": "Alles, was du jetzt nicht ändern kannst, darf so sein, wie es ist. Wenigstens für die nächsten Minuten.",
         "m8": "Der Körper wird schwer und ruhig. Du wirst getragen. Es gibt nichts, was du jetzt halten musst.",
+        "t": "Jetzt geht es ums Loslassen. Bemerke, wo du festhältst, und lass es Stück für Stück weicher werden.",
         "ms": "Ich bin jetzt eine Weile still. Lass mit jedem Ausatmen etwas mehr los.",
         "s1": "Bevor du zurückkommst, spür noch einmal, wie es sich anfühlt, wenn weniger gehalten wird. Das kannst du mitnehmen.",
         "s2": "Beweg langsam die Finger und Zehen. Ein tiefer Atemzug. Und öffne die Augen, wenn du so weit bist.",
@@ -69,6 +72,7 @@ ARTEN = {
         "m6": "Wenn du magst, denk an jemanden, mit dem es gerade schwierig ist. Du musst nichts verzeihen. Nur den Wunsch aussprechen, dass auch dieser Mensch Ruhe findet.",
         "m7": "Und zuletzt alle Menschen, in deiner Stadt und darüber hinaus. Mögen sie gesund sein. Mögen sie ruhig sein. Möge es ihnen gut gehen.",
         "m8": "Spür, wie sich dein Körper dabei anfühlt. Vielleicht wärmer, vielleicht weiter. Vielleicht auch nicht. Beides ist in Ordnung.",
+        "t": "Wende dich jetzt dem Wohlwollen zu. Ein freundlicher Wunsch, zuerst für dich, dann für andere.",
         "ms": "Ich bin jetzt eine Weile still. Bleib bei dem freundlichen Wunsch, für wen auch immer er gerade da ist.",
         "s1": "Kehr noch einmal zu dir zurück. Möge ich gesund sein. Möge ich ruhig sein. Möge es mir gut gehen.",
         "s2": "Ein tiefer Atemzug. Wenn du bereit bist, öffne die Augen. Nimm ein bisschen von dieser Freundlichkeit mit in den Tag.",
@@ -85,6 +89,7 @@ ARTEN = {
         "m6": "Es gibt hier nichts zu erreichen. Keinen besseren Zustand, den du herstellen müsstest. Nur dieses offene Dasein, jetzt.",
         "m7": "Vielleicht merkst du eine Ruhe, die nicht davon abhängt, dass es ruhig ist. Sie ist einfach da, unter allem anderen.",
         "m8": "Lass auch die Anstrengung los, aufmerksam zu sein. Die Wahrnehmung passiert von selbst. Du kannst dich darin ausruhen.",
+        "t": "Mach die Aufmerksamkeit jetzt weit. Kein Gegenstand mehr, auf den du dich richtest. Nur alles, was gerade da ist.",
         "ms": "Ich bin jetzt eine Weile still. Bleib weit und lass alles da sein.",
         "s1": "Komm langsam zurück in den Raum. Spür den Boden, den Sitz, deine Hände.",
         "s2": "Ein tiefer Atemzug. Öffne die Augen und lass den Blick einen Moment weit bleiben, bevor du weitergehst.",
@@ -117,6 +122,7 @@ ARTEN = {
         "m6": "Du kannst innerlich mitsprechen: Ein. Aus. Oder du zählst die Ausatmer bis zehn und fängst wieder von vorn an. Wenn du dich verzählst, einfach bei eins beginnen.",
         "m7": "Es gibt nichts zu erreichen. Kein besonderer Zustand muss sich einstellen. Nur dieser Atemzug, jetzt.",
         "m8": "Spür, wie der Körper ruhiger geworden ist, ohne dass du etwas getan hast. Der Atem hat das für dich gemacht.",
+        "t": "Komm jetzt zum Atem. Du veränderst ihn nicht. Du schaust ihm nur zu, wie er kommt und geht.",
         "ms": "Ich bin jetzt eine Weile still. Bleib beim Atem, ein Zug nach dem anderen.",
         "s1": "Lass den Atem los und nimm den ganzen Körper wahr, wie er hier sitzt.",
         "s2": "Ein tiefer Atemzug. Beweg die Finger, und wenn du bereit bist, öffne die Augen.",
@@ -133,8 +139,15 @@ ARTEN = {
         "m6": "Lass das Gesicht weich werden, die Hände offen.",
         "m7": "Einfach sitzen. Einfach hier.",
         "m8": "Du bist schon da. Es fehlt nichts.",
+        "t": "Jetzt wird es stiller. Ich sage nur noch ab und zu einen Satz, dazwischen bleibst du einfach da.",
         "ms": "Ich bin jetzt still bis zum Schluss.",
         "s1": "Komm langsam zurück. Spür die Hände, die Füße, den Boden.",
         "s2": "Ein tiefer Atemzug. Und wenn du magst, öffne die Augen.",
+    },
+    # Zusammengestellte Meditation: Begrüßung vor dem Ankommen des ersten Teils;
+    # die "t"-Sätze oben leiten zwischen den Teilen über.
+    "kombi": {
+        "titel": "Zusammengestellt", "kurz": "mehrere Teile",
+        "gruss": "Schön, dass du da bist. Die nächsten Minuten gehören dir. Wir beginnen mit dem Ankommen.",
     },
 }
