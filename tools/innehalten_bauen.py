@@ -9,7 +9,9 @@ während dieser Programme ab.
 Zeitmarken („teil") sind für beide Stimmen gleich (die langsamere bestimmt), damit die
 Kugel einen Atemplan hat. Am Ende druckt das Skript PROG_ATEM für index.html.
 
-Aufruf: python3 tools/innehalten_bauen.py [3 5 10 15]
+Aufruf: python3 tools/innehalten_bauen.py [3 5 10 15] [--grok]
+--grok: Grok-Stimmen (orion/celeste, api.x.ai, Schlüssel aus PageVoice) statt ElevenLabs —
+so wurden 10 und 15 Min gebaut, als die ElevenLabs-Gratisschlüssel leer waren (28.09.2026).
 """
 import json, math, os, subprocess, sys
 import numpy as np
@@ -18,6 +20,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from runter_bauen import clip, SR, AUDIO, CACHE, STIMMEN
 from innehalten_texte import S, TEXTE, ZUEGE
 
+GROK_STIMMEN = {"w": "celeste", "m": "orion"}   # Florians Hörprobe 30.08.2026
 SCHLUSS_LUFT = 3.0
 TAKT = 10.0                      # 4 ein · 6 aus
 KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -32
@@ -121,7 +124,10 @@ def bauen(minuten):
 
 
 if __name__ == "__main__":
-    laengen = [int(a) for a in sys.argv[1:]] or [3, 5, 10, 15]
+    if "--grok" in sys.argv:
+        for st, voice in GROK_STIMMEN.items():
+            STIMMEN[st] = ("grok", voice, STIMMEN[st][2])
+    laengen = [int(a) for a in sys.argv[1:] if a.isdigit()] or [3, 5, 10, 15]
     plaene = {}
     for minuten in laengen:
         plan, erg, dehn, marken = bauen(minuten)

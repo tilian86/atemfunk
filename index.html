@@ -273,10 +273,9 @@
   <div class="runter innehalten">
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-3" data-min="3" aria-label="Innehalten, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-5" data-min="5" aria-label="Innehalten, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <!-- 10 und 15 Minuten: Texte und Bauskript fertig (tools/innehalten_texte.py), Tonspuren fehlen noch – ElevenLabs-Kontingent
+    <!-- 10 und 15 Minuten mit Grok-Stimmen (orion/celeste), 3 und 5 mit ElevenLabs (Brian/Sarah) -->
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
-    -->
   </div>
   <div class="runter-hinweis">Fertige Meditation mit Waldkulisse: ankommen, langes Ausatmen, Körper, Gedanken, Freundlichkeit · für zu Hause oder mit Kopfhörern</div>
 
@@ -1104,6 +1103,8 @@ const PROG_ATEM = {
   /* Innehalten: tools/innehalten_bauen.py – nur der Takt-Teil gibt ein Tempo vor */
   "innehalten-3":  [[0, "frei"], [68, "ruhig"], [88, "frei"]],
   "innehalten-5":  [[0, "frei"], [84.5, "ruhig"], [124.5, "frei"]],
+  "innehalten-10": [[0, "frei"], [117.5, "ruhig"], [177.5, "frei"]],
+  "innehalten-15": [[0, "frei"], [135.5, "ruhig"], [225.5, "frei"]],
 };
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
