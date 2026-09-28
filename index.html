@@ -273,7 +273,7 @@
   <div class="runter innehalten">
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-3" data-min="3" aria-label="Innehalten, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-5" data-min="5" aria-label="Innehalten, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <!-- 10 und 15 Minuten mit Grok-Stimmen (orion/celeste), 3 und 5 mit ElevenLabs (Brian/Sarah) -->
+    <!-- alle vier Längen mit Grok-Stimmen (orion/celeste), tools/innehalten_bauen.py --grok -->
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
   </div>
@@ -1101,8 +1101,8 @@ const PROG_ATEM = {
   "runterkommen-5":  [[0, "frei"], [64, "seufzer"], [185.5, "frei"], [196, "ruhig"], [256, "frei"]],
   "runterkommen-10": [[0, "frei"], [85, "seufzer"], [287.5, "frei"], [298, "ruhig"], [498, "frei"]],
   /* Innehalten: tools/innehalten_bauen.py – nur der Takt-Teil gibt ein Tempo vor */
-  "innehalten-3":  [[0, "frei"], [68, "ruhig"], [88, "frei"]],
-  "innehalten-5":  [[0, "frei"], [84.5, "ruhig"], [124.5, "frei"]],
+  "innehalten-3":  [[0, "frei"], [70.5, "ruhig"], [90.5, "frei"]],
+  "innehalten-5":  [[0, "frei"], [86.5, "ruhig"], [126.5, "frei"]],
   "innehalten-10": [[0, "frei"], [117.5, "ruhig"], [177.5, "frei"]],
   "innehalten-15": [[0, "frei"], [135.5, "ruhig"], [225.5, "frei"]],
 };
@@ -1342,7 +1342,7 @@ async function startSession(min, prog, flexArt) {
     $("sessionNote").textContent = "Stimme ist aus – die Sitzung läuft still.";
   } else if (guided) {
     audio.src = session.prog
-      ? voicePath() + "prog/" + session.prog + ".mp3"
+      ? voicePath() + "prog/" + session.prog.replace(/^innehalten-/, "innehalten/") + ".mp3"   /* Innehalten liegt im Unterordner */
       : voicePath() + "atem-" + min + ".mp3";
     try {
       await audio.play();

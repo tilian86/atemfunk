@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Baut audio/prog/innehalten-{3,5,10,15}.mp3 (+ audio/m/…) aus innehalten_texte.py:
+"""Baut audio/prog/innehalten/{3,5,10,15}.mp3 (+ audio/m/…) aus innehalten_texte.py:
 Sätze einzeln aus ElevenLabs v3 (Sarah/Brian, Cache /tmp/runter-cache), auf einer
 Zeitleiste angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme auf −21 LUFS,
 darunter die Waldkulisse (audio/atmo/wald.mp3, geloopt) auf −32 LUFS — so laut wie
@@ -11,7 +11,7 @@ Kugel einen Atemplan hat. Am Ende druckt das Skript PROG_ATEM für index.html.
 
 Aufruf: python3 tools/innehalten_bauen.py [3 5 10 15] [--grok]
 --grok: Grok-Stimmen (orion/celeste, api.x.ai, Schlüssel aus PageVoice) statt ElevenLabs —
-so wurden 10 und 15 Min gebaut, als die ElevenLabs-Gratisschlüssel leer waren (28.09.2026).
+seit 28.09.2026 sind alle vier Längen damit gebaut (ElevenLabs-Gratisschlüssel leer, Florians Wunsch).
 """
 import json, math, os, subprocess, sys
 import numpy as np
@@ -114,7 +114,8 @@ def bauen(minuten):
         raw = f"{CACHE}/inne-mix-{minuten}-{s}.f32"
         mix.astype(np.float32).tofile(raw)
         os.makedirs(ziel, exist_ok=True)
-        aus = f"{ziel}/innehalten-{minuten}.mp3"
+        os.makedirs(f"{ziel}/innehalten", exist_ok=True)
+        aus = f"{ziel}/innehalten/{minuten}.mp3"      # Unterordner seit dem Wechsel auf Grok (Cache auf den Geräten)
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
                         "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)
