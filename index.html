@@ -78,6 +78,7 @@
   .runter { display: flex; gap: 8px; width: 100%; margin-bottom: 6px; }
   .runter .dur { flex: 1 1 45%; border-color: rgba(216,196,143,0.45); background: rgba(216,196,143,0.07); }
   .runter .dur .lbl { color: var(--gold); }
+  .runter.innehalten .dur { flex: 1 1 20%; }   /* Platz für vier Längen */
   .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
   .dur .lbl { font-size: 10px; color: var(--ink-dim); margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -267,6 +268,17 @@
   </div>
 
   <div class="runter-hinweis">Geführt: ankommen, Seufzer-Atmung, langes Ausatmen · für die Bank unterwegs</div>
+
+  <div class="section-cap">Innehalten</div>
+  <div class="runter innehalten">
+    <div class="dur" role="button" tabindex="0" data-prog="innehalten-3" data-min="3" aria-label="Innehalten, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="innehalten-5" data-min="5" aria-label="Innehalten, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    <!-- 10 und 15 Minuten: Texte und Bauskript fertig (tools/innehalten_texte.py), Tonspuren fehlen noch – ElevenLabs-Kontingent
+    <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
+    -->
+  </div>
+  <div class="runter-hinweis">Fertige Meditation mit Waldkulisse: ankommen, langes Ausatmen, Körper, Gedanken, Freundlichkeit · für zu Hause oder mit Kopfhörern</div>
 
   <div class="links" id="flexBox">
     <div class="section-cap">Geführte Meditationen</div>
@@ -799,7 +811,7 @@ function playClosing() {
       lauf.timer = setTimeout(spielen, 550);
     };
     a.onerror = () => { if (closing === lauf) { i++; spielen(); } };
-    a.src = voicePath() + "cues/" + folge[i] + ".mp3";
+    a.src = voicePath() + "abschluss/" + folge[i] + ".mp3";
     a.play().catch(() => {});
   };
   lauf.timer = setTimeout(spielen, 2200);   /* erst den Schluss-Gong ausklingen lassen */
@@ -971,7 +983,7 @@ function ambientUpdate(bs, elapsed) {
 /* Kulisse läuft ab dem ersten Antippen – dauerhaft oder nur während einer Sitzung.
    Browser erlauben Ton ohnehin erst nach einer Geste. */
 function ensureAmbient() {
-  if (amb || ambKey === "aus" || stumm) return;
+  if (amb || ambKey === "aus" || stumm || (session && session.eigeneKulisse)) return;
   startAmbient();
 }
 ["pointerdown", "keydown"].forEach(ev =>
@@ -1089,8 +1101,12 @@ const FLEX_TITEL = { atmung: "Atemmeditation", koerperscan: "Körperscan", gedan
 const PROG_ATEM = {
   "runterkommen-5":  [[0, "frei"], [64, "seufzer"], [185.5, "frei"], [196, "ruhig"], [256, "frei"]],
   "runterkommen-10": [[0, "frei"], [85, "seufzer"], [287.5, "frei"], [298, "ruhig"], [498, "frei"]],
+  /* Innehalten: tools/innehalten_bauen.py – nur der Takt-Teil gibt ein Tempo vor */
+  "innehalten-3":  [[0, "frei"], [68, "ruhig"], [88, "frei"]],
+  "innehalten-5":  [[0, "frei"], [84.5, "ruhig"], [124.5, "frei"]],
 };
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
+  "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   koerperreise: "Körperreise", frei: "Freie Meditation" };
 
 /* Atemzustand der laufenden Sitzung. Mit Atemplan ist die Uhr die Tonspur
@@ -1270,7 +1286,7 @@ async function startSession(min, prog, flexArt) {
   /* Für die Statistik: welche Art, unter welchem Namen */
   const RHY_NAME = { ruhig: "Ruhig", box: "Box", schlaf: "Schlaf", seufzer: "Beruhigen", frei: "Frei" };
   const art = mitFrage ? "frage"
-    : prog ? (prog.startsWith("runterkommen") ? "runterkommen" : prog)
+    : prog ? prog.replace(/-\d+$/, "")
     : flexArt ? (istKombi(flexArt) ? "kombi" : { atmung: "atemmeditation", koerperscan: "koerperreise" }[flexArt] || flexArt)
     : "atmen";
   const titel = mitFrage ? "Frage: " + frage.text
@@ -1288,6 +1304,7 @@ async function startSession(min, prog, flexArt) {
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: bowlJede, bowlJede,
     rhythm, atemPlan, planTeil: 0,
+    eigeneKulisse: !!prog && prog.startsWith("innehalten"),   /* Tonspur bringt die Waldkulisse schon mit */
     ausklang: false,          /* läuft gerade die letzte Atemrunde nach Ablauf? */
   };
   buildBreathRing(session.rhythm);
@@ -1335,7 +1352,7 @@ async function startSession(min, prog, flexArt) {
   }
   if (!session) { audio.pause(); audio.removeAttribute("src"); return; } /* während play() beendet */
 
-  ensureAmbient();
+  if (session.eigeneKulisse) stopAmbient(); else ensureAmbient();
 
   const orb = $("orb");
   const phaseEl = $("phase");
@@ -1454,7 +1471,9 @@ function finishSession(completed) {
     : elapsedOf(session);
   const warFrage = session.frage;
   const eintrag = { t: session.startedAt, art: session.art, titel: session.titel };
+  const kulisseZurueck = session.eigeneKulisse;
   session = null;
+  if (kulisseZurueck) ensureAmbient();
   $("breathDot").style.display = "none";
   $("phaseCount").textContent = "";
   $("frageImLauf").textContent = "";
