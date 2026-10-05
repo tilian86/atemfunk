@@ -55,7 +55,8 @@
   <div id="verlauf"></div>
 </div>
 
-<script src="shared.js?v=32"></script>
+<script src="sync.js?v=1"></script>
+<script src="shared.js?v=33"></script>
 <script>
 "use strict";
 
@@ -199,6 +200,7 @@ function zeigeVerlauf() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  window.addEventListener("atemfunk-sync", () => zeigeVerlauf());   /* Neues von anderen Geräten */
   diktat($("ziel"), $("diktatBtn"));
   $("planBtn").addEventListener("click", planen);
   $("alleBtn").addEventListener("click", alleZuTodoist);

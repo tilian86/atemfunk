@@ -22,10 +22,12 @@ const $ = id => document.getElementById(id);
 /* ---------- Speicher ---------- */
 const store = {
   get(k, f) { try { const v = localStorage.getItem(k); return v === null ? f : v; } catch { return f; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} syncAnstoss(k); },
   getJSON(k, f) { try { return JSON.parse(localStorage.getItem(k)) ?? f; } catch { return f; } },
-  setJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  setJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} syncAnstoss(k); },
 };
+/* Geänderte Daten gleich zum eigenen Speicher schicken (sync.js) */
+function syncAnstoss(k) { try { window.atemSync && window.atemSync.anstossen(k); } catch {} }
 
 function db() {
   return new Promise((res, rej) => {
@@ -43,7 +45,7 @@ function dbTx(laden, modus, fn) {
   return db().then(d => new Promise((res, rej) => {
     const tx = d.transaction(laden, modus);
     const rq = fn(tx.objectStore(laden));
-    rq.onsuccess = () => res(rq.result);
+    rq.onsuccess = () => { res(rq.result); if (modus === "readwrite" && laden === "journal") syncAnstoss(); };
     rq.onerror = () => rej(rq.error);
   }));
 }
@@ -162,6 +164,7 @@ function merkeFaden(text) {
 }
 function schliesseFaden(id) {
   store.setJSON("atemfunk_faeden", faeden().filter(f => f.id !== id));
+  if (window.atemSync) atemSync.weg("faeden", id);      /* auch auf den anderen Geräten schließen */
 }
 
 /* Der gemeinsame Kontextblock für alle Bereiche */

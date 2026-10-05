@@ -15,7 +15,7 @@
 <body>
 <div class="wrap">
   <h1>Journal</h1>
-  <div class="sub">Gedanken, Sprachnotizen und Bilder über den Tag – alles bleibt auf diesem Gerät.
+  <div class="sub">Gedanken, Sprachnotizen und Bilder über den Tag – sicher in deinem eigenen Speicher, auf allen Geräten gleich.
     Wenn du magst, reflektieren wir abends gemeinsam darüber.</div>
 
   <div class="hint" id="impulsText" style="display:none; margin:0 0 10px; color:var(--gold); font-size:14px; line-height:1.55"></div>
@@ -83,7 +83,8 @@
   <div id="frueher"></div>
 </div>
 
-<script src="shared.js?v=32"></script>
+<script src="sync.js?v=1"></script>
+<script src="shared.js?v=33"></script>
 <script>
 "use strict";
 
@@ -201,6 +202,7 @@ function zeichne(ziel, liste) {
     weg.className = "weg"; weg.textContent = "✕";
     weg.addEventListener("click", async () => {
       await dbTx("journal", "readwrite", s => s.delete(e.id));
+      if (window.atemSync) atemSync.weg("j", e.id);        /* auch auf den anderen Geräten löschen */
       zeigeHeute(); zeigeFrueher();
     });
     k.append(zeit, txt, weg);
@@ -446,8 +448,9 @@ function zeigeErkenntnisse() {
     const w = document.createElement("div");
     w.className = "weg"; w.textContent = "✕";
     w.addEventListener("click", () => {
-      const l = erkenntnisse(); l.splice(i, 1);
+      const l = erkenntnisse(); const [raus] = l.splice(i, 1);
       store.setJSON("atemfunk_lernen", l); zeigeErkenntnisse();
+      if (raus && window.atemSync) atemSync.wegItem("lernen", raus);
     });
     k.append(z, t, w);
     ziel.appendChild(k);
@@ -632,6 +635,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   abholen();
 
   zeigeHeute(); zeigeFrueher();
+  /* Neues von anderen Geräten/Home-Symbolen */
+  window.addEventListener("atemfunk-sync", () => {
+    zeigeHeute(); zeigeFrueher(); zeigeErkenntnisse(); zeigeFaeden(); zeigeErinnerung();
+  });
 });
 </script>
 </body>

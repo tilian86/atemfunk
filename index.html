@@ -259,6 +259,7 @@
   <h1 class="greeting" id="greeting">Zeit zum Atmen.</h1>
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
+  <div id="syncAnzeige"></div>
   <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
 
   <div class="section-cap">Runterkommen</div>
@@ -448,14 +449,17 @@
   <button id="ovClose" style="position:fixed; top:calc(env(safe-area-inset-top) + 12px); right:16px; z-index:51; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); color:#fff; font-size:18px; cursor:pointer;">✕</button>
 </div>
 
+<script src="sync.js?v=1"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
+/* Geänderte Statistik/Serie gleich zum eigenen Speicher schicken (sync.js) */
+const syncAnstoss = k => { try { window.atemSync && window.atemSync.anstossen(k); } catch {} };
 const store = {
   get(k, fallback) { try { const v = localStorage.getItem(k); return v === null ? fallback : v; } catch { return fallback; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} syncAnstoss(k); },
   getJSON(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
-  setJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  setJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} syncAnstoss(k); },
 };
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1905,6 +1909,7 @@ async function libSync(verbose) {
 keyActivate($("libConnect"));
 $("libConnect").addEventListener("click", () => {
   let base = store.get("atemfunk_lib_url", "");
+  if (!base && window.atemSync) { atemSync.verbindenDialog(); return; }   /* PIN oder Link; lädt danach selbst */
   if (!base) {
     const inp = prompt("Bibliotheks-Link einfügen:");
     if (!inp) return;
@@ -1918,6 +1923,12 @@ if (store.get("atemfunk_lib_url", "")) {
   $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
   libSync(false);
 }
+/* Mit PIN verbunden (Knopf oben oder hier): Bibliothek laden; Neues von anderen Geräten zeigen */
+window.addEventListener("atemfunk-verbunden", () => {
+  $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
+  libSync(true);
+});
+window.addEventListener("atemfunk-sync", () => renderHome());
 
 /* ---------- Über eine Frage meditieren (Fragen aus KlarKreis) ---------- */
 let frage = null, frageDaten = null;
