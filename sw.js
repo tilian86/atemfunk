@@ -1,4 +1,8 @@
-const CACHE = "atemfunk-v41";
+/* Pushfunk: Push-Empfang mit dem Atemfunk-Symbol (zentral gepflegt in ~/Projects/apps/pushfunk/public/).
+   Ändert sich pushfunk-push.js, hier ?v= UND CACHE hochzählen. */
+importScripts("pushfunk-push.js?v=1");
+
+const CACHE = "atemfunk-v42";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [

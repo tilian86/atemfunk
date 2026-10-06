@@ -2051,5 +2051,7 @@ fetch("audio/atem-3.mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
 if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
+<!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
+<script src="https://pushfunk.46-225-133-113.sslip.io/pushfunk.js" data-app="atemfunk" data-sw="vorhanden" defer></script>
 </body>
 </html>
