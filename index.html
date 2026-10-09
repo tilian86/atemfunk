@@ -747,7 +747,9 @@ document.querySelectorAll("#voices .rhy").forEach(el => {
 
 /* iOS erlaubt Ton pro Audio-Element erst nach einer Berührung. Elemente, die
    später ohne Geste starten (Ansagen im Takt, Frage, Abschluss), werden beim
-   ersten Tippen kurz angestoßen – danach dürfen sie jederzeit spielen. */
+   ersten Tippen kurz angestoßen – danach dürfen sie jederzeit spielen.
+   09.10.: STUMM anstoßen – sonst hörte man beim ersten Tippen jedes Mal einen
+   Fetzen aller vier Ansagen übereinander („komischer Ton mit Gesagtem“). */
 const schlussAudio = new Audio();
 let gesteGeschehen = false;
 function audioFreigeben() {
@@ -757,10 +759,13 @@ function audioFreigeben() {
   for (const a of alle) {
     if (!a || a.dataset.frei) continue;
     a.dataset.frei = "1";
+    a.muted = true;
     try {
       const p = a.play();
-      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => { delete a.dataset.frei; });
-    } catch { delete a.dataset.frei; }
+      if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; })
+                        .catch(() => { a.muted = false; delete a.dataset.frei; });
+      else { a.pause(); a.muted = false; }
+    } catch { a.muted = false; delete a.dataset.frei; }
   }
 }
 window.addEventListener("pointerdown", audioFreigeben, { once: true, passive: true });
@@ -1338,7 +1343,9 @@ async function startSession(min, prog, flexArt) {
          Baustein kommt aber erst nach ein paar Sekunden – also hier, noch im
          Tipp-Moment, einmal kurz anspielen und gleich wieder anhalten. */
       audio.src = flexDatei(plan[0].art || flexArt, plan[0].f);
+      audio.muted = true;   /* stumm – sonst blitzt der erste Satz kurz auf */
       try { await audio.play(); audio.pause(); audio.currentTime = 0; } catch {}
+      audio.muted = false;
     } else if (session) {
       $("sessionNote").textContent = "Anleitung noch nicht geladen – Sitzung läuft ohne Stimme.";
     }
@@ -1866,6 +1873,11 @@ async function libSync(verbose) {
     try { keys = await idbTx("readonly", s => s.getAllKeys()); } catch {}
     const have = new Set(keys);
     const wanted = new Set();
+    const fehlt = [];
+    let geladen = 0;
+    const offen = man.tracks.filter(t => !t.stream && !have.has("r-" + t.key)).length;
+    /* Speicher als „bleibend“ markieren, damit iOS die Audios nicht bei Platznot wegräumt */
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
     for (let i = 0; i < man.tracks.length; i++) {
       const t = man.tracks[i];
       const id = (t.stream ? "s-" : "r-") + t.key;
@@ -1885,12 +1897,21 @@ async function libSync(verbose) {
         if (dirty) await idbTx("readwrite", s => s.put(cur));
         continue;
       }
-      note.textContent = "Lade: " + t.name + " …";
-      const blob = await (await fetch(base + t.key)).blob();
-      let thumbBlob = null;
-      if (t.thumb) { try { thumbBlob = await (await fetch(base + t.thumb)).blob(); } catch {} }
-      await idbTx("readwrite", s => s.put({ id, name: t.name, ord: i, blob, thumbBlob }));
-      renderLib();
+      /* 09.10.: Jede Datei einzeln absichern. Vorher brach ein einziger
+         abgerissener Download (Bank, Funkloch, App zu) die ganze Schleife ab –
+         alles danach fehlte still, die Bibliothek wirkte „auf einmal kleiner“. */
+      note.textContent = "Lade " + (geladen + 1) + "/" + offen + ": " + t.name + " …";
+      try {
+        const r = await fetch(base + t.key);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const blob = await r.blob();
+        if (!blob.size) throw new Error("leer");
+        let thumbBlob = null;
+        if (t.thumb) { try { thumbBlob = await (await fetch(base + t.thumb)).blob(); } catch {} }
+        await idbTx("readwrite", s => s.put({ id, name: t.name, ord: i, blob, thumbBlob }));
+        geladen++;
+        renderLib();
+      } catch { fehlt.push(t.name); }
     }
     /* aus der Bibliothek entfernte Inhalte auch lokal löschen (eigene Importe bleiben) */
     for (const k of have) {
@@ -1899,7 +1920,10 @@ async function libSync(verbose) {
         await idbTx("readwrite", s => s.delete(k));
       }
     }
-    note.textContent = "Bibliothek aktuell · Audios offline gespeichert.";
+    const nAudio = man.tracks.filter(t => !t.stream).length;
+    note.textContent = fehlt.length
+      ? "⚠️ " + fehlt.length + " von " + nAudio + " Audios nicht geladen (Netz?) – „Bibliothek aktualisieren“ holt sie nach."
+      : "Bibliothek aktuell · alle " + nAudio + " Audios offline gespeichert.";
     $("libConnect").textContent = "🔄 Bibliothek aktualisieren";
     renderLib();
   } catch {
