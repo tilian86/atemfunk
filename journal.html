@@ -11,12 +11,80 @@
 <link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
 <meta name="theme-color" content="#0b1026">
 <link rel="stylesheet" href="app.css">
+<style>
+/* Abendrunde (abend.js) */
+#abendKarte [hidden] { display: none !important; }
+.abend { border-color: rgba(216,196,143,0.28);
+         background: linear-gradient(160deg, rgba(216,196,143,0.08), rgba(255,255,255,0.03)); }
+.abend-start { width: 100%; }
+.abend-woche { color: var(--gold); line-height: 1.5; }
+.abend-woche b { font-weight: 600; margin-right: 6px; }
+.abend-kopf { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px;
+              font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+.abend-punkte { display: flex; gap: 6px; flex-shrink: 0; }
+.abend-punkte i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+.abend-punkte i.fertig { background: var(--gold); opacity: 0.7; }
+.abend-punkte i.jetzt { background: var(--gold); box-shadow: 0 0 0 3px rgba(216,196,143,0.22); }
+#abendBisher { margin-bottom: 12px; font-size: 13px; color: var(--ink-dim); }
+#abendBisher summary { cursor: pointer; padding: 4px 0; }
+.abend-bisher { margin-top: 8px; line-height: 1.45; }
+.abend-bisher em { display: block; font-style: normal; color: var(--ink); opacity: 0.8; margin-top: 2px; white-space: pre-line; }
+.abend-spiegel { font-size: 14px; color: var(--ink-dim); line-height: 1.5; margin-bottom: 8px; font-style: italic; }
+.abend-frage { font-size: 19px; line-height: 1.45; margin-bottom: 14px; min-height: 28px; }
+.abend-warte { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--ink-dim); }
+.abend-atem { width: 14px; height: 14px; border-radius: 50%; background: var(--gold); flex-shrink: 0;
+              animation: abendAtem 4s ease-in-out infinite; }
+@keyframes abendAtem { 0%, 100% { transform: scale(0.6); opacity: 0.45; } 50% { transform: scale(1.2); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .abend-atem { animation: none; } }
+.abend-nichtwarten { margin-top: 12px; min-height: 38px; padding: 8px 14px; font-size: 13px; }
+#abendAntwort { min-height: 96px; }
+.abend-klein { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.abend-klein .btn { min-height: 36px; padding: 7px 11px; font-size: 13px; background: transparent; }
+.eintrag .txt { white-space: pre-line; }
+</style>
 </head>
 <body>
 <div class="wrap">
   <h1>Journal</h1>
   <div class="sub">Gedanken, Sprachnotizen und Bilder über den Tag – sicher in deinem eigenen Speicher, auf allen Geräten gleich.
     Wenn du magst, reflektieren wir abends gemeinsam darüber.</div>
+
+  <!-- Abendrunde: führt mit Fragen durch den Tag, eine nach der anderen (Logik in abend.js) -->
+  <div class="card abend" id="abendKarte">
+    <div id="abendLeer">
+      <button class="btn primary abend-start" id="abendBtn">🌙 Durch den Tag führen</button>
+      <div class="hint" id="abendLeerHinweis"></div>
+      <div class="hint abend-woche" id="abendWoche" hidden></div>
+    </div>
+    <div id="abendLauf" hidden>
+      <div class="abend-kopf"><span id="abendStand">Abendrunde</span><span class="abend-punkte" id="abendPunkte"></span></div>
+      <details id="abendBisher" hidden><summary>Bisher</summary><div id="abendBisherListe"></div></details>
+      <div class="abend-spiegel" id="abendSpiegel" hidden></div>
+      <div class="abend-frage" id="abendFrage" aria-live="polite"></div>
+      <div id="abendEingabe" hidden>
+        <textarea id="abendAntwort" placeholder="Deine Antwort – ein paar Worte reichen."></textarea>
+        <div class="row">
+          <button class="btn rec" id="abendDiktat">🎙 Diktieren</button>
+          <button class="btn primary" id="abendWeiter">Weiter</button>
+        </div>
+        <div class="abend-klein">
+          <button class="btn" id="abendAndere">🔀 Andere Frage</button>
+          <button class="btn" id="abendSkip">⏭ Überspringen</button>
+          <button class="btn" id="abendFertig">✓ Fertig</button>
+          <button class="btn" id="abendLesen" data-label="🔊 Vorlesen">🔊 Vorlesen</button>
+          <button class="btn" id="abendAuto">🔈 Auto: aus</button>
+        </div>
+      </div>
+      <div class="hint" id="abendHinweis"></div>
+    </div>
+    <div id="abendEnde" hidden>
+      <div class="antwort" id="abendZusammen"></div>
+      <div class="row">
+        <button class="btn" id="abendEndeLesen" data-label="🔊 Vorlesen">🔊 Vorlesen</button>
+        <button class="btn" id="abendSchliessen">Schließen</button>
+      </div>
+    </div>
+  </div>
 
   <div class="hint" id="impulsText" style="display:none; margin:0 0 10px; color:var(--gold); font-size:14px; line-height:1.55"></div>
   <textarea id="notiz" placeholder="Was ist gerade?"></textarea>
@@ -57,12 +125,13 @@
     </div>
   </div>
 
-  <div class="cap">Wochenrückblick</div>
+  <div class="cap" id="woche">Wochenspiegel</div>
   <div id="erinnerung"></div>
   <div class="card">
-    <div class="hint" style="margin-top:0">Einmal die Woche über alles schauen: Was wiederholt sich?
-      Was hat getragen, was hat gebremst? Die Erkenntnisse bleiben gespeichert und fließen in
-      spätere Gespräche ein.</div>
+    <div class="hint" style="margin-top:0">Einmal die Woche ein Blick von oben – vor allem auf deine Abendrunden:
+      Was wiederholt sich, welche Muster laufen zwischen Situation, Gefühl und Verhalten, wo passen Sagen und Tun
+      nicht zusammen? Dazu vorsichtige Vermutungen über dich und eine Frage für die Woche – die Abendrunden
+      greifen sie danach auf.</div>
     <div class="row">
       <button class="btn primary" id="wocheBtn">Woche anschauen</button>
       <button class="btn" id="exportBtn">Als Textdatei</button>
@@ -81,7 +150,7 @@
 
   <div class="cap">Frühere Tage</div>
   <div id="frueher"></div>
-  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Stand 10.10.2026</div>
+  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 47 · Stand 10.10.2026</div>
 </div>
 
 <script src="sync.js?v=1"></script>
@@ -448,7 +517,7 @@ function erkenntnisse() { return store.getJSON("atemfunk_lernen", []); }
 function zeigeErkenntnisse() {
   const liste = erkenntnisse();
   const ziel = $("erkenntnisse");
-  ziel.innerHTML = liste.length ? "" : '<div class="hint">Noch nichts gemerkt. Nach dem ersten Wochenrückblick sammelt sich hier, was du über dich lernst.</div>';
+  ziel.innerHTML = liste.length ? "" : '<div class="hint">Noch nichts gemerkt. Nach dem ersten Wochenspiegel sammelt sich hier, was du über dich lernst.</div>';
   liste.forEach(e => {
     const k = document.createElement("div");
     k.className = "card eintrag";
@@ -496,49 +565,95 @@ function zeigeFaeden() {
   }
 }
 
-/* ---------- Wochenrückblick ---------- */
-const SYSTEM_WOCHE = `Du hilfst Florian, aus seinem Leben zu lernen. Er hat ADHS.
-Du bekommst seine Journal-Einträge der letzten Tage und frühere Erkenntnisse.
+/* ---------- Wochenspiegel (früher Wochenrückblick) ---------- */
+const SYSTEM_WOCHE = `Du bist einmal pro Woche Florians Spiegel: ein kluger, nüchterner Beobachter mit
+psychologischem Gespür, der ihm etwas über ihn selbst zeigt, das er im Alltag nicht sieht – eine Metaebene,
+kein Tagebuch-Echo. Florian hat ADHS und hasst Kitsch, Floskeln und Küchenpsychologie.
 
-Kein Zusammenfassen, kein Lob. Antworte auf Deutsch, per Du. Struktur:
+Du bekommst:
+– seine Abendrunden der Woche: Fragen und seine Antworten. Nur die Antworten nach „→“ und die Zeilen
+  „Kurz gesagt“ sind seine Worte bzw. Zusammenfassungen davon – die Fragen nicht. Das ist dein wichtigstes Material.
+– seine übrigen Journal-Einträge der Woche,
+– frühere Wochenspiegel (falls vorhanden) mit den Vermutungen von damals,
+– sein Profil, offene Fäden und gemerkte Erkenntnisse.
+
+Haltung: genau, neugierig, wohlwollend-direkt. Keine Diagnosen, keine Etiketten (auch nicht „typisch ADHS“),
+kein Lob, kein Pathos, keine Ratschlagslisten, keine Moral. Belege jede Aussage mit seinen eigenen Worten –
+kurze Zitate in „…“ mit Wochentag (z. B. Di: „…“). Was sich nicht belegen lässt, lässt du weg. Ist die Woche
+dünn (wenige Einträge), schreib kürzer und sag offen, dass die Grundlage schmal ist. Per Du, auf Deutsch.
+
+Aufbau – Überschriften genau so; einen Abschnitt ohne belegbaren Inhalt lässt du weg:
+
+## Was sich wiederholt
+Zwei bis drei Themen, die mehrmals auftauchen – je ein Satz plus Beleg.
 
 ## Muster
-Was wiederholt sich über die Tage? Zwei bis drei Muster, jeweils belegt an konkreten Einträgen.
-Auch das, was er selbst vielleicht nicht sieht.
+Ein bis zwei Abläufe der Form Situation → Gedanke/Gefühl → Verhalten → Folge, so konkret, dass er sie beim
+nächsten Mal im Moment wiedererkennt.
 
-## Was getragen hat
-Was hat in dieser Woche nachweislich geholfen? Belege es.
+## Gesagt und getan
+Wo passen, was er sagt, will oder sich vornimmt, und was er tatsächlich tut, nicht zusammen – oder überraschend
+gut? Ohne Vorwurf.
 
-## Was gebremst hat
-Ehrlich, ohne Vorwurf. Wenn ein früheres Muster sich wiederholt, sag das deutlich.
+## Was dir wichtig zu sein scheint
+Werte, die durchscheinen – abgeleitet aus dem, wofür er Mühe aufwendet, worüber er sich ärgert, worauf er stolz ist.
+
+## Was du vielleicht nicht siehst
+Ein blinder Fleck: etwas, das in seinen Worten steckt, das er aber selbst nicht benennt. Behutsam.
+
+## Gegenüber den Vorwochen
+Nur wenn frühere Wochenspiegel vorliegen: Was hat sich verändert, was ist geblieben? Geh auf die Vermutungen von
+damals ein – eher bestätigt, eher widerlegt oder noch offen, jeweils mit Beleg.
+
+## Mir fällt auf
+Ein bis zwei Vermutungen über ihn: vorsichtig formuliert, überprüfbar, je mit Beleg. Jede auf eine eigene Zeile,
+die mit „Vermutung: “ beginnt, etwa so (nur das Format):
+Vermutung: Du wirst ruhiger, sobald der Vormittag eine feste Form hat – Mi: „…“, Fr: „…“.
 
 ## Erkenntnis
-EIN Satz, den er sich merken soll. Konkret, überprüfbar, in seinen Worten.
-Beginne diese Zeile mit "ERKENNTNIS: ".
+Erkenntnis: <ein Satz zum Merken, konkret, möglichst in seinen Worten>
 
-## Nächste Woche
-Eine einzige Sache, die er anders macht. Klein.
+## Frage für die Woche
+Frage für die Woche: <EINE kurze, offene Frage, die er die Woche über mit sich tragen kann – keine Hausaufgabe,
+keine Floskel, gern an eine Vermutung angelehnt>
 
-Höchstens 350 Wörter.` + META_AUFTRAG;
+Beginne direkt mit der ersten Überschrift, ohne Titelzeile. Höchstens 450 Wörter.` + META_AUFTRAG;
+
+/* Wochenspiegel-Einträge (früher „Wochenrückblick“) – gehen nicht als Tagebuch, sondern als „frühere Spiegel“ mit */
+const SPIEGEL_EINTRAG = /^(🪞\s*)?(Wochenspiegel|Wochenrückblick)\b/;
 
 async function wocheAnschauen() {
   const alle = await alleEintraege();
   const grenze = Date.now() - 8 * 864e5;
-  const letzte = alle.filter(e => e.zeit >= grenze).sort((a, b) => a.zeit - b.zeit);
-  if (letzte.length < 2) { $("hinweis").textContent = "Zu wenig im Journal für einen Rückblick."; return; }
+  const spiegel = alle.filter(e => SPIEGEL_EINTRAG.test(e.text || "")).sort((a, b) => b.zeit - a.zeit);
+  const letzte = alle.filter(e => e.zeit >= grenze && !SPIEGEL_EINTRAG.test(e.text || "")).sort((a, b) => a.zeit - b.zeit);
+  if (letzte.length < 2) { $("hinweis").textContent = "Zu wenig im Journal für einen Spiegel."; return; }
   if (wartet) return hinweisWarten();
   wartet = true;
   const fertig = warteAnzeige($("wocheBtn"), "Liest die Woche …");
-  const tage = {};
-  for (const e of letzte) {
+  const tag = e => new Date(e.zeit).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
+  /* Die Abendrunden zuerst und gesondert – sie sind das dichteste Material über ihn */
+  const abende = letzte.filter(e => String(e.id).startsWith("abend-"));
+  const sonst = {};
+  for (const e of letzte.filter(e => !String(e.id).startsWith("abend-"))) {
     const s = e.art === "bild" ? "[Foto] " + (e.text || "") :
               e.art === "audio" ? "[Sprachnotiz] " + (e.text || "") : (e.text || "");
-    (tage[e.datum] ||= []).push(uhrzeit(e.zeit) + " — " + s);
+    (sonst[tag(e)] ||= []).push(uhrzeit(e.zeit) + " — " + s);
   }
-  const text = Object.entries(tage).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
+  const teile = [kontextBlock(erkenntnisse().slice(0, 6)) + "Heute ist " + new Date().toLocaleDateString("de-DE",
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + "."];
+  teile.push(abende.length ? "ABENDRUNDEN DER WOCHE (" + abende.length + "):\n\n"
+    + abende.map(e => "[" + tag(e) + "]\n" + e.text).join("\n\n")
+    : "ABENDRUNDEN DER WOCHE: keine.");
+  const sonstText = Object.entries(sonst).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
+  teile.push("ÜBRIGE EINTRÄGE DER WOCHE:\n" + (sonstText || "keine"));
+  const frueher = spiegel.filter(e => e.zeit < Date.now() - 3 * 864e5).slice(0, 3);
+  if (frueher.length) teile.push("FRÜHERE WOCHENSPIEGEL (neuester zuerst):\n\n"
+    + frueher.map(e => "[" + e.datum + "]\n" + e.text.slice(0, 2500)).join("\n\n"));
+  let text = teile.join("\n\n");
+  if (text.length > 40000) text = text.slice(0, 40000) + "\n…";
   const info = { art: "woche" };
-  const r = await frageKIgemerkt(OFFEN, info, SYSTEM_WOCHE,
-    kontextBlock(erkenntnisse().slice(0, 6)) + "Einträge der letzten Tage:\n" + text);
+  const r = await frageKIgemerkt(OFFEN, info, SYSTEM_WOCHE, text);
   fertig("Woche anschauen");
   wartet = false;
   await nimmAntwort(r, info);
@@ -546,7 +661,9 @@ async function wocheAnschauen() {
 
 /* neu = frisch von der KI (merken, ins Journal); sonst nur wieder anzeigen */
 async function zeigeWoche(roh, neu) {
-  const sichtbarW = neu ? verarbeiteAntwort(roh).text : roh;
+  /* Eine eigene Titelzeile der KI („🪞 Wochenspiegel“) fliegt raus – der Eintrag bekommt seinen Titel unten selbst */
+  const sichtbarW = (neu ? verarbeiteAntwort(roh).text : roh)
+    .replace(/^\s*(#+\s*)?(🪞\s*)?(\*\*)?(Wochenspiegel|Wochenrückblick)\b[^\n]*\n+/, "").trim();
   $("wocheText").innerHTML = alsHtml(sichtbarW);
   $("wocheErgebnis").style.display = "block";
   $("wocheErgebnis").dataset.text = sichtbarW;
@@ -554,8 +671,9 @@ async function zeigeWoche(roh, neu) {
   store.setJSON(WOCHE, { datum: heute(), text: sichtbarW });
   zeigeFaeden();
   store.set("atemfunk_letzter_rueckblick", heute());
-  await speichern({ art: "text", text: "Wochenrückblick\n\n" + sichtbarW });
+  await speichern({ art: "text", text: "🪞 Wochenspiegel\n\n" + sichtbarW });
   zeigeHeute(); zeigeErinnerung();
+  if (window.abendSpiegelNeu) window.abendSpiegelNeu();   /* Frage der Woche in der Abendrunde zeigen */
 }
 
 function merkeErkenntnis() {
@@ -578,8 +696,8 @@ function zeigeErinnerung() {
   const tage = Math.floor((Date.now() - new Date(letzter + "T12:00:00").getTime()) / 864e5);
   ziel.innerHTML = tage >= 7
     ? `<div class="card" style="border-color:rgba(216,196,143,0.4)"><div class="txt ok">
-       Dein letzter Rückblick ist ${tage} Tage her. Guter Moment dafür.</div></div>`
-    : `<div class="hint" style="margin:0 0 10px">Letzter Rückblick: ${letzter}</div>`;
+       Dein letzter Wochenspiegel ist ${tage} Tage her. Guter Moment dafür.</div></div>`
+    : `<div class="hint" style="margin:0 0 10px">Letzter Wochenspiegel: ${letzter}</div>`;
 }
 
 /* ---------- Export als Textdatei ---------- */
@@ -623,6 +741,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("notiz").focus();
     history.replaceState(null, "", "journal.html");
   }
+  /* Aus der Sonntags-Erinnerung: journal.html?woche=1 springt zum Wochenspiegel und startet ihn,
+     wenn der letzte älter als 5 Tage ist */
+  if (new URLSearchParams(location.search).has("woche")) {
+    history.replaceState(null, "", "journal.html");
+    setTimeout(() => $("woche").scrollIntoView({ block: "start" }), 150);
+    const letzter = store.get("atemfunk_letzter_rueckblick", "");
+    const alt = !letzter || Date.now() - new Date(letzter + "T12:00:00").getTime() > 5 * 864e5;
+    if (alt && !store.getJSON(OFFEN, null)) setTimeout(wocheAnschauen, 400);
+  }
   zeigeErkenntnisse(); zeigeErinnerung(); zeigeFaeden();
   $("tonBtn").addEventListener("click", tonStart);
   $("sichernBtn").addEventListener("click", sichern);
@@ -662,6 +789,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
+<script src="abend.js?v=1"></script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
 <script src="https://pushfunk.46-225-133-113.sslip.io/pushfunk.js" data-app="atemfunk" data-name="Atemfunk" data-sw="vorhanden" defer></script>
 </body>

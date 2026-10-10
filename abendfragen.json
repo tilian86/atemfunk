@@ -1,0 +1,978 @@
+{
+ "_info": "Fragenbank für die Abendrunde im Journal (Rückfall ohne Verbindung + Einstiegsformen für die KI). Selbst geschrieben, 10.10.2026. Kategorien: einstieg (erste Frage), abschluss (letzte), folgen/folgenWort (gehen auf die letzte Antwort ein, {wort} = Stichwort daraus), spiel (Überraschung), dank (selten), Rest für die Mitte.",
+ "einstiegsformen": [
+  {
+   "id": "moment",
+   "text": "ein einziger konkreter Moment des Tages – Ort, Uhrzeit, wer war da"
+  },
+  {
+   "id": "skala",
+   "text": "Skalierungsfrage: eine Zahl von 1 bis 10 für den Tag, mit dem, was genau diese Zahl ausmacht"
+  },
+  {
+   "id": "wetter",
+   "text": "Bild: Wenn der Tag ein Wetter (oder eine Landschaft, ein Tier) gewesen wäre"
+  },
+  {
+   "id": "satz",
+   "text": "Satz zum Vervollständigen, den er nur zu Ende schreiben muss"
+  },
+  {
+   "id": "schlagzeile",
+   "text": "Überschrift oder Schlagzeile für den Tag"
+  },
+  {
+   "id": "koerper",
+   "text": "Körper zuerst: wo und wie der Tag gerade im Körper sitzt"
+  },
+  {
+   "id": "trailer",
+   "text": "Film-Szene: Welche Szene aus dem Tag käme in den Trailer"
+  },
+  {
+   "id": "gegenstand",
+   "text": "ein Gegenstand, der heute eine Rolle gespielt hat"
+  },
+  {
+   "id": "energie",
+   "text": "Energie: was heute Kraft gegeben oder gezogen hat – nur eins davon"
+  },
+  {
+   "id": "satz-von-jemand",
+   "text": "ein Satz, den heute jemand gesagt hat und der hängen geblieben ist"
+  },
+  {
+   "id": "ausnahme",
+   "text": "Ausnahme: wann war heute etwas leichter als erwartet"
+  },
+  {
+   "id": "offener-tab",
+   "text": "das Unerledigte: was von heute noch nachhängt wie ein offener Tab"
+  },
+  {
+   "id": "erwartung",
+   "text": "Erwartung gegen Wirklichkeit: was anders lief als am Morgen gedacht"
+  },
+  {
+   "id": "morgen-ich",
+   "text": "Zeitsprung: was sein Ich von heute Morgen jetzt überraschen würde"
+  },
+  {
+   "id": "beobachter",
+   "text": "Blick von außen: wie ihn ein Fremder heute beschrieben hätte"
+  },
+  {
+   "id": "kleiner-sieg",
+   "text": "ein kleiner Sieg, der sonst niemandem auffällt"
+  },
+  {
+   "id": "entscheidung",
+   "text": "eine Entscheidung von heute, auch eine winzige"
+  },
+  {
+   "id": "vermeiden",
+   "text": "das, worum er heute herumgegangen ist, statt es anzugehen"
+  },
+  {
+   "id": "sinne",
+   "text": "Sinne: ein Geräusch, ein Geruch oder ein Licht, das zum Tag gehört"
+  },
+  {
+   "id": "praesenz",
+   "text": "wo er heute für ein paar Minuten ganz bei der Sache war"
+  },
+  {
+   "id": "abzweigung",
+   "text": "die Abzweigung: wo der Tag ganz anders hätte laufen können"
+  },
+  {
+   "id": "brief",
+   "text": "Mini-Rollenspiel: der Tag schreibt ihm einen Brief – wie finge er an"
+  },
+  {
+   "id": "erstes-mal",
+   "text": "etwas, das er heute zum ersten Mal oder seit Langem wieder gemacht hat"
+  },
+  {
+   "id": "ungesagt",
+   "text": "etwas, das er heute gedacht, aber nicht gesagt hat"
+  },
+  {
+   "id": "gedankenexperiment",
+   "text": "ein kurzes Gedankenexperiment, das direkt in den Tag führt"
+  }
+ ],
+ "ueberraschungen": [
+  "Gedankenexperiment (\"Stell dir vor …\"), das direkt an seine letzte Antwort anknüpft",
+  "Mini-Rollenspiel: er spricht zwei Sätze lang als jemand oder etwas anderes (sein Kalender, sein Handy, der Mensch von vorhin, sein Körper)",
+  "Satz vervollständigen – du gibst den Anfang, er schreibt nur weiter",
+  "eine Zahl von 1 bis 10 – mit der Frage, was genau einen Punkt mehr gebracht hätte",
+  "Bild-Frage: Wenn das gerade Gesagte ein Wetter, ein Tier, ein Ort oder ein Lied wäre",
+  "Perspektivwechsel: sein 80-jähriges Ich, das Kind von damals oder ein guter Freund schaut auf das gerade Gesagte",
+  "ein Satz, den er heute streichen oder einer, den er nachträglich sagen würde",
+  "eine Fußnote, eine Überschrift oder ein Filmtitel für das gerade Gesagte",
+  "die umgekehrte Frage: Was hätte er tun müssen, damit es garantiert schiefgeht"
+ ],
+ "fragen": [
+  {
+   "id": "e01",
+   "kat": "einstieg",
+   "text": "Wenn du an heute denkst: Welcher Moment taucht als Erstes auf – und wo warst du da gerade?"
+  },
+  {
+   "id": "e02",
+   "kat": "einstieg",
+   "text": "Welche Zahl von 1 bis 10 bekommt heute – und was hat ihn vor einer niedrigeren bewahrt?"
+  },
+  {
+   "id": "e03",
+   "kat": "einstieg",
+   "text": "Wenn dein Tag ein Wetter gewesen wäre: welches – und um wie viel Uhr ist es umgeschlagen?"
+  },
+  {
+   "id": "e04",
+   "kat": "einstieg",
+   "text": "Vervollständige: „Heute habe ich gemerkt, dass …“"
+  },
+  {
+   "id": "e05",
+   "kat": "einstieg",
+   "text": "Welche Schlagzeile bekäme dein Tag in einer Zeitung, die nur über dich berichtet?"
+  },
+  {
+   "id": "e06",
+   "kat": "einstieg",
+   "text": "Wo im Körper sitzt der Tag gerade – beschrieben, ohne ein einziges Gefühlswort zu benutzen?"
+  },
+  {
+   "id": "e07",
+   "kat": "einstieg",
+   "text": "Wenn man aus deinem Tag einen 30-Sekunden-Trailer schneiden würde: Welche Szene käme unbedingt rein?"
+  },
+  {
+   "id": "e08",
+   "kat": "einstieg",
+   "text": "Welcher Gegenstand hat heute eine Rolle gespielt – auch eine ganz kleine?"
+  },
+  {
+   "id": "e09",
+   "kat": "einstieg",
+   "text": "Was hat dir heute am meisten Energie gezogen – so konkret, wie es geht?"
+  },
+  {
+   "id": "e10",
+   "kat": "einstieg",
+   "text": "Welcher Satz, den heute jemand zu dir gesagt hat, ist hängen geblieben?"
+  },
+  {
+   "id": "e11",
+   "kat": "einstieg",
+   "text": "Wann war heute etwas leichter, als du es erwartet hattest?"
+  },
+  {
+   "id": "e12",
+   "kat": "einstieg",
+   "text": "Was hängt von heute noch nach, wie ein offener Tab im Kopf?"
+  },
+  {
+   "id": "e13",
+   "kat": "einstieg",
+   "text": "Was ist heute anders gelaufen, als du es dir am Morgen vorgestellt hattest?"
+  },
+  {
+   "id": "e14",
+   "kat": "einstieg",
+   "text": "Wenn dein Ich von heute Morgen dich jetzt sehen könnte – was würde es überraschen?"
+  },
+  {
+   "id": "e15",
+   "kat": "einstieg",
+   "text": "Wie hätte dich jemand beschrieben, der dich heute nur aus der Ferne beobachtet hat?"
+  },
+  {
+   "id": "e16",
+   "kat": "einstieg",
+   "text": "Was war heute ein kleiner Sieg, der sonst niemandem auffallen würde?"
+  },
+  {
+   "id": "e17",
+   "kat": "einstieg",
+   "text": "Welche Entscheidung hast du heute getroffen – auch eine winzige, die du an anderen Tagen anders getroffen hättest?"
+  },
+  {
+   "id": "e18",
+   "kat": "einstieg",
+   "text": "Um welche Sache bist du heute herumgegangen, statt sie anzugehen?"
+  },
+  {
+   "id": "e19",
+   "kat": "einstieg",
+   "text": "Welches Geräusch, welcher Geruch oder welches Licht gehört zu deinem Tag?"
+  },
+  {
+   "id": "e20",
+   "kat": "einstieg",
+   "text": "Wo warst du heute für ein paar Minuten ganz bei der Sache?"
+  },
+  {
+   "id": "e21",
+   "kat": "einstieg",
+   "text": "An welcher Stelle hätte der Tag in eine ganz andere Richtung abbiegen können?"
+  },
+  {
+   "id": "e22",
+   "kat": "einstieg",
+   "text": "Wenn dein Tag dir einen kurzen Brief schreiben würde – wie finge er an?"
+  },
+  {
+   "id": "e23",
+   "kat": "einstieg",
+   "text": "Was hast du heute zum ersten Mal gemacht – oder seit Langem wieder?"
+  },
+  {
+   "id": "e24",
+   "kat": "einstieg",
+   "text": "Welche Stunde von heute würdest du gern noch einmal erleben?"
+  },
+  {
+   "id": "e25",
+   "kat": "einstieg",
+   "text": "Was hast du heute gedacht, aber nicht gesagt?"
+  },
+  {
+   "id": "m01",
+   "kat": "moment",
+   "text": "Geh noch einmal in einen Moment von heute hinein: Was hast du gesehen, kurz bevor es passiert ist?"
+  },
+  {
+   "id": "m02",
+   "kat": "moment",
+   "text": "Was genau ging dir heute in deinem anstrengendsten Moment durch den Kopf – im Wortlaut, wenn es geht?"
+  },
+  {
+   "id": "m03",
+   "kat": "moment",
+   "text": "Wer war heute in deinem wichtigsten Moment noch dabei – und was hat diese Person davon mitbekommen?"
+  },
+  {
+   "id": "m04",
+   "kat": "moment",
+   "text": "Was hast du direkt nach dem schwierigsten Moment des Tages gemacht?"
+  },
+  {
+   "id": "m05",
+   "kat": "moment",
+   "text": "Wenn du den Tag wie einen Film anhalten könntest: An welcher Stelle würdest du auf Pause drücken?"
+  },
+  {
+   "id": "m06",
+   "kat": "moment",
+   "text": "Was war das Kleinste an diesem Tag, das trotzdem gezählt hat?"
+  },
+  {
+   "id": "m07",
+   "kat": "moment",
+   "text": "Welcher Teil des Tages ist jetzt schon verschwommen, obwohl er erst ein paar Stunden her ist?"
+  },
+  {
+   "id": "m08",
+   "kat": "moment",
+   "text": "Woran hast du heute gemerkt, dass sich deine Stimmung gedreht hat?"
+  },
+  {
+   "id": "m09",
+   "kat": "moment",
+   "text": "Was hat heute viel länger gedauert als gedacht?"
+  },
+  {
+   "id": "m10",
+   "kat": "moment",
+   "text": "Welcher Satz von dir war heute der ehrlichste?"
+  },
+  {
+   "id": "m11",
+   "kat": "moment",
+   "text": "Was ist heute passiert, das du morgen schon vergessen haben könntest – obwohl es das nicht verdient?"
+  },
+  {
+   "id": "m12",
+   "kat": "moment",
+   "text": "Wann hast du heute zum ersten Mal auf die Uhr geschaut und gedacht: schon so spät?"
+  },
+  {
+   "id": "s01",
+   "kat": "skala",
+   "text": "Wie viel von dir war heute wirklich da – von 1 bis 10?"
+  },
+  {
+   "id": "s02",
+   "kat": "skala",
+   "text": "Wie freundlich warst du heute mit dir selbst, auf einer Skala von 1 bis 10?"
+  },
+  {
+   "id": "s03",
+   "kat": "skala",
+   "text": "Gib dem Tag eine Zahl von 1 bis 10: Was wäre der kleinste Unterschied gewesen, der einen Punkt mehr gebracht hätte?"
+  },
+  {
+   "id": "s04",
+   "kat": "skala",
+   "text": "Wie laut war es heute in deinem Kopf – von 1 (still) bis 10 (Hauptbahnhof)?"
+  },
+  {
+   "id": "s05",
+   "kat": "skala",
+   "text": "Wie viel Prozent deines Tages hast du heute selbst bestimmt?"
+  },
+  {
+   "id": "s06",
+   "kat": "skala",
+   "text": "Wie viel von deinem Plan für heute ist wirklich passiert, von 1 bis 10?"
+  },
+  {
+   "id": "s07",
+   "kat": "skala",
+   "text": "Wie viel Akku hast du gerade noch, in Prozent – und wofür willst du den Rest heute ausgeben?"
+  },
+  {
+   "id": "s08",
+   "kat": "skala",
+   "text": "Wie sehr warst du heute du selbst – von 1 bis 10?"
+  },
+  {
+   "id": "a01",
+   "kat": "ausnahme",
+   "text": "Wann war heute das, was dich sonst stresst, für einen Moment weniger da?"
+  },
+  {
+   "id": "a02",
+   "kat": "ausnahme",
+   "text": "Was hast du heute anders gemacht als an einem richtig schlechten Tag?"
+  },
+  {
+   "id": "a03",
+   "kat": "ausnahme",
+   "text": "Gab es heute einen Moment, in dem es trotz allem ganz gut lief? Was hast du da getan?"
+  },
+  {
+   "id": "a04",
+   "kat": "ausnahme",
+   "text": "Was hat heute funktioniert, ohne dass du es geplant hattest?"
+  },
+  {
+   "id": "a05",
+   "kat": "ausnahme",
+   "text": "Woran würdest du morgen merken, dass es ein kleines bisschen besser läuft als heute?"
+  },
+  {
+   "id": "a06",
+   "kat": "ausnahme",
+   "text": "Was hat heute geholfen und ließe sich morgen mit Absicht wiederholen?"
+  },
+  {
+   "id": "a07",
+   "kat": "ausnahme",
+   "text": "Welche deiner Fähigkeiten hat dich heute irgendwo durchgebracht?"
+  },
+  {
+   "id": "a08",
+   "kat": "ausnahme",
+   "text": "Was hätte heute noch schiefer gehen können – und was hat das verhindert?"
+  },
+  {
+   "id": "w01",
+   "kat": "wunder",
+   "text": "Stell dir vor, heute Nacht passiert ein kleines Wunder und eine Sache von heute ist gelöst. Woran merkst du es morgen früh als Erstes?"
+  },
+  {
+   "id": "w02",
+   "kat": "wunder",
+   "text": "Wenn morgen ein Problem von heute einfach weg wäre – wer würde es dir zuerst anmerken?"
+  },
+  {
+   "id": "w03",
+   "kat": "wunder",
+   "text": "Du darfst den heutigen Tag noch einmal leben, mit allem, was du jetzt weißt: Welche eine Kleinigkeit änderst du?"
+  },
+  {
+   "id": "w04",
+   "kat": "wunder",
+   "text": "Angenommen, das, was dich gerade am meisten beschäftigt, ist in drei Monaten erledigt: Was hast du dann als Erstes anders gemacht?"
+  },
+  {
+   "id": "w05",
+   "kat": "wunder",
+   "text": "Wenn über Nacht eine deiner Gewohnheiten verschwinden würde – welche soll es sein, und was tritt an ihre Stelle?"
+  },
+  {
+   "id": "v01",
+   "kat": "werte",
+   "text": "Wofür hast du dich heute angestrengt, das dir wirklich wichtig ist?"
+  },
+  {
+   "id": "v02",
+   "kat": "werte",
+   "text": "Wo hast du heute nach dem gehandelt, was dir wichtig ist – auch wenn es unbequem war?"
+  },
+  {
+   "id": "v03",
+   "kat": "werte",
+   "text": "Was hat dich heute mehr berührt, als du zugeben würdest?"
+  },
+  {
+   "id": "v04",
+   "kat": "werte",
+   "text": "Welche Sache hast du heute nur gemacht, weil man sie halt macht?"
+  },
+  {
+   "id": "v05",
+   "kat": "werte",
+   "text": "Wenn dir heute jemand zugeschaut hätte: Woran hätte er erkannt, was dir wichtig ist?"
+  },
+  {
+   "id": "v06",
+   "kat": "werte",
+   "text": "Was hast du heute gemacht, das sich nach dir angefühlt hat und nicht nach Pflicht?"
+  },
+  {
+   "id": "v07",
+   "kat": "werte",
+   "text": "Was hast du heute für jemand anderen getan, ohne dass es jemand verlangt hat?"
+  },
+  {
+   "id": "v08",
+   "kat": "werte",
+   "text": "Wo hast du heute Ja gesagt und eigentlich Nein gemeint?"
+  },
+  {
+   "id": "v09",
+   "kat": "werte",
+   "text": "Wo warst du heute so, wie du gern öfter wärst?"
+  },
+  {
+   "id": "v10",
+   "kat": "werte",
+   "text": "Wenn du von heute nur eine Sache behalten dürftest – welche?"
+  },
+  {
+   "id": "c01",
+   "kat": "mitgefuehl",
+   "text": "Was würdest du einem guten Freund sagen, der genau deinen Tag hinter sich hat?"
+  },
+  {
+   "id": "c02",
+   "kat": "mitgefuehl",
+   "text": "Wo warst du heute streng mit dir – und was hätte die freundlichere Version von dir dazu gesagt?"
+  },
+  {
+   "id": "c03",
+   "kat": "mitgefuehl",
+   "text": "Was hast du heute geschafft, das du dir selbst nicht anrechnest?"
+  },
+  {
+   "id": "c04",
+   "kat": "mitgefuehl",
+   "text": "Welcher Gedanke über dich selbst kam heute öfter, als er dir guttut?"
+  },
+  {
+   "id": "c05",
+   "kat": "mitgefuehl",
+   "text": "Was hättest du heute gebraucht, das du nicht bekommen hast – auch nicht von dir selbst?"
+  },
+  {
+   "id": "c06",
+   "kat": "mitgefuehl",
+   "text": "Welche eine Sache musst du heute Abend nicht mehr leisten?"
+  },
+  {
+   "id": "c07",
+   "kat": "mitgefuehl",
+   "text": "Wo warst du heute müder, als du es dir hast anmerken lassen?"
+  },
+  {
+   "id": "c08",
+   "kat": "mitgefuehl",
+   "text": "Was darfst du heute einfach unfertig lassen?"
+  },
+  {
+   "id": "k01",
+   "kat": "koerper",
+   "text": "Wie hat sich dein Körper heute Mittag angefühlt, verglichen mit jetzt?"
+  },
+  {
+   "id": "k02",
+   "kat": "koerper",
+   "text": "Wo hast du den anstrengendsten Moment des Tages im Körper gespürt?"
+  },
+  {
+   "id": "k03",
+   "kat": "koerper",
+   "text": "Was hat dein Körper heute gebraucht und nicht bekommen?"
+  },
+  {
+   "id": "k04",
+   "kat": "koerper",
+   "text": "Wann hast du heute das letzte Mal richtig tief durchgeatmet?"
+  },
+  {
+   "id": "k05",
+   "kat": "koerper",
+   "text": "Wenn deine Schultern heute reden könnten – was würden sie erzählen?"
+  },
+  {
+   "id": "k06",
+   "kat": "koerper",
+   "text": "Welche Bewegung, welches Essen oder welche Pause hat dir heute gutgetan?"
+  },
+  {
+   "id": "k07",
+   "kat": "koerper",
+   "text": "Wie sitzt oder liegst du gerade da – und was verrät das über den Tag?"
+  },
+  {
+   "id": "k08",
+   "kat": "koerper",
+   "text": "Welche Stimmung hat sich heute am häufigsten gemeldet – und wobei?"
+  },
+  {
+   "id": "b01",
+   "kat": "beziehung",
+   "text": "Wer hat heute deinen Tag besser gemacht, vielleicht ohne es zu wissen?"
+  },
+  {
+   "id": "b02",
+   "kat": "beziehung",
+   "text": "Mit wem ist heute etwas ungesagt geblieben, das noch in der Luft hängt?"
+  },
+  {
+   "id": "b03",
+   "kat": "beziehung",
+   "text": "Wem hättest du heute gern etwas erzählt – und was?"
+  },
+  {
+   "id": "b04",
+   "kat": "beziehung",
+   "text": "Welche Begegnung von heute hat dich überrascht?"
+  },
+  {
+   "id": "b05",
+   "kat": "beziehung",
+   "text": "Wen hast du heute vermisst?"
+  },
+  {
+   "id": "b06",
+   "kat": "beziehung",
+   "text": "In welchem Gespräch heute hast du mehr zugehört als geredet?"
+  },
+  {
+   "id": "b07",
+   "kat": "beziehung",
+   "text": "Wer würde sich freuen, wenn du dich morgen meldest?"
+  },
+  {
+   "id": "b08",
+   "kat": "beziehung",
+   "text": "Bei wem konntest du heute einfach du sein?"
+  },
+  {
+   "id": "b09",
+   "kat": "beziehung",
+   "text": "Wer hat dich heute genervt – und womit genau?"
+  },
+  {
+   "id": "b10",
+   "kat": "beziehung",
+   "text": "Welche Nachricht von heute verdient eigentlich noch eine Antwort?"
+  },
+  {
+   "id": "p01",
+   "kat": "perspektive",
+   "text": "Was würde das Kind, das du mit acht warst, zu deinem heutigen Tag sagen?"
+  },
+  {
+   "id": "p02",
+   "kat": "perspektive",
+   "text": "Wenn du mit 80 auf genau diesen Tag zurückschaust: Was davon ist dann noch wichtig?"
+  },
+  {
+   "id": "p03",
+   "kat": "perspektive",
+   "text": "Wie würde dein bester Freund deinen Tag in einem einzigen Satz erzählen?"
+  },
+  {
+   "id": "p04",
+   "kat": "perspektive",
+   "text": "Wenn dir heute ein Dokumentarfilmer gefolgt wäre: Welche Szene hätte er am spannendsten gefunden?"
+  },
+  {
+   "id": "p05",
+   "kat": "perspektive",
+   "text": "Was würde jemand, der dich mag, an deinem Tag bemerkenswert finden, das du übersiehst?"
+  },
+  {
+   "id": "p06",
+   "kat": "perspektive",
+   "text": "Wie würde die Person, mit der du heute am meisten zu tun hattest, den Tag erzählen?"
+  },
+  {
+   "id": "p07",
+   "kat": "perspektive",
+   "text": "Was von heute wirst du in einem Jahr noch wissen?"
+  },
+  {
+   "id": "p08",
+   "kat": "perspektive",
+   "text": "Welchen Rat hättest du dir heute früh gegeben, wenn du gewusst hättest, wie der Tag läuft?"
+  },
+  {
+   "id": "p09",
+   "kat": "perspektive",
+   "text": "Wie hätte der gelassenste Mensch, den du kennst, deinen heutigen Tag erlebt?"
+  },
+  {
+   "id": "p10",
+   "kat": "perspektive",
+   "text": "Was würde dein Ich von vor fünf Jahren über das denken, was dich heute beschäftigt hat?"
+  },
+  {
+   "id": "u01",
+   "kat": "mut",
+   "text": "Wo hast du heute etwas gewagt, auch wenn es klein war?"
+  },
+  {
+   "id": "u02",
+   "kat": "mut",
+   "text": "Wovor hattest du heute ein bisschen Angst – und was ist dann tatsächlich passiert?"
+  },
+  {
+   "id": "u03",
+   "kat": "mut",
+   "text": "Was schiebst du gerade vor dir her – und was genau ist daran das Unangenehmste?"
+  },
+  {
+   "id": "u04",
+   "kat": "mut",
+   "text": "Was würdest du morgen tun, wenn du sicher wüsstest, dass es nicht peinlich wird?"
+  },
+  {
+   "id": "u05",
+   "kat": "mut",
+   "text": "Welches Gespräch würdest du gern führen, wenn es garantiert gut ausginge?"
+  },
+  {
+   "id": "u06",
+   "kat": "mut",
+   "text": "Wo hast du heute den bequemeren Weg genommen – und war das in Ordnung?"
+  },
+  {
+   "id": "u07",
+   "kat": "mut",
+   "text": "Was hast du heute ausgehalten, ohne wegzulaufen?"
+  },
+  {
+   "id": "u08",
+   "kat": "mut",
+   "text": "Welche Kleinigkeit ist dir heute schwerer gefallen, als sie von außen aussieht?"
+  },
+  {
+   "id": "n01",
+   "kat": "energie",
+   "text": "Wann warst du heute am wachsten?"
+  },
+  {
+   "id": "n02",
+   "kat": "energie",
+   "text": "Welche Aufgabe hat dich heute mehr Kraft gekostet, als sie wert war?"
+  },
+  {
+   "id": "n03",
+   "kat": "energie",
+   "text": "Was hat dich heute in Schwung gebracht?"
+  },
+  {
+   "id": "n04",
+   "kat": "energie",
+   "text": "Wo hast du heute Zeit verloren, ohne dass es dir gutgetan hat?"
+  },
+  {
+   "id": "n05",
+   "kat": "energie",
+   "text": "Wann ist heute die Zeit verflogen?"
+  },
+  {
+   "id": "n06",
+   "kat": "energie",
+   "text": "Was hast du heute angefangen und nicht beendet – und ist das wirklich schlimm?"
+  },
+  {
+   "id": "n07",
+   "kat": "energie",
+   "text": "In welches Kaninchenloch bist du heute gefallen – und was hast du dort gefunden?"
+  },
+  {
+   "id": "n08",
+   "kat": "energie",
+   "text": "Was hat dich heute abgelenkt – und wovon eigentlich?"
+  },
+  {
+   "id": "x01",
+   "kat": "spiel",
+   "text": "Wenn dein Tag ein Tier gewesen wäre: welches – und was hat es den ganzen Tag gemacht?"
+  },
+  {
+   "id": "x02",
+   "kat": "spiel",
+   "text": "Du darfst einen Satz aus deinem heutigen Tag streichen. Welchen?"
+  },
+  {
+   "id": "x03",
+   "kat": "spiel",
+   "text": "Vervollständige: „Wenn heute ein Lied gewesen wäre, dann eins, das …“"
+  },
+  {
+   "id": "x04",
+   "kat": "spiel",
+   "text": "Du darfst dem heutigen Tag eine Fußnote anhängen. Was steht drin?"
+  },
+  {
+   "id": "x05",
+   "kat": "spiel",
+   "text": "Gedankenexperiment: Ein Fremder muss morgen deinen Tag leben. Welche Gebrauchsanweisung gibst du ihm in einem Satz?"
+  },
+  {
+   "id": "x06",
+   "kat": "spiel",
+   "text": "Du darfst heute einen Preis verleihen – an wen oder was, und in welcher Kategorie?"
+  },
+  {
+   "id": "x07",
+   "kat": "spiel",
+   "text": "Vervollständige: „Was heute keiner gemerkt hat: …“"
+  },
+  {
+   "id": "x08",
+   "kat": "spiel",
+   "text": "Wenn dein Tag ein Menü wäre: Was stand als Hauptgang auf der Karte?"
+  },
+  {
+   "id": "x09",
+   "kat": "spiel",
+   "text": "Sprich kurz als dein Kalender von heute: Worüber beschwert er sich?"
+  },
+  {
+   "id": "x10",
+   "kat": "spiel",
+   "text": "Du schreibst heute eine einzige Zeile auf einen Zettel für dich in zehn Jahren. Was steht drauf?"
+  },
+  {
+   "id": "x11",
+   "kat": "spiel",
+   "text": "Welches Emoji würdest du dem Tag geben, wenn du ganz ehrlich bist?"
+  },
+  {
+   "id": "x12",
+   "kat": "spiel",
+   "text": "Gedankenexperiment: Du hättest heute eine geheime Extrastunde bekommen, die niemand sieht. Was hättest du damit gemacht?"
+  },
+  {
+   "id": "x13",
+   "kat": "spiel",
+   "text": "Wenn dein Tag ein Ort auf einer Landkarte wäre – Gebirge, Küste, Großstadt oder Wüste?"
+  },
+  {
+   "id": "x14",
+   "kat": "spiel",
+   "text": "Vervollständige: „Eigentlich bin ich heute …“"
+  },
+  {
+   "id": "x15",
+   "kat": "spiel",
+   "text": "Welcher Filmtitel würde zu heute passen?"
+  },
+  {
+   "id": "x16",
+   "kat": "spiel",
+   "text": "Wenn deine Gedanken von heute Tabs im Browser wären: Welcher ist noch offen und dürfte jetzt zu?"
+  },
+  {
+   "id": "x17",
+   "kat": "spiel",
+   "text": "Umgekehrt gefragt: Was hättest du heute tun müssen, damit der Tag garantiert schiefgeht?"
+  },
+  {
+   "id": "d01",
+   "kat": "dank",
+   "text": "Was von heute nimmst du als selbstverständlich hin, obwohl es das gar nicht ist?"
+  },
+  {
+   "id": "d02",
+   "kat": "dank",
+   "text": "Wem schuldest du von heute ein kleines Danke, das du noch nicht gesagt hast?"
+  },
+  {
+   "id": "d03",
+   "kat": "dank",
+   "text": "Was hätte dir heute gefehlt, wenn es nicht da gewesen wäre?"
+  },
+  {
+   "id": "d04",
+   "kat": "dank",
+   "text": "Welche Kleinigkeit von heute war besser als nötig?"
+  },
+  {
+   "id": "z01",
+   "kat": "abschluss",
+   "text": "Was darf von heute einfach hierbleiben, statt mit in die Nacht zu kommen?"
+  },
+  {
+   "id": "z02",
+   "kat": "abschluss",
+   "text": "Was ist die kleinste Sache, die morgen anders sein soll?"
+  },
+  {
+   "id": "z03",
+   "kat": "abschluss",
+   "text": "Welcher Satz von heute Abend soll morgen früh noch da sein?"
+  },
+  {
+   "id": "z04",
+   "kat": "abschluss",
+   "text": "Worauf freust du dich morgen – ganz egal, wie klein?"
+  },
+  {
+   "id": "z05",
+   "kat": "abschluss",
+   "text": "Was würdest du deinem Ich von morgen früh gern auf den Nachttisch legen?"
+  },
+  {
+   "id": "z06",
+   "kat": "abschluss",
+   "text": "Was willst du morgen als Erstes ganz bewusst nicht tun?"
+  },
+  {
+   "id": "z07",
+   "kat": "abschluss",
+   "text": "Welche Frage von heute darf bis morgen offen bleiben?"
+  },
+  {
+   "id": "z08",
+   "kat": "abschluss",
+   "text": "Wenn du den Tag jetzt mit einem einzigen Wort zuklappst – welches?"
+  },
+  {
+   "id": "z09",
+   "kat": "abschluss",
+   "text": "Was weißt du heute über dich, das du gestern noch nicht so wusstest?"
+  },
+  {
+   "id": "z10",
+   "kat": "abschluss",
+   "text": "Wofür brauchst du morgen ein bisschen Mut?"
+  },
+  {
+   "id": "f01",
+   "kat": "folgen",
+   "text": "Was davon geht dir am meisten nach?"
+  },
+  {
+   "id": "f02",
+   "kat": "folgen",
+   "text": "Bleib kurz dabei: Was daran ist das Wichtigste, das du noch nicht gesagt hast?"
+  },
+  {
+   "id": "f03",
+   "kat": "folgen",
+   "text": "Was hättest du dir in dem Moment von jemandem gewünscht?"
+  },
+  {
+   "id": "f04",
+   "kat": "folgen",
+   "text": "Wenn du an dieser Stelle noch einen Satz weiterdenkst – wie heißt er?"
+  },
+  {
+   "id": "f05",
+   "kat": "folgen",
+   "text": "Woran hast du gemerkt, dass dir das wichtig ist?"
+  },
+  {
+   "id": "f06",
+   "kat": "folgen",
+   "text": "Welcher Teil davon liegt in deiner Hand?"
+  },
+  {
+   "id": "f07",
+   "kat": "folgen",
+   "text": "Was wäre dazu ein erster, fast lächerlich kleiner Schritt?"
+  },
+  {
+   "id": "f08",
+   "kat": "folgen",
+   "text": "Wie wäre es gewesen, wenn dir das egal gewesen wäre?"
+  },
+  {
+   "id": "f09",
+   "kat": "folgen",
+   "text": "Wie hättest du das vor einem Jahr erlebt?"
+  },
+  {
+   "id": "f10",
+   "kat": "folgen",
+   "text": "Was ist anders, jetzt wo es aufgeschrieben dasteht?"
+  },
+  {
+   "id": "f11",
+   "kat": "folgen",
+   "text": "Wer sollte davon eigentlich auch wissen?"
+  },
+  {
+   "id": "f12",
+   "kat": "folgen",
+   "text": "Was wäre die großzügigste Deutung davon – dir selbst gegenüber?"
+  },
+  {
+   "id": "f13",
+   "kat": "folgen",
+   "text": "Was überrascht dich an deiner eigenen Antwort?"
+  },
+  {
+   "id": "f14",
+   "kat": "folgen",
+   "text": "Wenn das ein Muster wäre: Wo ist es dir schon einmal begegnet?"
+  },
+  {
+   "id": "g01",
+   "kat": "folgenWort",
+   "text": "Bleib kurz bei „{wort}“: Was genau war daran heute anders als sonst?"
+  },
+  {
+   "id": "g04",
+   "kat": "folgenWort",
+   "text": "Wenn „{wort}“ morgen ein bisschen leichter wäre – woran würdest du es merken?"
+  },
+  {
+   "id": "g05",
+   "kat": "folgenWort",
+   "text": "Wer außer dir hatte heute mit „{wort}“ zu tun?"
+  },
+  {
+   "id": "g07",
+   "kat": "folgenWort",
+   "text": "Was weißt du jetzt über „{wort}“, das du heute früh noch nicht wusstest?"
+  },
+  {
+   "id": "g08",
+   "kat": "folgenWort",
+   "text": "Wie würdest du „{wort}“ jemandem erklären, der gar nichts davon weiß?"
+  },
+  {
+   "id": "g09",
+   "kat": "folgenWort",
+   "text": "Du hast „{wort}“ erwähnt – was steckt da für dich drin?"
+  },
+  {
+   "id": "g10",
+   "kat": "folgenWort",
+   "text": "Was an „{wort}“ beschäftigt dich gerade am meisten?"
+  }
+ ]
+}
