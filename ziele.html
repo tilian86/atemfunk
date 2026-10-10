@@ -113,12 +113,13 @@ function todoistLink(was, tag) {
 function zeigePlan() {
   if (!plan || !Array.isArray(plan.schritte)) return;
   const ziel = $("planText");
-  ziel.innerHTML = "<div class='antwort'><h3>" + (plan.titel || "Plan").replace(/[<>&]/g, "") + "</h3></div>";
+  ziel.innerHTML = "<div class='antwort'><h3>" + String(plan.titel || "Plan").replace(/[<>&]/g, "") + "</h3></div>";
   plan.schritte.forEach((s, i) => {
     const d = document.createElement("div");
     d.className = "schritt";
+    const rein = v => String(v ?? "").replace(/[<>&]/g, "");
     d.innerHTML = `<div class="nr">${i + 1}</div>
-      <div class="was">${s.was.replace(/[<>&]/g, "")}<div class="dauer">${(s.dauer || "").replace(/[<>&]/g, "")} · ${(s.tag || "").replace(/[<>&]/g, "")}</div></div>`;
+      <div class="was">${rein(s.was)}<div class="dauer">${rein(s.dauer)} · ${rein(s.tag)}</div></div>`;
     const a = document.createElement("a");
     a.href = todoistLink(s.was, s.tag); a.target = "_blank"; a.rel = "noopener";
     a.textContent = "＋"; a.title = "Zu Todoist";
@@ -190,10 +191,11 @@ function zeigeVerlauf() {
   const ziel = $("verlauf");
   ziel.innerHTML = liste.length ? "" : '<div class="hint">Noch keine Pläne.</div>';
   for (const e of liste.slice(0, 8)) {
+    if (!e) continue;
     const k = document.createElement("div");
     k.className = "card"; k.style.cursor = "pointer";
     k.innerHTML = `<div class="hint" style="margin:0 0 4px">${e.datum}</div>
-      <div class="txt" style="font-size:14px">${(e.plan?.titel || e.ziel).slice(0, 80).replace(/[<>&]/g, "")}</div>`;
+      <div class="txt" style="font-size:14px">${String(e.plan?.titel || e.ziel || "Plan").slice(0, 80).replace(/[<>&]/g, "")}</div>`;
     k.addEventListener("click", () => { plan = e.plan; $("ziel").value = e.ziel; zeigePlan(); });
     ziel.appendChild(k);
   }

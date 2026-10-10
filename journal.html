@@ -81,6 +81,7 @@
 
   <div class="cap">Frühere Tage</div>
   <div id="frueher"></div>
+  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Stand 10.10.2026</div>
 </div>
 
 <script src="sync.js?v=1"></script>
@@ -105,8 +106,9 @@ async function tonStart() {
     aufnahme.stop();
     return;
   }
+  let strom = null;
   try {
-    const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
+    strom = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mr = new MediaRecorder(strom);
     brocken = [];
     mr.ondataavailable = e => { if (e.data.size) brocken.push(e.data); };
@@ -129,16 +131,20 @@ async function tonStart() {
           } catch {}
           $("hinweis").textContent = "";
         }
-        await speichern({ art: "audio", blob, text });
+        try { await speichern({ art: "audio", blob, text }); }
+        catch { $("hinweis").textContent = "Konnte die Sprachnotiz nicht speichern – nochmal?"; return; }
+        /* Feld nur leeren, wenn wirklich gespeichert wurde – bei einem Fehltipp (zu kurz)
+           blieb der getippte Text früher nicht erhalten */
+        $("notiz").value = "";
+        localStorage.removeItem(ENTWURF_NOTIZ);
       }
-      $("notiz").value = "";
-      localStorage.removeItem(ENTWURF_NOTIZ);
       zeigeHeute();
     };
     mr.start();
     aufnahme = mr;
     btn.classList.add("on"); btn.textContent = "⏹ Stopp";
   } catch {
+    if (strom) strom.getTracks().forEach(t => t.stop());
     $("hinweis").textContent = "Kein Zugriff aufs Mikrofon.";
   }
 }
@@ -153,7 +159,8 @@ async function speichern(eintrag) {
 async function sichern() {
   const text = $("notiz").value.trim();
   if (!text) { $("hinweis").textContent = "Erst etwas schreiben oder diktieren."; return; }
-  await speichern({ art: "text", text });
+  try { await speichern({ art: "text", text }); }
+  catch { $("hinweis").textContent = "Konnte nicht speichern – der Text bleibt im Feld."; return; }
   $("notiz").value = "";
   localStorage.removeItem(ENTWURF_NOTIZ);
   $("hinweis").textContent = "";
@@ -161,7 +168,8 @@ async function sichern() {
 }
 
 $("bildInput").addEventListener("change", async e => {
-  for (const f of e.target.files) await speichern({ art: "bild", blob: f, text: $("notiz").value.trim() });
+  try { for (const f of e.target.files) await speichern({ art: "bild", blob: f, text: $("notiz").value.trim() }); }
+  catch { $("hinweis").textContent = "Konnte das Bild nicht speichern."; e.target.value = ""; zeigeHeute(); return; }
   e.target.value = ""; $("notiz").value = "";
   localStorage.removeItem(ENTWURF_NOTIZ);
   zeigeHeute();
@@ -438,17 +446,20 @@ function zeigeErkenntnisse() {
   const liste = erkenntnisse();
   const ziel = $("erkenntnisse");
   ziel.innerHTML = liste.length ? "" : '<div class="hint">Noch nichts gemerkt. Nach dem ersten Wochenrückblick sammelt sich hier, was du über dich lernst.</div>';
-  liste.forEach((e, i) => {
+  liste.forEach(e => {
     const k = document.createElement("div");
     k.className = "card eintrag";
     const z = document.createElement("div");
-    z.className = "zeit"; z.textContent = e.datum.slice(5);
+    z.className = "zeit"; z.textContent = String(e.datum || "").slice(5);
     const t = document.createElement("div");
     t.className = "txt"; t.textContent = e.text;
     const w = document.createElement("div");
     w.className = "weg"; w.textContent = "✕";
     w.addEventListener("click", () => {
-      const l = erkenntnisse(); const [raus] = l.splice(i, 1);
+      const l = erkenntnisse();
+      const pos = l.findIndex(x => x && x.text === e.text && x.datum === e.datum);
+      if (pos < 0) { zeigeErkenntnisse(); return; }
+      const [raus] = l.splice(pos, 1);
       store.setJSON("atemfunk_lernen", l); zeigeErkenntnisse();
       if (raus && window.atemSync) atemSync.wegItem("lernen", raus);
     });
