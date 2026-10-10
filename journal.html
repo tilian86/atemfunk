@@ -457,8 +457,10 @@ function zeigeErkenntnisse() {
     const t = document.createElement("div");
     t.className = "txt"; t.textContent = e.text;
     const w = document.createElement("div");
-    w.className = "weg"; w.textContent = "✕";
-    w.addEventListener("click", () => {
+    w.className = "weg"; w.textContent = "✕"; w.title = "Erkenntnis löschen";
+    w.addEventListener("click", ev => {
+      ev.stopPropagation();
+      if (!confirm("Erkenntnis wirklich löschen?")) return;   /* löscht per Grabstein auch auf den anderen Geräten */
       const l = erkenntnisse();
       const pos = l.findIndex(x => x && x.text === e.text && x.datum === e.datum);
       if (pos < 0) { zeigeErkenntnisse(); return; }
