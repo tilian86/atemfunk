@@ -1,5 +1,5 @@
 {
- "_info": "Fragenbank für die Abendrunde im Journal (Rückfall ohne Verbindung + Einstiegsformen für die KI). Selbst geschrieben, 10.10.2026. Kategorien: einstieg (erste Frage), abschluss (letzte), folgen/folgenWort (gehen auf die letzte Antwort ein, {wort} = Stichwort daraus), spiel (Überraschung), dank (selten), Rest für die Mitte.",
+ "_info": "Fragenbank für die Abendrunde im Journal (Rückfall ohne Verbindung + Einstiegsformen für die KI). Selbst geschrieben, 10.10.2026. Kategorien: einstieg (erste Frage), abschluss (letzte), folgen/folgenWort (gehen auf die letzte Antwort ein, {wort} = Stichwort daraus), nachhaken (nach sehr knapper Antwort, {antwort} = seine Antwort wörtlich), spiel (Überraschung), dank (selten), Rest für die Mitte.",
  "einstiegsformen": [
   {
    "id": "moment",
@@ -973,6 +973,66 @@
    "id": "g10",
    "kat": "folgenWort",
    "text": "Was an „{wort}“ beschäftigt dich gerade am meisten?"
+  },
+  {
+   "id": "n01",
+   "kat": "nachhaken",
+   "text": "„{antwort}“ – was genau steckt da drin?"
+  },
+  {
+   "id": "n02",
+   "kat": "nachhaken",
+   "text": "Bleib kurz bei „{antwort}“: Wann heute war das am deutlichsten?"
+  },
+  {
+   "id": "n03",
+   "kat": "nachhaken",
+   "text": "Wo merkst du „{antwort}“ gerade – im Kopf, im Bauch, irgendwo anders?"
+  },
+  {
+   "id": "n04",
+   "kat": "nachhaken",
+   "text": "Was war kurz davor, bevor es „{antwort}“ wurde?"
+  },
+  {
+   "id": "n05",
+   "kat": "nachhaken",
+   "text": "Wenn ein Freund jetzt fragen würde „Wie meinst du das?“ – was würdest du ihm sagen?"
+  },
+  {
+   "id": "n06",
+   "kat": "nachhaken",
+   "text": "Seit wann ist das so – erst heute oder schon länger?"
+  },
+  {
+   "id": "n07",
+   "kat": "nachhaken",
+   "text": "Was hast du gemacht, als „{antwort}“ da war?"
+  },
+  {
+   "id": "n08",
+   "kat": "nachhaken",
+   "text": "Wann heute war „{antwort}“ kurz mal leiser oder weg?"
+  },
+  {
+   "id": "n09",
+   "kat": "nachhaken",
+   "text": "Woran hätte jemand von außen heute „{antwort}“ bemerkt?"
+  },
+  {
+   "id": "n10",
+   "kat": "nachhaken",
+   "text": "Welches Wort würdest du noch dazusetzen, damit es ganz stimmt?"
+  },
+  {
+   "id": "n11",
+   "kat": "nachhaken",
+   "text": "Von 1 bis 10: Wie viel „{antwort}“ war heute – und was macht die Zahl so hoch?"
+  },
+  {
+   "id": "n12",
+   "kat": "nachhaken",
+   "text": "Wer hat heute etwas davon mitbekommen – oder hat es niemand gemerkt?"
   }
  ]
 }

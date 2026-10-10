@@ -78,12 +78,12 @@
     einstieg: "Einstieg", moment: "Ein Moment", skala: "Skala", ausnahme: "Ausnahme", wunder: "Wunderfrage",
     werte: "Was dir wichtig ist", mitgefuehl: "Freundlich mit dir", koerper: "Körper", beziehung: "Menschen",
     perspektive: "Perspektivwechsel", mut: "Mut", energie: "Energie", spiel: "Überraschung", dank: "Kleinigkeiten",
-    abschluss: "Ausklang", folgen: "Nachgefragt", folgenWort: "Nachgefragt",
+    abschluss: "Ausklang", folgen: "Nachgefragt", folgenWort: "Nachgefragt", nachhaken: "Nachhaken",
   };
   async function bank() {
     if (bankDaten) return bankDaten;
     try {
-      const r = await fetch("abendfragen.json?v=1");
+      const r = await fetch("abendfragen.json?v=2");
       if (r.ok) bankDaten = await r.json();
     } catch {}
     return bankDaten;
@@ -107,11 +107,31 @@
     return kand.sort((a, b) => b.length - a.length)[0] || "";
   }
 
+  /* Zu knappe Antwort („tut weh“, „ging so“)? Dann genau dort eine Ebene tiefer fragen statt weiterspringen –
+     höchstens zweimal hintereinander an derselben Stelle (Florians Wunsch 11.10.2026). */
+  const KNAPP_WOERTER = 5;
+  const knapp = r => !!r && r.status === "beantwortet" && r.a.trim().split(/\s+/).length <= KNAPP_WOERTER;
+  function nachhakenFaellig(z) {
+    if (!knapp(z.runden[z.runden.length - 1])) return false;
+    let schon = 0;
+    for (let i = z.runden.length - 1; i >= 0 && z.runden[i].nachhaken; i--) schon++;
+    return schon < 2;
+  }
+  const antwortZitat = r => String((r && r.a) || "").replace(/[„“"»«]/g, "").replace(/[\s.!?…,;:]+$/, "").trim();
+
   async function bankFrage(z) {
     const b = await bank();
     const n = z.runden.length + 1;
     if (!b) return { frage: NOTFRAGEN[Math.min(n - 1, 2)], spiegel: "", art: "", quelle: "bank" };
     const letzte = z.runden[z.runden.length - 1];
+    if (z.hakNach) {
+      const pool = b.fragen.filter(f => f.kat === "nachhaken" && !z.runden.some(r => r.bankId === f.id));
+      if (pool.length) {
+        const f = zufall(pool);
+        return { frage: f.text.replace(/\{antwort\}/g, antwortZitat(letzte)), spiegel: "", art: KAT_NAME.nachhaken,
+                 kat: f.kat, quelle: "bank", bankId: f.id };
+      }
+    }
     if (z.anker && z.anker.runde === n && z.anker.art === "frage" && !z.runden.some(r => r.frage === z.anker.text))
       return { frage: z.anker.text, spiegel: "", art: "Frage der Woche", quelle: "bank" };
     let kats, wort = "";
@@ -166,6 +186,7 @@ So nicht → eher so (nur der Ton – die Beispiele nicht übernehmen):
 ✗ „Welche Werte waren dir heute wichtig?“ → ✓ „Wofür hättest du heute eine Stunde Schlaf hergegeben?“
 ✗ „Wie kannst du achtsamer mit dir sein?“ → ✓ „Wo warst du heute streng mit dir – und hättest du das einem Freund auch so gesagt?“
 ✗ (nach „das Meeting hat mich genervt“) „Erzähl mir mehr darüber.“ → ✓ „Was genau – wie es lief oder wer da saß?“
+✗ (nach „tut weh“) „Und was war heute sonst noch?“ → ✓ „Was genau tut weh – etwas im Körper oder etwas, das heute passiert ist?“
 ✗ „Was ist deine größte Erkenntnis des Tages?“ → ✓ „Was hast du heute über dich gemerkt, das dich ein bisschen überrascht hat?“
 
 Aktives Zuhören (ab der zweiten Frage):
@@ -173,8 +194,11 @@ Aktives Zuhören (ab der zweiten Frage):
   eigenen Worte oder einer präzisen Beobachtung. Keine Wertung („Stark“, „Spannend“, „Das ist mutig“), kein
   „Danke für deine Offenheit“, kein „Ich höre, dass …“. Ist nichts Sinnvolles zu spiegeln: leer lassen.
 – Danach vertiefen – dort, wo in seiner Antwort die meiste Energie steckt (ein auffälliges Wort, ein Widerspruch,
-  ein Zögern, etwas halb Gesagtes) – oder bewusst wechseln, wenn es ausgeschöpft wirkt. Antwortet er knapp oder
-  überspringt er: leichter und spielerischer werden statt nachbohren.
+  ein Zögern, etwas halb Gesagtes) – oder bewusst wechseln, wenn es ausgeschöpft wirkt.
+– Antwortet er sehr knapp (ein paar Wörter wie „tut weh“, „ging so“, „Stress halt“): NICHT das Thema wechseln,
+  sondern genau dort eine Ebene tiefer fragen – konkret, behutsam, gern mit seinem eigenen Wort (was genau, wo,
+  seit wann, was war kurz davor, woran er es merkt). Bleibt er nach zweimal Nachhaken knapp, leicht weiterziehen.
+– Überspringt er eine Frage: leichter und spielerischer werden statt nachbohren.
 – Nie dieselbe Art Frage zweimal hintereinander.
 
 Antworte NUR mit diesen drei Zeilen, ohne Vorspann und ohne Anführungszeichen drumherum:
@@ -236,16 +260,23 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
           + "eigene, frische Frage (nicht wörtlich übernehmen). Verankere sie in etwas, das heute im Journal steht, "
           + "falls dort etwas steht.");
       a.push("SPIEGEL beim Einstieg leer lassen.");
+    } else if (z.hakNach) {
+      const schon = !!z.runden[z.runden.length - 1].nachhaken;
+      a.push(`Seine letzte Antwort war sehr knapp: „${antwortZitat(z.runden[z.runden.length - 1])}“. Wechsle NICHT das `
+        + "Thema – frag genau dort eine Ebene tiefer, konkret und behutsam, gern mit seinem eigenen Wort (was genau, wo, "
+        + "seit wann, was war kurz davor, woran merkt er es). Kein „Erzähl mehr“, keine Deutung. ART dann: Nachhaken.");
+      if (schon) a.push("Du hast hier schon einmal nachgehakt und es kam wieder wenig. Letzter Versuch an dieser Stelle: "
+        + "mach die Frage noch leichter zu beantworten (ein Ort, eine Uhrzeit, ein Bild, eine Zahl).");
     } else if (n >= z.plan) {
       a.push(`Das ist die letzte Frage des Abends (Frage ${n} von ${z.plan}). Geh zuerst auf seine letzte Antwort ein. `
         + "Die Frage darf den Abend rund machen oder behutsam auf morgen schauen – ohne Kitsch, ohne Vorsatz-Zwang.");
     } else {
       a.push(`Das ist Frage ${n} von etwa ${z.plan}. Geh auf seine letzte Antwort ein.`);
     }
-    if (z.ueberraschung && z.ueberraschung.runde === n && zweck !== "andere")
+    if (z.ueberraschung && z.ueberraschung.runde === n && zweck !== "andere" && !z.hakNach)
       a.push(`Für diese Frage ein überraschendes Format: ${z.ueberraschung.text}. Es soll trotzdem an seine `
         + "letzte Antwort oder an den Tag anknüpfen und Tiefe haben.");
-    if (z.anker && z.anker.runde === n && zweck !== "andere")
+    if (z.anker && z.anker.runde === n && zweck !== "andere" && !z.hakNach)
       a.push(z.anker.art === "frage"
         ? `In dieser Frage knüpfst du an seine „Frage für die Woche“ aus dem letzten Wochenspiegel an: „${z.anker.text.replace(/[.\s]+$/, "")}“. `
           + "Nicht wörtlich wiederholen – dock sie an etwas Konkretes von heute an. ART dann: Frage der Woche."
@@ -325,6 +356,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   /* Nächste (oder andere) Frage holen: KI, sonst Sammlung */
   async function frageHolen(z, zweck) {
     z.phase = "warte"; z.wartetAuf = "frage"; z.zweck = zweck;
+    z.hakNach = zweck !== "andere" && nachhakenFaellig(z);
     sichere(z); zeichne(z);
     if (!kiBasis() || z.offline) return frageSetzen(z, await bankFrage(z), z.offline ? "" : "nicht verbunden");
     wartet = true;
@@ -352,6 +384,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
 
   function frageSetzen(z, f, grund) {
     if (z.runden.length === 0) f.spiegel = "";
+    if (z.hakNach) f.nachhaken = true;
     z.aktuell = f; z.phase = "frage";
     sichere(z);
     merke("fragen", f.frage, 40);
@@ -381,6 +414,16 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     z.aktuell = null; z.abgelehnt = [];
     sichere(z);
     $("abendAntwort").value = ""; localStorage.removeItem(ENTWURF_A);
+    /* Nachhaken soll keine geplante Frage auffressen: Runde um eins verlängern (höchstens zweimal, nicht spät
+       nachts, nicht nach der letzten Frage) – Überraschung und Wochenspiegel-Anker rücken mit */
+    const stunde = new Date().getHours();
+    if (z.runden.length < z.plan && nachhakenFaellig(z) && (z.extra || 0) < 2 && !(stunde >= 23 || stunde < 4)) {
+      const naechste = z.runden.length + 1;
+      z.plan++; z.extra = (z.extra || 0) + 1;
+      if (z.ueberraschung && z.ueberraschung.runde >= naechste) z.ueberraschung.runde++;
+      if (z.anker && z.anker.runde >= naechste) z.anker.runde++;
+    }
+    sichere(z);
     await eintragSichern(z);
     if (z.runden.length >= z.plan) return abschliessen(z);
     await frageHolen(z, "neu");
