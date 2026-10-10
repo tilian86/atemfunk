@@ -2,7 +2,7 @@
    Ändert sich pushfunk-push.js, hier ?v= UND CACHE hochzählen. */
 importScripts("pushfunk-push.js?v=1");
 
-const CACHE = "atemfunk-v42";
+const CACHE = "atemfunk-v43";
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
@@ -84,6 +84,40 @@ async function rangeResponse(request, e) {
   });
 }
 
+/* Netz zuerst — aber nicht ewig. Ein hängendes Mobilfunknetz (Bank im Wald,
+   halbe Empfangsbalken) meldet keinen Fehler, sondern wartet: die App blieb
+   dann bis zu einer Minute weiß. Nach NETZ_FRIST kommt die gespeicherte
+   Fassung; die Netzantwort läuft trotzdem zu Ende und frischt den Cache auf. */
+const NETZ_FRIST = 4000;
+async function netzZuerst(e) {
+  const req = e.request;
+  let gemerkt = Promise.resolve();
+  const ausNetz = fetch(req).then(resp => {
+    if (resp.ok) {
+      const copy = resp.clone();
+      gemerkt = caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+    }
+    return resp;
+  });
+  e.waitUntil(ausNetz.then(() => gemerkt).catch(() => {}));
+  let uhr;
+  const frist = new Promise(ok => { uhr = setTimeout(() => ok("spaet"), NETZ_FRIST); });
+  const erster = await Promise.race([ausNetz.catch(() => "weg"), frist]);
+  clearTimeout(uhr);
+  if (erster !== "spaet" && erster !== "weg") return erster;
+  const hit = await caches.match(req, { ignoreSearch: true });
+  if (hit) return hit;
+  if (erster === "spaet") {
+    try { return await ausNetz; } catch (err) {}
+  }
+  /* index.html als Ersatz nur für Seiten — nicht als Antwort auf ein Skript */
+  if (req.mode === "navigate") {
+    const start = await caches.match("index.html");
+    if (start) return start;
+  }
+  return Response.error();
+}
+
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   if (new URL(e.request.url).origin !== location.origin) return;
@@ -101,19 +135,7 @@ self.addEventListener("fetch", e => {
   const pfad = new URL(e.request.url).pathname;
   if (e.request.mode === "navigate" || e.request.destination === "document"
       || /\.(js|css|json)$/.test(pfad)) {
-    e.respondWith(
-      fetch(e.request).then(resp => {
-        if (resp.ok) {
-          const copy = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-        }
-        return resp;
-      }).catch(() =>
-        caches.match(e.request, { ignoreSearch: true })
-          /* index.html als Ersatz nur für Seiten — nicht als Antwort auf ein Skript */
-          .then(hit => hit || (e.request.mode === "navigate" ? caches.match("index.html") : Response.error()))
-      )
-    );
+    e.respondWith(netzZuerst(e));
     return;
   }
 
