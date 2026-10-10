@@ -535,6 +535,13 @@ function heute() {
   const d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
+/* Tag für die Abend-Rituale: bis 4 Uhr früh zählt noch der Vortag –
+   eine Abendrunde oder Reflexion um 0:30 gehört zum Abend davor, nicht zum neuen Tag. */
+function abendTag(ts) {
+  const d = ts == null ? new Date() : new Date(ts);
+  if (d.getHours() < 4) d.setDate(d.getDate() - 1);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
 function uhrzeit(ts) {
   const d = new Date(ts);
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");

@@ -23,7 +23,11 @@
   /* ---------- Zustand ---------- */
   function lade() {
     const z = store.getJSON(ZUSTAND, null);
-    return z && z.v === 1 && Array.isArray(z.runden) && Date.now() - z.start < GUELTIG ? z : null;
+    if (!(z && z.v === 1 && Array.isArray(z.runden) && Date.now() - z.start < GUELTIG)) return null;
+    /* Eine fertige Runde vom Vorabend nicht weiter anzeigen – sonst blockierte eine Runde,
+       die nach Mitternacht endete, am nächsten Abend den Start (bis zu 18 Stunden lang). */
+    if (z.phase === "ende" && abendTag(z.start) !== abendTag()) return null;
+    return z;
   }
   const sichere = z => { try { localStorage.setItem(ZUSTAND, JSON.stringify(z)); } catch {} };
   function gedaechtnis() {
@@ -196,7 +200,9 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   /* Was heute im Journal steht – ohne die Abendrunde selbst (die steht im Verlauf) */
   async function tagesNotizen(datum) {
     const alle = await alleEintraege();
-    const text = alle.filter(e => e.datum === datum && !String(e.id).startsWith("abend-"))
+    /* auch Notizen nach Mitternacht (bis 4 Uhr) gehören noch zu diesem Abend */
+    const text = alle.filter(e => (e.datum === datum || (e.zeit && abendTag(e.zeit) === datum))
+        && !String(e.id).startsWith("abend-"))
       .sort((a, b) => a.zeit - b.zeit)
       .map(e => uhrzeit(e.zeit) + " — " + (e.art === "bild" ? "[Foto] " : e.art === "audio" ? "[Sprachnotiz] " : "")
         + (e.text || "")).join("\n");
@@ -304,7 +310,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     if (autoLesen) vorleseFreigabe();
     const b = await bank();
     const { plan, einstieg, ueberraschung, anker } = planen(b, await letzterSpiegel());
-    const z = { v: 1, start: Date.now(), datum: heute(), plan, einstieg, ueberraschung, anker, runden: [],
+    const z = { v: 1, start: Date.now(), datum: abendTag(), plan, einstieg, ueberraschung, anker, runden: [],
                 aktuell: null, abgelehnt: [], phase: "warte", wartetAuf: "frage", zweck: "neu",
                 zusammenfassung: "", faden: "" };
     sichere(z);
@@ -449,7 +455,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
 
   /* ---------- Ein Journal-Eintrag pro Runde, der mitwächst ---------- */
   function eintragText(z) {
-    const tag = new Date(z.start).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
+    const tag = new Date(z.datum ? z.datum + "T12:00" : z.start).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
     const teile = ["🌙 Abendrunde · " + tag];
     if (z.zusammenfassung) teile.push("Kurz gesagt: " + z.zusammenfassung);
     z.runden.forEach((r, i) => teile.push((i + 1) + ". " + r.frage + "\n→ "
@@ -478,10 +484,10 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     $("abendLauf").hidden = leer || ende;
     $("abendEnde").hidden = !ende;
     if (leer) {
-      const heuteSchon = gedaechtnis().letzte === heute();
+      const heuteSchon = gedaechtnis().letzte === abendTag();
       $("abendBtn").textContent = heuteSchon ? "🌙 Noch eine Runde" : "🌙 Durch den Tag führen";
       $("abendLeerHinweis").textContent = heuteSchon
-        ? "Heute schon gemacht ✓ – steht unten unter „Heute“."
+        ? "Heute schon gemacht ✓ – steht unten unter „" + (abendTag() === heute() ? "Heute" : "Frühere Tage") + "“."
         : "Drei bis fünf Fragen zu deinem Tag, eine nach der anderen – jeden Abend anders, etwa 5–10 Minuten. "
           + "Antworten per Text oder Diktat.";
       const wf = spiegelCache && spiegelCache.frage;
@@ -493,7 +499,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
       $("abendZusammen").innerHTML =
         (z.zusammenfassung ? "<h3>Kurz gesagt</h3><p>" + esc(z.zusammenfassung).replace(/\n+/g, "</p><p>") + "</p>" : "")
         + (z.faden ? "<h3>Faden für morgen</h3><p>" + esc(z.faden) + "</p>" : "")
-        + `<p class="ok" style="font-size:13px">✓ ${(n => n === 1 ? "1 Antwort" : n + " Antworten")(z.runden.filter(r => r.status === "beantwortet").length)} im Journal gespeichert (unter „Heute“).</p>`;
+        + `<p class="ok" style="font-size:13px">✓ ${(n => n === 1 ? "1 Antwort" : n + " Antworten")(z.runden.filter(r => r.status === "beantwortet").length)} im Journal gespeichert (unter „${z.datum === heute() ? "Heute" : "Frühere Tage"}“).</p>`;
       $("abendEndeLesen").hidden = !z.zusammenfassung;
       return;
     }
@@ -567,8 +573,12 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   }
 
   async function heuteSchonGemacht() {
-    if (gedaechtnis().letzte === heute()) return true;
-    try { return (await alleEintraege()).some(e => String(e.id).startsWith("abend-") && e.datum === heute()); }
+    const tag = abendTag();
+    /* Version 47 merkte nach Mitternacht den neuen Kalendertag – so eine Runde zählt für den Vorabend */
+    const z = store.getJSON(ZUSTAND, null);
+    const altNachMitternacht = z && z.datum === tag && z.start && abendTag(z.start) !== tag;
+    if (gedaechtnis().letzte === tag && !altNachMitternacht) return true;
+    try { return (await alleEintraege()).some(e => String(e.id).startsWith("abend-") && abendTag(e.zeit || 0) === tag); }
     catch { return false; }
   }
 
@@ -616,7 +626,9 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
       p.delete("abend");
       history.replaceState(null, "", "journal.html" + (p.toString() ? "?" + p : ""));
       $("abendKarte").scrollIntoView({ block: "start" });
-      if (!lade() && !(await heuteSchonGemacht())) return starten();
+      /* eine liegengebliebene Runde vom Vorabend (Antworten stehen schon im Journal) zählt nicht als „heute“ */
+      const z = lade();
+      if ((!z || abendTag(z.start) !== abendTag()) && !(await heuteSchonGemacht())) return starten();
     }
     weitermachen();
   }

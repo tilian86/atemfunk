@@ -56,7 +56,7 @@
 </div>
 
 <script src="sync.js?v=1"></script>
-<script src="shared.js?v=33"></script>
+<script src="shared.js?v=34"></script>
 <script>
 "use strict";
 
@@ -194,7 +194,7 @@ function zeigeVerlauf() {
     if (!e) continue;
     const k = document.createElement("div");
     k.className = "card"; k.style.cursor = "pointer";
-    k.innerHTML = `<div class="hint" style="margin:0 0 4px">${e.datum}</div>
+    k.innerHTML = `<div class="hint" style="margin:0 0 4px">${String(e.datum || "").replace(/[<>&]/g, "")}</div>
       <div class="txt" style="font-size:14px">${String(e.plan?.titel || e.ziel || "Plan").slice(0, 80).replace(/[<>&]/g, "")}</div>`;
     k.addEventListener("click", () => { plan = e.plan; $("ziel").value = e.ziel; zeigePlan(); });
     ziel.appendChild(k);

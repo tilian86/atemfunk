@@ -150,11 +150,11 @@
 
   <div class="cap">Frühere Tage</div>
   <div id="frueher"></div>
-  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 47 · Stand 10.10.2026</div>
+  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 48 · Stand 11.10.2026</div>
 </div>
 
 <script src="sync.js?v=1"></script>
-<script src="shared.js?v=33"></script>
+<script src="shared.js?v=34"></script>
 <script>
 "use strict";
 
@@ -307,7 +307,7 @@ async function zeigeFrueher() {
     k.className = "card";
     k.style.cursor = "pointer";
     const n = andere.filter(e => e.datum === tag).length;
-    k.innerHTML = `<div class="txt"><strong>${tag}</strong> · ${n} ${n === 1 ? "Eintrag" : "Einträge"}</div>`;
+    k.innerHTML = `<div class="txt"><strong>${escHtml(tag)}</strong> · ${n} ${n === 1 ? "Eintrag" : "Einträge"}</div>`;
     k.addEventListener("click", () => {
       const offen = k.querySelector(".details");
       if (offen) { offen.remove(); return; }
@@ -374,7 +374,9 @@ function trenneForm(text) {
 
 async function tagesText() {
   const alle = await alleEintraege();
-  const heutige = alle.filter(e => e.datum === heute()).sort((a, b) => a.zeit - b.zeit);
+  /* nach Mitternacht (bis 4 Uhr) gehört der Vortag noch dazu – sonst hieß es um 0:30 „noch nichts im Journal“ */
+  const tage = new Set([heute(), abendTag()]);
+  const heutige = alle.filter(e => tage.has(e.datum)).sort((a, b) => a.zeit - b.zeit);
   const teile = heutige.map(e => {
     const z = uhrzeit(e.zeit);
     if (e.art === "bild") return `${z} — [Foto]${e.text ? " " + e.text : ""}`;
@@ -451,7 +453,8 @@ async function nimmAntwort(r, info) {
   }
   zeigeGespraech(g);
   /* Ein Journal-Eintrag pro Gespräch, der mitwächst – statt bei jeder Antwort einer neuen Kopie */
-  await speichern({ id: "gespraech-" + g.start, art: "text", text: "Journal-Gespräch\n\n" + gespraechAlsText(g) });
+  /* datum vom Gesprächsbeginn: eine Antwort nach Mitternacht schiebt das Gespräch nicht in den neuen Tag */
+  await speichern({ id: "gespraech-" + g.start, datum: g.datum || heute(), art: "text", text: "Journal-Gespräch\n\n" + gespraechAlsText(g) });
   zeigeHeute();
 }
 
@@ -789,7 +792,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
-<script src="abend.js?v=1"></script>
+<script src="abend.js?v=2"></script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
 <script src="https://pushfunk.46-225-133-113.sslip.io/pushfunk.js" data-app="atemfunk" data-name="Atemfunk" data-sw="vorhanden" defer></script>
 </body>
