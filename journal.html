@@ -208,7 +208,10 @@ function zeichne(ziel, liste) {
     }
     const weg = document.createElement("div");
     weg.className = "weg"; weg.textContent = "✕";
-    weg.addEventListener("click", async () => {
+    weg.title = "Eintrag löschen";
+    weg.addEventListener("click", async ev => {
+      ev.stopPropagation();                                 /* unter „Frühere Tage“ nicht den Tag zuklappen */
+      if (!confirm("Eintrag wirklich löschen?")) return;    /* gleicher Stil wie die übrigen Rückfragen (prompt/alert) */
       await dbTx("journal", "readwrite", s => s.delete(e.id));
       if (window.atemSync) atemSync.weg("j", e.id);        /* auch auf den anderen Geräten löschen */
       zeigeHeute(); zeigeFrueher();
