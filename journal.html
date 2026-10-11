@@ -42,6 +42,11 @@
 .abend-klein { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .abend-klein .btn { min-height: 36px; padding: 7px 11px; font-size: 13px; background: transparent; }
 .eintrag .txt { white-space: pre-line; }
+/* Klären (klaeren.html) */
+.klaer { border-color: rgba(127,184,216,0.28);
+         background: linear-gradient(160deg, rgba(127,184,216,0.08), rgba(255,255,255,0.03)); }
+.klaer-start { width: 100%; text-decoration: none; color: inherit; }
+.eintrag.klaerung { border-color: rgba(127,184,216,0.28); }
 </style>
 </head>
 <body>
@@ -86,6 +91,12 @@
         <button class="btn" id="abendSchliessen">Schließen</button>
       </div>
     </div>
+  </div>
+
+  <!-- Klären: Reflexionsgespräch vorbereiten (klaeren.html) -->
+  <div class="card klaer" id="klaerKarte">
+    <a class="btn primary klaer-start" id="klaerBtn" href="klaeren.html">🫂 Etwas klären</a>
+    <div class="hint" id="klaerHinweis">Ein Streit, ein Gedanke, der kreist, eine Entscheidung: Atemfunk baut dir einen Prompt für ein ruhiges Gespräch in Gemini oder ChatGPT. Die Zusammenfassung kommt zurück ins Journal.</div>
   </div>
 
   <div class="hint" id="impulsText" style="display:none; margin:0 0 10px; color:var(--gold); font-size:14px; line-height:1.55"></div>
@@ -152,11 +163,11 @@
 
   <div class="cap">Frühere Tage</div>
   <div id="frueher"></div>
-  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 50 · Stand 11.10.2026</div>
+  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 51 · Stand 12.10.2026</div>
 </div>
 
 <script src="sync.js?v=1"></script>
-<script src="shared.js?v=34"></script>
+<script src="shared.js?v=35"></script>
 <script>
 "use strict";
 
@@ -263,7 +274,8 @@ function zeichne(ziel, liste) {
     const k = document.createElement("div");
     k.className = "card eintrag";
     const zeit = document.createElement("div");
-    zeit.className = "zeit"; zeit.textContent = uhrzeit(e.zeit);
+    zeit.className = "zeit"; zeit.textContent = (e.art === "klaerung" ? "🫂 " : "") + uhrzeit(e.zeit);
+    if (e.art === "klaerung") k.classList.add("klaerung");
     const txt = document.createElement("div");
     txt.className = "txt";
     if (e.text) txt.textContent = e.text;
@@ -309,7 +321,8 @@ async function zeigeFrueher() {
     k.className = "card";
     k.style.cursor = "pointer";
     const n = andere.filter(e => e.datum === tag).length;
-    k.innerHTML = `<div class="txt"><strong>${escHtml(tag)}</strong> · ${n} ${n === 1 ? "Eintrag" : "Einträge"}</div>`;
+    const kl = andere.some(e => e.datum === tag && e.art === "klaerung") ? " · 🫂 Klärung" : "";
+    k.innerHTML = `<div class="txt"><strong>${escHtml(tag)}</strong> · ${n} ${n === 1 ? "Eintrag" : "Einträge"}${kl}</div>`;
     k.addEventListener("click", () => {
       const offen = k.querySelector(".details");
       if (offen) { offen.remove(); return; }
@@ -515,6 +528,17 @@ async function antworten() {
   fertig("Senden");
   wartet = false;
   await nimmAntwort(r, info);
+}
+
+/* ---------- Klären: angefangene Klärung wiederaufnehmen ---------- */
+function zeigeKlaerKarte() {
+  const d = store.getJSON("atemfunk_klaeren", null);
+  const offen = d && d.v === 1 && d.schritt && d.schritt !== "fertig" && ((d.text || "").trim() || d.schritt !== "start");
+  $("klaerBtn").textContent = offen ? "🫂 Klärung fortsetzen" : "🫂 Etwas klären";
+  if (offen) {
+    const tag = d.start ? new Date(d.start).toLocaleDateString("de-DE", { day: "numeric", month: "numeric" }).replace(/\.$/, "") + "." : "";
+    $("klaerHinweis").textContent = (tag ? "Angefangen am " + tag + " " : "") + "Dein Entwurf liegt noch bereit, genau wie du ihn verlassen hast.";
+  }
 }
 
 /* ---------- Erkenntnisse: der wachsende Speicher ---------- */
@@ -785,7 +809,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.addEventListener("pageshow", ev => { if (ev.persisted) abholen(); });
   abholen();
 
-  zeigeHeute(); zeigeFrueher();
+  zeigeHeute(); zeigeFrueher(); zeigeKlaerKarte();
+  window.addEventListener("pageshow", zeigeKlaerKarte);
   /* Neues von anderen Geräten/Home-Symbolen */
   window.addEventListener("atemfunk-sync", () => {
     zeigeHeute(); zeigeFrueher(); zeigeErkenntnisse(); zeigeFaeden(); zeigeErinnerung();

@@ -12,6 +12,7 @@ const $ = id => document.getElementById(id);
   ];
   let hier = (location.pathname.split("/").pop() || "index.html");
   if (hier === "statistik.html") hier = "index.html";   /* Statistik gehört zu „Atmen“ */
+  if (hier === "klaeren.html") hier = "journal.html";   /* Klären hängt am Journal */
   const el = document.createElement("nav");
   el.className = "nav";
   el.innerHTML = seiten.map(([href, ico, txt]) =>
