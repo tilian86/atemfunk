@@ -1,6 +1,11 @@
-/* Abendrunde im Journal: führt abends mit Fragen durch den Tag – eine nach der anderen.
+/* Geführte Runde im Journal: führt mit Fragen durch den Tag – eine nach der anderen.
    Die nächste Frage geht auf die letzte Antwort ein (KI über die Bridge, Max-Abo). Ohne
    Verbindung kommen die Fragen aus der eigenen Sammlung (abendfragen.json).
+
+   Tageszeit (seit 11.10.2026): morgens (4–12 Uhr) „☀️ Morgenrunde“ – ankommen, ausrichten, kleinster
+   erster Schritt, mit Blick auf gestern Abend; mittags (12–17 Uhr) „🌤 Zwischenhalt“; abends (17–4 Uhr)
+   „🌙 Abendrunde“ wie bisher. Morgens/mittags lässt sich die Abendrunde von gestern nachholen.
+   Journal-Einträge: „morgen-<start>“, „mittag-<start>“, „abend-<start>“.
 
    Abwechslung: Die Einstiegsform wählt die App per Zufall (die letzten 10 sind gesperrt),
    manchmal kommt mitten in der Runde ein überraschendes Format, und die Fragen der letzten
@@ -17,8 +22,37 @@
   const GUELTIG = 18 * 3600e3;          /* eine Runde gilt 18 Stunden – auch nach Mitternacht */
   const NICHT_WARTEN_AB = 20;           /* Sekunden, ab denen „Nicht warten“ erscheint */
 
+  const WECHSEL = 90 * 60e3;            /* ruht eine Runde so lange und die Tageszeit ist eine andere: neu anfangen */
+
   let wartet = false, warteUhr = null, bankDaten = null;
   let autoLesen = store.get(AUTO_A, "off") === "on";
+
+  /* ---------- Tageszeit ---------- */
+  function tageszeit(ts) {
+    const h = new Date(ts == null ? Date.now() : ts).getHours();
+    return h >= 4 && h < 12 ? "morgen" : h >= 12 && h < 17 ? "mittag" : "abend";
+  }
+  const ZEITEN = {
+    morgen: { name: "Morgenrunde", gen: "der Morgenrunde", dat: "dieser Morgenrunde", emoji: "☀️",
+              knopf: "☀️ Gut in den Tag starten", faden: "Fokus für heute",
+              hinweis: "Zwei bis vier Fragen für den Start in den Tag – ankommen, ausrichten, ein erster Schritt. "
+                + "Etwa 3–5 Minuten, per Text oder Diktat." },
+    mittag: { name: "Zwischenhalt", gen: "des Zwischenhalts", dat: "diesem Zwischenhalt", emoji: "🌤",
+              knopf: "🌤 Kurzer Zwischenhalt", faden: "Für den Nachmittag",
+              hinweis: "Zwei, drei Fragen mitten am Tag – wo du stehst und was der Nachmittag braucht. "
+                + "Etwa 2–4 Minuten, per Text oder Diktat." },
+    abend:  { name: "Abendrunde", gen: "der Abendrunde", dat: "dieser Abendrunde", emoji: "🌙",
+              knopf: "🌙 Durch den Tag führen", faden: "Faden für morgen",
+              hinweis: "Drei bis fünf Fragen zu deinem Tag, eine nach der anderen – jeden Abend anders, etwa 5–10 Minuten. "
+                + "Antworten per Text oder Diktat." },
+  };
+  const zeitVon = z => (z && ZEITEN[z.zeit]) ? z.zeit : "abend";       /* Runden vor Version 50 waren alle abends */
+  const zeitInfo = z => ZEITEN[zeitVon(z)];
+  const fadenName = z => z.nachgeholt ? "Faden für heute" : zeitInfo(z).faden;
+  const eintragId = z => zeitVon(z) + "-" + z.start;
+  const RUNDE_ID = /^(abend|morgen|mittag)-/;
+  const gestern = () => abendTag(Date.now() - 864e5);
+  const wochentag = datum => new Date(datum + "T12:00").toLocaleDateString("de-DE", { weekday: "long" });
 
   /* ---------- Zustand ---------- */
   function lade() {
@@ -27,12 +61,15 @@
     /* Eine fertige Runde vom Vorabend nicht weiter anzeigen – sonst blockierte eine Runde,
        die nach Mitternacht endete, am nächsten Abend den Start (bis zu 18 Stunden lang). */
     if (z.phase === "ende" && abendTag(z.start) !== abendTag()) return null;
+    /* Morgenrunde liegengelassen, jetzt ist Abend: nicht dort weitermachen – die Antworten stehen schon im Journal */
+    if (zeitVon(z) !== tageszeit() && Date.now() - (z.aktiv || z.start) > WECHSEL) return null;
     return z;
   }
-  const sichere = z => { try { localStorage.setItem(ZUSTAND, JSON.stringify(z)); } catch {} };
+  const sichere = z => { z.aktiv = Date.now(); try { localStorage.setItem(ZUSTAND, JSON.stringify(z)); } catch {} };
   function gedaechtnis() {
     const g = store.getJSON(GEDAECHTNIS, {});
     for (const k of ["einstiege", "ueberraschungen", "fragen", "arten", "bank", "anker"]) if (!Array.isArray(g[k])) g[k] = [];
+    if (!g.letzteJe || typeof g.letzteJe !== "object") g.letzteJe = { abend: g.letzte || "" };
     return g;
   }
   function merke(feld, wert, max) {
@@ -41,8 +78,10 @@
     g[feld] = [wert, ...g[feld].filter(x => x !== wert)].slice(0, max);
     try { localStorage.setItem(GEDAECHTNIS, JSON.stringify(g)); } catch {}
   }
-  function merkeTag(datum) {
-    const g = gedaechtnis(); g.letzte = datum;
+  function merkeTag(datum, zeit) {
+    const g = gedaechtnis();
+    g.letzteJe[zeit] = datum;
+    if (zeit === "abend") g.letzte = datum;
     try { localStorage.setItem(GEDAECHTNIS, JSON.stringify(g)); } catch {}
   }
 
@@ -67,11 +106,20 @@
   }
 
   /* ---------- Fragensammlung ---------- */
-  const NOTFRAGEN = [
-    "Welcher Moment von heute taucht als Erstes auf, wenn du an den Tag denkst?",
-    "Was davon geht dir am meisten nach?",
-    "Was darf von heute einfach hierbleiben, statt mit in die Nacht zu kommen?",
-  ];
+  const NOTFRAGEN = {
+    abend: ["Welcher Moment von heute taucht als Erstes auf, wenn du an den Tag denkst?",
+            "Was davon geht dir am meisten nach?",
+            "Was darf von heute einfach hierbleiben, statt mit in die Nacht zu kommen?"],
+    morgen: ["Mit welchem Gedanken bist du heute aufgewacht?",
+             "Wenn heute nur eine Sache klappt – welche soll es sein?",
+             "Was ist dein erster Schritt, sobald du hier fertig bist?"],
+    mittag: ["Was vom Vormittag hängt dir noch nach?",
+             "Was würde dir in den nächsten fünf Minuten guttun?",
+             "Welche eine Sache würde den Nachmittag gut machen?"],
+  };
+  /* Folgefragen passen zu jeder Tageszeit; alles andere ohne „zeit“-Feld gehört zum Abend */
+  const GETEILT = ["folgen", "folgenWort", "nachhaken"];
+  const fragtZu = (f, zeit) => f.zeit ? f.zeit === zeit : (zeit === "abend" || GETEILT.includes(f.kat));
   const MITTE = ["moment", "skala", "ausnahme", "wunder", "werte", "mitgefuehl", "koerper",
                  "beziehung", "perspektive", "mut", "energie"];
   const KAT_NAME = {
@@ -79,11 +127,12 @@
     werte: "Was dir wichtig ist", mitgefuehl: "Freundlich mit dir", koerper: "Körper", beziehung: "Menschen",
     perspektive: "Perspektivwechsel", mut: "Mut", energie: "Energie", spiel: "Überraschung", dank: "Kleinigkeiten",
     abschluss: "Ausklang", folgen: "Nachgefragt", folgenWort: "Nachgefragt", nachhaken: "Nachhaken",
+    fokus: "Das Eine", reibung: "Reibung", schritt: "Erster Schritt", menschen: "Menschen", kurs: "Kurs prüfen",
   };
   async function bank() {
     if (bankDaten) return bankDaten;
     try {
-      const r = await fetch("abendfragen.json?v=2");
+      const r = await fetch("abendfragen.json?v=3");
       if (r.ok) bankDaten = await r.json();
     } catch {}
     return bankDaten;
@@ -119,13 +168,23 @@
   }
   const antwortZitat = r => String((r && r.a) || "").replace(/[„“"»«]/g, "").replace(/[\s.!?…,;:]+$/, "").trim();
 
+  /* Nachgeholte Abendrunde ohne KI: Abendfragen sprechen von „heute“ – gemeint ist jetzt gestern */
+  const aufGestern = t => t.replace(/\bheute\b/g, "gestern").replace(/\bHeute\b/g, "Gestern")
+    .replace(/\bheutigen\b/g, "gestrigen").replace(/\bmorgen\b/g, "heute");
   async function bankFrage(z) {
+    const f = await bankFrageRoh(z);
+    if (z.nachgeholt && f.frage) f.frage = aufGestern(f.frage);
+    return f;
+  }
+  async function bankFrageRoh(z) {
     const b = await bank();
     const n = z.runden.length + 1;
-    if (!b) return { frage: NOTFRAGEN[Math.min(n - 1, 2)], spiegel: "", art: "", quelle: "bank" };
+    const zeit = zeitVon(z);
+    if (!b) return { frage: NOTFRAGEN[zeit][n === 1 ? 0 : n >= z.plan ? 2 : 1], spiegel: "", art: "", quelle: "bank" };
+    const fragen = b.fragen.filter(f => fragtZu(f, zeit));
     const letzte = z.runden[z.runden.length - 1];
     if (z.hakNach) {
-      const pool = b.fragen.filter(f => f.kat === "nachhaken" && !z.runden.some(r => r.bankId === f.id));
+      const pool = fragen.filter(f => f.kat === "nachhaken" && !z.runden.some(r => r.bankId === f.id));
       if (pool.length) {
         const f = zufall(pool);
         return { frage: f.text.replace(/\{antwort\}/g, antwortZitat(letzte)), spiegel: "", art: KAT_NAME.nachhaken,
@@ -141,20 +200,43 @@
     else if (letzte && letzte.status === "beantwortet" && letzte.a.split(/\s+/).length >= 8 && Math.random() < 0.5) {
       wort = stichwort(letzte.a);
       kats = wort && Math.random() < 0.4 ? ["folgenWort"] : ["folgen"];
-    } else if (Math.random() < 0.08) kats = ["dank"];
-    else kats = [zufall(MITTE.filter(k => !letzte || k !== letzte.kat))];
+    } else if (zeit === "abend" && Math.random() < 0.08) kats = ["dank"];
+    else {
+      /* Mitte: abends die festen Kategorien, morgens/mittags alle eigenen außer Einstieg/Abschluss/Spiel */
+      const mitte = zeit === "abend" ? MITTE : [...new Set(fragen.filter(f => f.zeit === zeit
+        && !["einstieg", "abschluss", "spiel"].includes(f.kat)).map(f => f.kat))];
+      kats = [zufall(mitte.filter(k => !letzte || k !== letzte.kat).concat(mitte.length === 1 ? mitte : []))];
+    }
     const g = gedaechtnis();
     const hier = new Set([...z.runden.map(r => r.bankId), z.aktuell && z.aktuell.bankId].filter(Boolean));
     const passt = f => kats.includes(f.kat) && !hier.has(f.id);
-    let pool = b.fragen.filter(f => passt(f) && !g.bank.includes(f.id));
-    if (!pool.length) pool = b.fragen.filter(passt);
-    if (!pool.length) pool = b.fragen.filter(f => f.kat === "folgen" && !hier.has(f.id));
+    let pool = fragen.filter(f => passt(f) && !g.bank.includes(f.id));
+    if (!pool.length) pool = fragen.filter(passt);
+    if (!pool.length) pool = fragen.filter(f => f.kat === "folgen" && !hier.has(f.id));
     const f = zufall(pool);
     return { frage: f.text.replace(/\{wort\}/g, wort), spiegel: "", art: KAT_NAME[f.kat] || "", kat: f.kat,
              quelle: "bank", bankId: f.id };
   }
 
   /* ---------- Auftrag an die KI ---------- */
+  /* Gilt für jede Tageszeit: zuhören, nachhaken, Ausgabeformat */
+  const ZUHOEREN = `Aktives Zuhören (ab der zweiten Frage):
+– SPIEGEL: ein kurzer Satz (höchstens 18 Wörter), der zeigt, dass du genau zugehört hast – am besten mit einem seiner
+  eigenen Worte oder einer präzisen Beobachtung. Keine Wertung („Stark“, „Spannend“, „Das ist mutig“), kein
+  „Danke für deine Offenheit“, kein „Ich höre, dass …“. Ist nichts Sinnvolles zu spiegeln: leer lassen.
+– Danach vertiefen – dort, wo in seiner Antwort die meiste Energie steckt (ein auffälliges Wort, ein Widerspruch,
+  ein Zögern, etwas halb Gesagtes) – oder bewusst wechseln, wenn es ausgeschöpft wirkt.
+– Antwortet er sehr knapp (ein paar Wörter wie „tut weh“, „ging so“, „Stress halt“): NICHT das Thema wechseln,
+  sondern genau dort eine Ebene tiefer fragen – konkret, behutsam, gern mit seinem eigenen Wort (was genau, wo,
+  seit wann, was war kurz davor, woran er es merkt). Bleibt er nach zweimal Nachhaken knapp, leicht weiterziehen.
+– Überspringt er eine Frage: leichter und spielerischer werden statt nachbohren.
+– Nie dieselbe Art Frage zweimal hintereinander.
+
+Antworte NUR mit diesen drei Zeilen, ohne Vorspann und ohne Anführungszeichen drumherum:
+SPIEGEL: <ein Satz oder leer>
+FRAGE: <die eine Frage>
+ART: <zwei bis vier Wörter: welches Werkzeug oder Format du gewählt hast>`;
+
   const SYSTEM_ABEND = `Du führst Florian am Abend mit ein paar Fragen durch seinen Tag – eine nach der anderen,
 wie in einem guten Gespräch. Klingen sollst du wie ein kluger, neugieriger Freund mit psychologischem Gespür,
 der abends kurz nachfragt: nicht wie ein Fragebogen, nicht wie ein Coaching-Kärtchen, nicht wie eine Therapiestunde.
@@ -189,48 +271,134 @@ So nicht → eher so (nur der Ton – die Beispiele nicht übernehmen):
 ✗ (nach „tut weh“) „Und was war heute sonst noch?“ → ✓ „Was genau tut weh – etwas im Körper oder etwas, das heute passiert ist?“
 ✗ „Was ist deine größte Erkenntnis des Tages?“ → ✓ „Was hast du heute über dich gemerkt, das dich ein bisschen überrascht hat?“
 
-Aktives Zuhören (ab der zweiten Frage):
-– SPIEGEL: ein kurzer Satz (höchstens 18 Wörter), der zeigt, dass du genau zugehört hast – am besten mit einem seiner
-  eigenen Worte oder einer präzisen Beobachtung. Keine Wertung („Stark“, „Spannend“, „Das ist mutig“), kein
-  „Danke für deine Offenheit“, kein „Ich höre, dass …“. Ist nichts Sinnvolles zu spiegeln: leer lassen.
-– Danach vertiefen – dort, wo in seiner Antwort die meiste Energie steckt (ein auffälliges Wort, ein Widerspruch,
-  ein Zögern, etwas halb Gesagtes) – oder bewusst wechseln, wenn es ausgeschöpft wirkt.
-– Antwortet er sehr knapp (ein paar Wörter wie „tut weh“, „ging so“, „Stress halt“): NICHT das Thema wechseln,
-  sondern genau dort eine Ebene tiefer fragen – konkret, behutsam, gern mit seinem eigenen Wort (was genau, wo,
-  seit wann, was war kurz davor, woran er es merkt). Bleibt er nach zweimal Nachhaken knapp, leicht weiterziehen.
-– Überspringt er eine Frage: leichter und spielerischer werden statt nachbohren.
-– Nie dieselbe Art Frage zweimal hintereinander.
+` + ZUHOEREN;
 
-Antworte NUR mit diesen drei Zeilen, ohne Vorspann und ohne Anführungszeichen drumherum:
-SPIEGEL: <ein Satz oder leer>
-FRAGE: <die eine Frage>
-ART: <zwei bis vier Wörter: welches Werkzeug oder Format du gewählt hast>`;
+  const SYSTEM_MORGEN = `Du begleitest Florian am Morgen mit ein paar Fragen in seinen Tag – eine nach der anderen,
+wie in einem guten Gespräch beim ersten Kaffee. Klingen sollst du wie ein kluger, neugieriger Freund mit
+psychologischem Gespür: nicht wie ein Fragebogen, nicht wie ein Produktivitäts-Coach, nicht wie eine To-do-App.
+Florian hat ADHS, mag es konkret und hasst Küchenpsychologie, Kalendersprüche, Kitsch und Selbstoptimierungs-Sprech.
+Die ganze Runde soll in drei bis fünf Minuten machbar sein – kurz genug, dass sie den Morgen nicht auffrisst,
+und trotzdem nie gleich.
 
-  const SYSTEM_ENDE = `Du hast Florian heute Abend mit ein paar Fragen durch seinen Tag geführt. Die Runde ist vorbei.
-Schreib eine kurze, nüchterne Zusammenfassung für sein Journal:
+Worum es morgens geht: ankommen (wie er aufgewacht ist, Körper, Stimmung), sich ausrichten (was heute wirklich
+zählt), ehrlich auf Reibung schauen (wo es haken könnte, wovor er sich drücken könnte) und einen kleinsten ersten
+Schritt finden. Blieb gestern Abend etwas offen, darf eine Frage daran anknüpfen.
+
+Die Frage:
+– Genau EINE Frage, meist ein einziger kurzer Satz, höchstens 25 Wörter. Keine Doppelfrage, keine Auswahlliste.
+– In fünf Sekunden verstanden, in einer Minute beantwortbar – auch noch halb verschlafen – und trotzdem mit Tiefe.
+– Konkret an diesem Morgen und diesem Tag: wie er aufgewacht ist, ein Termin, ein Mensch, eine Uhrzeit, eine
+  Sache, die ansteht – nicht „der Tag insgesamt“ und keine großen Lebensziele.
+– Offen (was, wie, woran, wann, wer, wo). „Warum“ fast nie. Keine Ja/Nein-Frage, nichts Suggestives.
+– Kein Planungs-Verhör: keine To-do-Listen abfragen, keine Zeitpläne, keine Ziel-Formulierungen, kein „Was willst
+  du heute alles schaffen“. Es geht ums Ankommen und um Ausrichtung, nicht um Organisation.
+– Alltagssprache, per Du, gern mal überraschend oder leicht verspielt. Keine Fachbegriffe, keine Methodennamen.
+– Werkzeuge (mischen, nicht abarbeiten): Ankommen (Schlaf, Körper, Stimmung jetzt), Skalierung (Energie 1–10, was
+  einen Punkt mehr bringen würde), das Eine (was heute zählt, wenn sonst nichts klappt), Vorfreude, Reibung und
+  Vermeiden (wo es haken könnte, was es leichter machen würde), kleinster erster Schritt, Wenn-dann (wenn X passiert,
+  was macht er dann), Energie planen (wann er am klarsten ist), Menschen von heute, Perspektivwechsel (sein Abend-Ich,
+  ein Freund), Selbstmitgefühl (was heute liegen bleiben darf), der Faden von gestern.
+– Keine Ratschläge, keine Motivationssprüche, kein Lob, kein Pathos, keine Ausrufezeichen.
+– Ist er müde, gereizt oder schlecht drauf: nicht wegmotivieren, sondern ernst nehmen und kleiner fragen.
+
+So nicht → eher so (nur der Ton – die Beispiele nicht übernehmen):
+✗ „Was sind deine Ziele für heute?“ → ✓ „Woran merkst du heute Abend, dass der Tag gut war – an einer Sache, nicht an zehn?“
+✗ „Wie hast du geschlafen?“ → ✓ „Mit welchem Gedanken bist du heute aufgewacht – noch bevor das Handy dran war?“
+✗ „Was steht heute alles an?“ → ✓ „Welcher Punkt von heute liegt dir jetzt schon ein bisschen im Magen?“
+✗ „Wie motivierst du dich heute?“ → ✓ „Was ist der kleinste Schritt, mit dem die schwierige Sache heute anfangen könnte?“
+✗ „Worauf freust du dich?“ → ✓ „Welche Stunde von heute würdest du gern vorspulen – und welche lieber dehnen?“
+✗ (nach „müde“) „Was gibt dir heute Energie?“ → ✓ „Müde im Kopf oder im Körper – und seit wann merkst du es?“
+✗ „Was willst du heute erreichen?“ → ✓ „Was würde heute schon reichen, damit du abends nicht mit dir haderst?“
+
+` + ZUHOEREN;
+
+  const SYSTEM_MITTAG = `Du machst mit Florian mitten am Tag einen kurzen Zwischenhalt – zwei, drei Fragen, eine nach der
+anderen. Klingen sollst du wie ein kluger, neugieriger Freund mit psychologischem Gespür, der kurz anruft und
+nachfragt: nicht wie ein Fragebogen, nicht wie ein Produktivitäts-Coach. Florian hat ADHS, mag es konkret und hasst
+Küchenpsychologie, Kalendersprüche und Kitsch. Die Runde soll in zwei bis vier Minuten machbar sein.
+
+Worum es mittags geht: kurz innehalten, ehrlich schauen, wo er steht (gegenüber dem, was er sich morgens vorgenommen
+hat, falls das im Journal steht), was ihm gerade Energie zieht oder gibt, was sein Körper braucht – und was der
+Nachmittag wirklich braucht.
+
+Die Frage:
+– Genau EINE Frage, meist ein einziger kurzer Satz, höchstens 25 Wörter. Keine Doppelfrage, keine Auswahlliste.
+– In fünf Sekunden verstanden, in einer Minute beantwortbar – zwischen zwei Dingen – und trotzdem mit Tiefe.
+– Konkret an diesem Tag bis jetzt und am Rest des Tages: ein Moment vom Vormittag, wo er gerade steht, was jetzt
+  ansteht – nicht „der Tag insgesamt“.
+– Offen (was, wie, woran, wann, wer, wo). „Warum“ fast nie. Keine Ja/Nein-Frage, nichts Suggestives.
+– Kein Leistungs-Check: nicht abfragen, was er alles geschafft hat oder noch schaffen muss.
+– Werkzeuge (mischen, nicht abarbeiten): Standort (1–10, was die Zahl ausmacht), Kurskorrektur (was vom Morgen noch
+  gilt, was nicht mehr), ein Moment vom Vormittag, Energie und Aufmerksamkeit, Körper (Pause, Essen, Bewegung – ohne
+  Belehrung), Vermeiden, das Eine für den Nachmittag, kleinster nächster Schritt, Selbstmitgefühl, Perspektivwechsel.
+– Alltagssprache, per Du. Keine Ratschläge, kein Lob, kein Pathos, keine Ausrufezeichen.
+– Läuft der Tag schlecht: nicht kleinreden, nicht ins Positive drehen – ernst nehmen und kleiner fragen.
+
+So nicht → eher so (nur der Ton – die Beispiele nicht übernehmen):
+✗ „Wie läuft dein Tag?“ → ✓ „Was vom Vormittag hängt dir noch nach – im Guten oder im Schlechten?“
+✗ „Bist du produktiv?“ → ✓ „Wenn der Vormittag eine Zahl von 1 bis 10 war – was bräuchte der Nachmittag für einen Punkt mehr?“
+✗ „Was musst du noch erledigen?“ → ✓ „Welche eine Sache würde den Nachmittag gut machen, wenn sonst nichts klappt?“
+✗ „Machst du genug Pausen?“ → ✓ „Woran merkst du gerade im Körper, wie der Vormittag war?“
+
+` + ZUHOEREN;
+
+  const SYSTEM_FRAGE = { abend: SYSTEM_ABEND, morgen: SYSTEM_MORGEN, mittag: SYSTEM_MITTAG };
+
+  const ZUSAMMEN_REGELN = `Schreib eine kurze, nüchterne Zusammenfassung für sein Journal:
 – 2 bis 4 Sätze, per Du, wie eine knappe Notiz.
 – Übernimm seine eigenen Formulierungen, gern als kurze Zitate in „…“. Nichts hinzudichten, was er nicht gesagt hat.
 – Keine Deutung, kein Rat, kein Lob, kein Pathos, keine Moral am Ende.
 – Was er übersprungen hat, lässt du weg.
 
 Beginne mit der Zeile
-ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
+ZUSAMMENFASSUNG: <die 2–4 Sätze>`;
+  /* morgens/mittags zusätzlich eine FOKUS-Zeile: das, was er heute bzw. am Nachmittag im Blick behalten will */
+  const FOKUS_ZEILE = wofuer => `
+Danach die Zeile
+FOKUS: <ein kurzer Satz, möglichst in seinen eigenen Worten: worauf er ${wofuer} achten oder womit er anfangen will –
+nur, was er selbst so gesagt hat. Gab er nichts in der Art an: das Wort keiner>`;
+  const SYSTEM_ENDE = {
+    abend: "Du hast Florian heute Abend mit ein paar Fragen durch seinen Tag geführt. Die Runde ist vorbei.\n"
+      + ZUSAMMEN_REGELN + META_AUFTRAG,
+    morgen: "Du hast Florian heute Morgen mit ein paar Fragen in seinen Tag begleitet. Die Runde ist vorbei.\n"
+      + ZUSAMMEN_REGELN + FOKUS_ZEILE("heute") + META_AUFTRAG,
+    mittag: "Du hast mit Florian mitten am Tag einen kurzen Zwischenhalt gemacht. Die Runde ist vorbei.\n"
+      + ZUSAMMEN_REGELN + FOKUS_ZEILE("am Nachmittag") + META_AUFTRAG,
+  };
 
   function wannText() {
     const d = new Date();
     return d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       + ", " + uhrzeit(Date.now()) + " Uhr";
   }
-  /* Was heute im Journal steht – ohne die Abendrunde selbst (die steht im Verlauf) */
-  async function tagesNotizen(datum) {
+  /* Was heute im Journal steht – ohne diese Runde selbst (die steht im Verlauf); andere Runden des Tages
+     gehören dazu: abends weiß die Runde so, was morgens gesagt wurde */
+  async function tagesNotizen(datum, ohneId) {
     const alle = await alleEintraege();
     /* auch Notizen nach Mitternacht (bis 4 Uhr) gehören noch zu diesem Abend */
-    const text = alle.filter(e => (e.datum === datum || (e.zeit && abendTag(e.zeit) === datum))
-        && !String(e.id).startsWith("abend-"))
+    const text = alle.filter(e => zumTag(e, datum) && String(e.id) !== ohneId)
       .sort((a, b) => a.zeit - b.zeit)
       .map(e => uhrzeit(e.zeit) + " — " + (e.art === "bild" ? "[Foto] " : e.art === "audio" ? "[Sprachnotiz] " : "")
         + (e.text || "")).join("\n");
     return text.length > 5000 ? "…" + text.slice(-5000) : text;
+  }
+  /* Runden zählen zu ihrem Datum (eine nachgeholte Abendrunde zu gestern); sonst auch Notizen bis 4 Uhr früh */
+  const zumTag = (e, datum) => RUNDE_ID.test(String(e.id)) ? e.datum === datum
+    : (e.datum === datum || (e.zeit && abendTag(e.zeit) === datum));
+  /* Morgens: Was von gestern noch zählt – die Abendrunde (Kurz gesagt + Faden), sonst das Ende des Vortags */
+  async function gesternText() {
+    const tag = gestern();
+    const alle = (await alleEintraege()).filter(e => zumTag(e, tag));
+    const runde = alle.filter(e => String(e.id).startsWith("abend-")).sort((a, b) => b.zeit - a.zeit)[0];
+    if (runde) {
+      const zeile = k => ((runde.text || "").match(new RegExp("^" + k + ":\\s*(.+)$", "m")) || [])[1] || "";
+      const kurz = zeile("Kurz gesagt"), faden = zeile("Faden für (?:morgen|heute)");
+      if (kurz || faden) return { abendrunde: true, text: [kurz && "Kurz gesagt: " + kurz,
+        faden && "Faden für heute (hat er gestern Abend selbst so stehen lassen): " + faden].filter(Boolean).join("\n") };
+    }
+    const rest = alle.filter(e => !RUNDE_ID.test(String(e.id))).sort((a, b) => a.zeit - b.zeit)
+      .map(e => uhrzeit(e.zeit) + " — " + (e.text || "")).join("\n");
+    return { abendrunde: !!runde, text: rest.length > 1500 ? "…" + rest.slice(-1500) : rest };
   }
   function verlaufText(z) {
     return z.runden.map((r, i) => `Frage ${i + 1}${r.art ? " (" + r.art + ")" : ""}: ${r.frage}\n`
@@ -240,25 +408,38 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   async function auftrag(z, zweck) {
     const n = z.runden.length + 1;
     const g = gedaechtnis();
-    const notizen = await tagesNotizen(z.datum);
+    const zeit = zeitVon(z), info = zeitInfo(z);
+    const notizen = await tagesNotizen(z.datum, eintragId(z));
     const teile = [kontextBlock(erkenntnisse().slice(0, 5)) + "Jetzt ist " + wannText() + "."];
     const stunde = new Date().getHours();
-    if (stunde >= 23 || stunde < 4) teile.push("Es ist schon spät – lieber leicht und kurz als schwer und lang.");
-    teile.push(notizen ? "Was heute schon im Journal steht:\n" + notizen
+    if (z.nachgeholt)
+      teile.push(`Wichtig: Es ist nicht Abend. Florian holt die Abendrunde von gestern (${wochentag(z.datum)}) nach. `
+        + "Frag nach gestern, nicht nach heute – und rechne damit, dass manches schon verblasst ist: frag lieber nach "
+        + "dem, was noch präsent ist, als nach Details.");
+    else if (zeit === "abend" && (stunde >= 23 || stunde < 4))
+      teile.push("Es ist schon spät – lieber leicht und kurz als schwer und lang.");
+    if (zeit === "morgen") {
+      const gs = await gesternText();
+      if (gs.text) teile.push((gs.abendrunde ? "Aus seiner Abendrunde gestern:\n" : "Was gestern im Journal stand (Ende):\n")
+        + gs.text + "\nDu kannst an gestern anknüpfen, wenn es passt – musst aber nicht. Der Morgen gehört heute.");
+    }
+    teile.push(notizen ? (z.nachgeholt ? "Was gestern im Journal steht:\n" : "Was heute schon im Journal steht:\n") + notizen
+      : z.nachgeholt ? "Von gestern steht nichts im Journal – du weißt nur, was er dir in dieser Runde erzählt."
+      : zeit === "morgen" ? "Heute steht noch nichts im Journal."
       : "Heute steht noch nichts im Journal – du weißt vom Tag nur, was er dir in dieser Runde erzählt.");
     const frueher = g.fragen.filter(f => !z.runden.some(r => r.frage === f) && f !== (z.aktuell || {}).frage).slice(0, 25);
-    if (frueher.length) teile.push("Fragen von früheren Abenden – nicht wiederholen, auch nicht leicht umformuliert:\n"
+    if (frueher.length) teile.push("Fragen aus früheren Runden – nicht wiederholen, auch nicht leicht umformuliert:\n"
       + frueher.map(f => "- " + f).join("\n"));
-    if (g.arten.length) teile.push("Werkzeuge der letzten Abende (heute eher andere): " + g.arten.slice(0, 10).join(", "));
-    if (z.runden.length) teile.push("Bisher heute Abend:\n" + verlaufText(z));
+    if (g.arten.length) teile.push("Werkzeuge der letzten Runden (heute eher andere): " + g.arten.slice(0, 10).join(", "));
+    if (z.runden.length) teile.push("Bisher in " + info.dat + ":\n" + verlaufText(z));
 
     const a = [];
     if (n === 1) {
       a.push(zweck === "andere"
         ? "Er möchte einen anderen Einstieg. Nimm eine ganz andere, ungewöhnliche Form als die abgelehnte."
-        : `Das ist die erste Frage des Abends – der Einstieg. Form heute: ${z.einstieg.text}. Mach daraus eine `
-          + "eigene, frische Frage (nicht wörtlich übernehmen). Verankere sie in etwas, das heute im Journal steht, "
-          + "falls dort etwas steht.");
+        : `Das ist die erste Frage ${info.gen} – der Einstieg. Form heute: ${z.einstieg.text}. Mach daraus eine `
+          + "eigene, frische Frage (nicht wörtlich übernehmen). Verankere sie in etwas, das "
+          + (z.nachgeholt ? "gestern" : "heute") + " im Journal steht, falls dort etwas steht.");
       a.push("SPIEGEL beim Einstieg leer lassen.");
     } else if (z.hakNach) {
       const schon = !!z.runden[z.runden.length - 1].nachhaken;
@@ -268,8 +449,12 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
       if (schon) a.push("Du hast hier schon einmal nachgehakt und es kam wieder wenig. Letzter Versuch an dieser Stelle: "
         + "mach die Frage noch leichter zu beantworten (ein Ort, eine Uhrzeit, ein Bild, eine Zahl).");
     } else if (n >= z.plan) {
-      a.push(`Das ist die letzte Frage des Abends (Frage ${n} von ${z.plan}). Geh zuerst auf seine letzte Antwort ein. `
-        + "Die Frage darf den Abend rund machen oder behutsam auf morgen schauen – ohne Kitsch, ohne Vorsatz-Zwang.");
+      a.push(`Das ist die letzte Frage ${info.gen} (Frage ${n} von ${z.plan}). Geh zuerst auf seine letzte Antwort ein. `
+        + (zeit === "morgen" ? "Die Frage darf den Start bündeln – das Eine für heute oder ein kleinster erster Schritt – "
+            + "ohne To-do-Liste, ohne Vorsatz-Zwang."
+          : zeit === "mittag" ? "Die Frage darf den Nachmittag ausrichten – leicht, ohne Druck, ohne Leistungs-Check."
+          : z.nachgeholt ? "Die Frage darf den gestrigen Tag rund machen oder behutsam auf heute schauen – ohne Kitsch."
+          : "Die Frage darf den Abend rund machen oder behutsam auf morgen schauen – ohne Kitsch, ohne Vorsatz-Zwang."));
     } else {
       a.push(`Das ist Frage ${n} von etwa ${z.plan}. Geh auf seine letzte Antwort ein.`);
     }
@@ -307,18 +492,25 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   }
 
   /* ---------- Ablauf ---------- */
-  function planen(b, sp) {
+  function planen(b, sp, zeit) {
     const g = gedaechtnis();
     const r = Math.random();
-    let plan = r < 0.25 ? 3 : r < 0.7 ? 4 : 5;
+    /* morgens 2–4, mittags 2–3, abends 3–5 Fragen (spät nachts 3) */
+    let plan = zeit === "morgen" ? (r < 0.3 ? 2 : r < 0.8 ? 3 : 4)
+             : zeit === "mittag" ? (r < 0.5 ? 2 : 3)
+             : (r < 0.25 ? 3 : r < 0.7 ? 4 : 5);
     const stunde = new Date().getHours();
-    if (stunde >= 23 || stunde < 4) plan = 3;
-    const formen = (b && b.einstiegsformen) || [{ id: "moment", text: "ein einziger konkreter Moment des Tages" }];
+    if (zeit === "abend" && (stunde >= 23 || stunde < 4)) plan = 3;
+    const alleFormen = ((b && b.einstiegsformen) || []).filter(f => (f.zeit || "abend") === zeit);
+    const formen = alleFormen.length ? alleFormen : [{ id: "moment", text: zeit === "abend"
+      ? "ein einziger konkreter Moment des Tages" : "wie er gerade in diesem Moment da ist – Kopf, Körper, Stimmung" }];
     const frei = formen.filter(f => !g.einstiege.includes(f.id));
     const einstieg = zufall(frei.length ? frei : formen);
     let ueberraschung = null;
     const ueb = (b && b.ueberraschungen) || [];
-    if (ueb.length && Math.random() < (plan >= 4 ? 0.55 : 0.3)) {
+    /* Überraschungsformat abends oft, morgens selten, mittags nie – und nie als letzte Frage einer kurzen Runde */
+    const chance = zeit === "abend" ? (plan >= 4 ? 0.55 : 0.3) : zeit === "morgen" && plan >= 3 ? 0.25 : 0;
+    if (ueb.length && Math.random() < chance) {
       const freiU = ueb.filter(u => !g.ueberraschungen.slice(0, 3).includes(u));
       ueberraschung = { runde: 2 + Math.floor(Math.random() * Math.max(1, plan - 2)), text: zufall(freiU.length ? freiU : ueb) };
     }
@@ -326,7 +518,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     let anker = null;
     const kand = sp ? [...sp.vermutungen.map(text => ({ art: "vermutung", text })),
                        ...(sp.frage ? [{ art: "frage", text: sp.frage }] : [])] : [];
-    if (kand.length && Math.random() < 0.5) {
+    if (kand.length && Math.random() < (zeit === "abend" ? 0.5 : 0.3)) {
       const frisch = kand.filter(k => !g.anker.slice(0, 2).includes(k.text));
       const k = zufall(frisch.length ? frisch : kand);
       const moeglich = [];
@@ -336,14 +528,17 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     return { plan, einstieg, ueberraschung, anker };
   }
 
-  async function starten() {
+  /* opt.nachholen: morgens/mittags die Abendrunde von gestern nachholen (datiert auf gestern) */
+  async function starten(opt) {
     if (wartet) return;
     if (autoLesen) vorleseFreigabe();
+    const nachgeholt = !!(opt && opt.nachholen);
+    const zeit = nachgeholt ? "abend" : tageszeit();
     const b = await bank();
-    const { plan, einstieg, ueberraschung, anker } = planen(b, await letzterSpiegel());
-    const z = { v: 1, start: Date.now(), datum: abendTag(), plan, einstieg, ueberraschung, anker, runden: [],
-                aktuell: null, abgelehnt: [], phase: "warte", wartetAuf: "frage", zweck: "neu",
-                zusammenfassung: "", faden: "" };
+    const { plan, einstieg, ueberraschung, anker } = planen(b, await letzterSpiegel(), zeit);
+    const z = { v: 1, start: Date.now(), zeit, datum: nachgeholt ? gestern() : abendTag(), nachgeholt, plan, einstieg,
+                ueberraschung, anker, runden: [], aktuell: null, abgelehnt: [], phase: "warte", wartetAuf: "frage",
+                zweck: "neu", zusammenfassung: "", faden: "" };
     sichere(z);
     merke("einstiege", einstieg.id, 10);
     if (ueberraschung) merke("ueberraschungen", ueberraschung.text, 6);
@@ -361,7 +556,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     if (!kiBasis() || z.offline) return frageSetzen(z, await bankFrage(z), z.offline ? "" : "nicht verbunden");
     wartet = true;
     const info = { art: "abend", zweck, runde: z.start, n: z.runden.length + 1 };
-    const r = await frageKIgemerkt(OFFEN_A, info, SYSTEM_ABEND, await auftrag(z, zweck));
+    const r = await frageKIgemerkt(OFFEN_A, info, SYSTEM_FRAGE[zeitVon(z)], await auftrag(z, zweck));
     wartet = false;
     await nimm(r, info);
   }
@@ -472,11 +667,13 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     if (!kiBasis() || z.offline) return endeUebernehmen(z, { fehler: "ohne Verbindung" });
     wartet = true;
     const info = { art: "abend", zweck: "ende", runde: z.start };
-    const notizen = await tagesNotizen(z.datum);
-    const r = await frageKIgemerkt(OFFEN_A, info, SYSTEM_ENDE,
+    const notizen = await tagesNotizen(z.datum, eintragId(z));
+    const r = await frageKIgemerkt(OFFEN_A, info, SYSTEM_ENDE[zeitVon(z)],
       kontextBlock(erkenntnisse().slice(0, 5))
-      + (notizen ? "Was heute sonst im Journal steht:\n" + notizen + "\n\n" : "")
-      + "Die Abendrunde von " + wannText() + ":\n\n" + verlaufText(z));
+      + (notizen ? (z.nachgeholt ? "Was gestern sonst im Journal steht:\n" : "Was heute sonst im Journal steht:\n")
+        + notizen + "\n\n" : "")
+      + (z.nachgeholt ? `Die Abendrunde zu gestern (${wochentag(z.datum)}), heute nachgeholt – ${wannText()}:\n\n`
+         : "Die " + zeitInfo(z).name + " von " + wannText() + ":\n\n") + verlaufText(z));
     wartet = false;
     await nimm(r, info);
   }
@@ -484,13 +681,16 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   async function endeUebernehmen(z, r) {
     if (!r.fehler && r.text) {
       const faden = ((r.text.match(/^\s*FADEN:\s*(.+)$/im) || [])[1] || "").trim();
-      const { text } = verarbeiteAntwort(r.text);            /* pflegt Profil + offene Fäden mit */
+      const fokus = ((r.text.match(/^[\s*_]*FOKUS[*_]*\s*:\s*(.+)$/im) || [])[1] || "").replace(/\*\*/g, "").trim();
+      /* FOKUS vorher heraus – sonst landete die Zeile in der Zusammenfassung oder im Profil */
+      const { text } = verarbeiteAntwort(r.text.replace(/^[\s*_]*FOKUS[*_]*\s*:.*$/im, ""));   /* pflegt Profil + offene Fäden mit */
       z.zusammenfassung = text.replace(/^[\s*_]*ZUSAMMENFASSUNG[*_]*\s*:\s*/im, "").trim();
-      z.faden = /^keiner\b/i.test(faden) ? "" : faden;
+      const merk = zeitVon(z) === "abend" ? faden : fokus;
+      z.faden = /^keiner\b/i.test(merk) ? "" : merk;
     }
     z.phase = "ende";
     sichere(z);
-    merkeTag(z.datum);
+    merkeTag(z.datum, zeitVon(z));
     await eintragSichern(z);
     zeichne(z);
     if (typeof zeigeFaeden === "function") zeigeFaeden();
@@ -499,17 +699,17 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
   /* ---------- Ein Journal-Eintrag pro Runde, der mitwächst ---------- */
   function eintragText(z) {
     const tag = new Date(z.datum ? z.datum + "T12:00" : z.start).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
-    const teile = ["🌙 Abendrunde · " + tag];
+    const teile = [zeitInfo(z).emoji + " " + zeitInfo(z).name + " · " + tag + (z.nachgeholt ? " (am nächsten Tag nachgeholt)" : "")];
     if (z.zusammenfassung) teile.push("Kurz gesagt: " + z.zusammenfassung);
     z.runden.forEach((r, i) => teile.push((i + 1) + ". " + r.frage + "\n→ "
       + (r.status === "übersprungen" ? "(übersprungen)" : r.a)));
-    if (z.faden) teile.push("Faden für morgen: " + z.faden);
+    if (z.faden) teile.push(fadenName(z) + ": " + z.faden);
     return teile.join("\n\n");
   }
   async function eintragSichern(z) {
     if (!z.runden.some(r => r.status === "beantwortet")) return;
     try {
-      await speichern({ id: "abend-" + z.start, datum: z.datum, zeit: z.start, art: "text", text: eintragText(z) });
+      await speichern({ id: eintragId(z), datum: z.datum, zeit: z.start, art: "text", text: eintragText(z) });
       if (typeof zeigeHeute === "function") zeigeHeute();
       if (typeof zeigeFrueher === "function") zeigeFrueher();
     } catch {
@@ -527,12 +727,13 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     $("abendLauf").hidden = leer || ende;
     $("abendEnde").hidden = !ende;
     if (leer) {
-      const heuteSchon = gedaechtnis().letzte === abendTag();
-      $("abendBtn").textContent = heuteSchon ? "🌙 Noch eine Runde" : "🌙 Durch den Tag führen";
+      const zeit = tageszeit(), info = ZEITEN[zeit];
+      const heuteSchon = gedaechtnis().letzteJe[zeit] === abendTag();
+      $("abendBtn").textContent = heuteSchon ? info.emoji + " Noch eine Runde" : info.knopf;
       $("abendLeerHinweis").textContent = heuteSchon
-        ? "Heute schon gemacht ✓ – steht unten unter „" + (abendTag() === heute() ? "Heute" : "Frühere Tage") + "“."
-        : "Drei bis fünf Fragen zu deinem Tag, eine nach der anderen – jeden Abend anders, etwa 5–10 Minuten. "
-          + "Antworten per Text oder Diktat.";
+        ? info.name + " heute schon gemacht ✓ – steht unten unter „" + (abendTag() === heute() ? "Heute" : "Frühere Tage") + "“."
+        : info.hinweis;
+      nachholenPruefen();
       const wf = spiegelCache && spiegelCache.frage;
       $("abendWoche").hidden = !wf;
       if (wf) $("abendWoche").innerHTML = "<b>Frage der Woche</b> " + esc(wf);
@@ -541,7 +742,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     if (ende) {
       $("abendZusammen").innerHTML =
         (z.zusammenfassung ? "<h3>Kurz gesagt</h3><p>" + esc(z.zusammenfassung).replace(/\n+/g, "</p><p>") + "</p>" : "")
-        + (z.faden ? "<h3>Faden für morgen</h3><p>" + esc(z.faden) + "</p>" : "")
+        + (z.faden ? "<h3>" + esc(fadenName(z)) + "</h3><p>" + esc(z.faden) + "</p>" : "")
         + `<p class="ok" style="font-size:13px">✓ ${(n => n === 1 ? "1 Antwort" : n + " Antworten")(z.runden.filter(r => r.status === "beantwortet").length)} im Journal gespeichert (unter „${z.datum === heute() ? "Heute" : "Frühere Tage"}“).</p>`;
       $("abendEndeLesen").hidden = !z.zusammenfassung;
       return;
@@ -550,8 +751,8 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     const n = z.runden.length + (z.wartetAuf === "ende" ? 0 : 1);
     const kurzArt = z.aktuell && z.aktuell.art ? z.aktuell.art.split(/[,;(]/)[0].trim().slice(0, 26) : "";
     const art = z.phase === "frage" && kurzArt ? " · " + kurzArt : "";
-    $("abendStand").textContent = z.wartetAuf === "ende" && z.phase === "warte" ? "Abendrunde · Ausklang"
-      : "Frage " + n + art;
+    $("abendStand").textContent = z.wartetAuf === "ende" && z.phase === "warte" ? zeitInfo(z).name + " · Ausklang"
+      : (z.nachgeholt ? "Gestern · " : "") + "Frage " + n + art;
     const gesamt = Math.max(z.plan, n);
     $("abendPunkte").innerHTML = Array.from({ length: gesamt }, (_, i) =>
       `<i class="${i < z.runden.length ? "fertig" : i === z.runden.length && z.wartetAuf !== "ende" ? "jetzt" : ""}"></i>`).join("");
@@ -615,21 +816,36 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     return frageHolen(z, z.zweck || "neu");
   }
 
-  async function heuteSchonGemacht() {
-    const tag = abendTag();
+  /* Zählt ein Abendrunden-Eintrag für diesen Abend? Normal: datum = Abend. Nachgeholt: datum = Vortag, Zeit am
+     nächsten Morgen. Version 47 nach Mitternacht: datum = neuer Kalendertag, gehört aber zum Abend davor. */
+  const abendZaehlt = (e, tag) => (e.datum === tag && abendTag(e.zeit || 0) >= tag)
+    || (abendTag(e.zeit || 0) === tag && e.datum > tag);
+  async function schonGemacht(zeit, tag) {
     /* Version 47 merkte nach Mitternacht den neuen Kalendertag – so eine Runde zählt für den Vorabend */
     const z = store.getJSON(ZUSTAND, null);
-    const altNachMitternacht = z && z.datum === tag && z.start && abendTag(z.start) !== tag;
-    if (gedaechtnis().letzte === tag && !altNachMitternacht) return true;
-    try { return (await alleEintraege()).some(e => String(e.id).startsWith("abend-") && abendTag(e.zeit || 0) === tag); }
-    catch { return false; }
+    const altNachMitternacht = zeit === "abend" && z && z.datum === tag && z.start && abendTag(z.start) < tag;
+    if (gedaechtnis().letzteJe[zeit] === tag && !altNachMitternacht) return true;
+    try {
+      return (await alleEintraege()).some(e => String(e.id).startsWith(zeit + "-")
+        && (zeit === "abend" ? abendZaehlt(e, tag) : e.datum === tag));
+    } catch { return false; }
+  }
+  const heuteSchonGemacht = () => schonGemacht(tageszeit(), abendTag());
+
+  /* Morgens und mittags: Gab es gestern keine Abendrunde, lässt sie sich nachholen */
+  async function nachholenPruefen() {
+    const knopf = $("abendNachholen");
+    if (!knopf) return;
+    const zeigen = tageszeit() !== "abend" && !(await schonGemacht("abend", gestern()));
+    knopf.hidden = !zeigen;
   }
 
   function zeigeAuto() { $("abendAuto").textContent = autoLesen ? "🔈 Auto: an" : "🔈 Auto: aus"; }
 
   async function init() {
     if (!$("abendKarte")) return;
-    $("abendBtn").addEventListener("click", starten);
+    $("abendBtn").addEventListener("click", () => starten());
+    if ($("abendNachholen")) $("abendNachholen").addEventListener("click", () => starten({ nachholen: true }));
     $("abendWeiter").addEventListener("click", () => weiter("beantwortet"));
     $("abendSkip").addEventListener("click", () => weiter("übersprungen"));
     $("abendAndere").addEventListener("click", andere);
@@ -642,7 +858,7 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     $("abendLesen").addEventListener("click", () => vorlesen(frageVorlese(lade() || {}), $("abendLesen")));
     $("abendEndeLesen").addEventListener("click", () => {
       const z = lade();
-      vorlesen(z ? z.zusammenfassung + (z.faden ? " Faden für morgen: " + z.faden : "") : "", $("abendEndeLesen"));
+      vorlesen(z ? z.zusammenfassung + (z.faden ? " " + fadenName(z) + ": " + z.faden : "") : "", $("abendEndeLesen"));
     });
     letzterSpiegel().then(() => { if (!lade()) zeichne(null); });
     window.addEventListener("atemfunk-sync", () => letzterSpiegel().then(() => { if (!lade()) zeichne(null); }));
@@ -663,15 +879,17 @@ ZUSAMMENFASSUNG: <die 2–4 Sätze>` + META_AUFTRAG;
     });
     window.addEventListener("pageshow", ev => { if (ev.persisted) weitermachen(); });
 
-    /* Aufruf aus der 19-Uhr-Erinnerung: journal.html?abend=1 startet gleich, wenn heute noch nichts lief */
+    /* Aufruf aus der 19-Uhr-Erinnerung: journal.html?abend=1 (oder ?runde=1) startet gleich die Runde der
+       jetzigen Tageszeit, wenn dafür heute noch nichts lief */
     const p = new URLSearchParams(location.search);
-    if (p.has("abend")) {
-      p.delete("abend");
+    if (p.has("abend") || p.has("runde")) {
+      p.delete("abend"); p.delete("runde");
       history.replaceState(null, "", "journal.html" + (p.toString() ? "?" + p : ""));
       $("abendKarte").scrollIntoView({ block: "start" });
       /* eine liegengebliebene Runde vom Vorabend (Antworten stehen schon im Journal) zählt nicht als „heute“ */
       const z = lade();
-      if ((!z || abendTag(z.start) !== abendTag()) && !(await heuteSchonGemacht())) return starten();
+      if ((!z || abendTag(z.start) !== abendTag() || zeitVon(z) !== tageszeit()) && !(await heuteSchonGemacht()))
+        return starten();
     }
     weitermachen();
   }

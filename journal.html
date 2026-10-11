@@ -17,6 +17,7 @@
 .abend { border-color: rgba(216,196,143,0.28);
          background: linear-gradient(160deg, rgba(216,196,143,0.08), rgba(255,255,255,0.03)); }
 .abend-start { width: 100%; }
+.abend-nachholen { margin-top: 10px; min-height: 36px; padding: 7px 12px; font-size: 13px; background: transparent; }
 .abend-woche { color: var(--gold); line-height: 1.5; }
 .abend-woche b { font-weight: 600; margin-right: 6px; }
 .abend-kopf { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px;
@@ -47,13 +48,14 @@
 <div class="wrap">
   <h1>Journal</h1>
   <div class="sub">Gedanken, Sprachnotizen und Bilder über den Tag – sicher in deinem eigenen Speicher, auf allen Geräten gleich.
-    Wenn du magst, reflektieren wir abends gemeinsam darüber.</div>
+    Wenn du magst, führt dich die Runde hier mit ein paar Fragen durch den Tag – morgens, mittags oder abends.</div>
 
-  <!-- Abendrunde: führt mit Fragen durch den Tag, eine nach der anderen (Logik in abend.js) -->
+  <!-- Geführte Runde (morgens/mittags/abends): Fragen eine nach der anderen (Logik in abend.js) -->
   <div class="card abend" id="abendKarte">
     <div id="abendLeer">
       <button class="btn primary abend-start" id="abendBtn">🌙 Durch den Tag führen</button>
       <div class="hint" id="abendLeerHinweis"></div>
+      <button class="btn abend-nachholen" id="abendNachholen" hidden>🌙 Abendrunde von gestern nachholen</button>
       <div class="hint abend-woche" id="abendWoche" hidden></div>
     </div>
     <div id="abendLauf" hidden>
@@ -128,9 +130,9 @@
   <div class="cap" id="woche">Wochenspiegel</div>
   <div id="erinnerung"></div>
   <div class="card">
-    <div class="hint" style="margin-top:0">Einmal die Woche ein Blick von oben – vor allem auf deine Abendrunden:
+    <div class="hint" style="margin-top:0">Einmal die Woche ein Blick von oben – vor allem auf deine Runden (morgens, mittags, abends):
       Was wiederholt sich, welche Muster laufen zwischen Situation, Gefühl und Verhalten, wo passen Sagen und Tun
-      nicht zusammen? Dazu vorsichtige Vermutungen über dich und eine Frage für die Woche – die Abendrunden
+      nicht zusammen? Dazu vorsichtige Vermutungen über dich und eine Frage für die Woche – die Runden
       greifen sie danach auf.</div>
     <div class="row">
       <button class="btn primary" id="wocheBtn">Woche anschauen</button>
@@ -150,7 +152,7 @@
 
   <div class="cap">Frühere Tage</div>
   <div id="frueher"></div>
-  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 49 · Stand 11.10.2026</div>
+  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 50 · Stand 11.10.2026</div>
 </div>
 
 <script src="sync.js?v=1"></script>
@@ -574,8 +576,10 @@ psychologischem Gespür, der ihm etwas über ihn selbst zeigt, das er im Alltag 
 kein Tagebuch-Echo. Florian hat ADHS und hasst Kitsch, Floskeln und Küchenpsychologie.
 
 Du bekommst:
-– seine Abendrunden der Woche: Fragen und seine Antworten. Nur die Antworten nach „→“ und die Zeilen
-  „Kurz gesagt“ sind seine Worte bzw. Zusammenfassungen davon – die Fragen nicht. Das ist dein wichtigstes Material.
+– seine geführten Runden der Woche (🌙 Abendrunden, ☀️ Morgenrunden, 🌤 Zwischenhalte): Fragen und seine Antworten.
+  Nur die Antworten nach „→“ und die Zeilen „Kurz gesagt“ sind seine Worte bzw. Zusammenfassungen davon – die Fragen
+  nicht. Das ist dein wichtigstes Material. Spannend ist auch der Abgleich: Was er sich morgens vornimmt
+  („Fokus für heute“) und was er abends erzählt.
 – seine übrigen Journal-Einträge der Woche,
 – frühere Wochenspiegel (falls vorhanden) mit den Vermutungen von damals,
 – sein Profil, offene Fäden und gemerkte Erkenntnisse.
@@ -635,19 +639,20 @@ async function wocheAnschauen() {
   wartet = true;
   const fertig = warteAnzeige($("wocheBtn"), "Liest die Woche …");
   const tag = e => new Date(e.zeit).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
-  /* Die Abendrunden zuerst und gesondert – sie sind das dichteste Material über ihn */
-  const abende = letzte.filter(e => String(e.id).startsWith("abend-"));
+  /* Die geführten Runden (morgens/mittags/abends) zuerst und gesondert – sie sind das dichteste Material über ihn */
+  const RUNDE = /^(abend|morgen|mittag)-/;
+  const abende = letzte.filter(e => RUNDE.test(String(e.id)));
   const sonst = {};
-  for (const e of letzte.filter(e => !String(e.id).startsWith("abend-"))) {
+  for (const e of letzte.filter(e => !RUNDE.test(String(e.id)))) {
     const s = e.art === "bild" ? "[Foto] " + (e.text || "") :
               e.art === "audio" ? "[Sprachnotiz] " + (e.text || "") : (e.text || "");
     (sonst[tag(e)] ||= []).push(uhrzeit(e.zeit) + " — " + s);
   }
   const teile = [kontextBlock(erkenntnisse().slice(0, 6)) + "Heute ist " + new Date().toLocaleDateString("de-DE",
     { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + "."];
-  teile.push(abende.length ? "ABENDRUNDEN DER WOCHE (" + abende.length + "):\n\n"
-    + abende.map(e => "[" + tag(e) + "]\n" + e.text).join("\n\n")
-    : "ABENDRUNDEN DER WOCHE: keine.");
+  teile.push(abende.length ? "GEFÜHRTE RUNDEN DER WOCHE (" + abende.length + "):\n\n"
+    + abende.map(e => "[" + tag(e) + ", " + uhrzeit(e.zeit) + "]\n" + e.text).join("\n\n")
+    : "GEFÜHRTE RUNDEN DER WOCHE: keine.");
   const sonstText = Object.entries(sonst).map(([d, z]) => d + "\n" + z.join("\n")).join("\n\n");
   teile.push("ÜBRIGE EINTRÄGE DER WOCHE:\n" + (sonstText || "keine"));
   const frueher = spiegel.filter(e => e.zeit < Date.now() - 3 * 864e5).slice(0, 3);
@@ -792,7 +797,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
-<script src="abend.js?v=3"></script>
+<script src="abend.js?v=4"></script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
 <script src="https://pushfunk.46-225-133-113.sslip.io/pushfunk.js" data-app="atemfunk" data-name="Atemfunk" data-sw="vorhanden" defer></script>
 </body>

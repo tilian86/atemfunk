@@ -1,5 +1,5 @@
 {
- "_info": "Fragenbank für die Abendrunde im Journal (Rückfall ohne Verbindung + Einstiegsformen für die KI). Selbst geschrieben, 10.10.2026. Kategorien: einstieg (erste Frage), abschluss (letzte), folgen/folgenWort (gehen auf die letzte Antwort ein, {wort} = Stichwort daraus), nachhaken (nach sehr knapper Antwort, {antwort} = seine Antwort wörtlich), spiel (Überraschung), dank (selten), Rest für die Mitte.",
+ "_info": "Fragenbank für die geführten Runden im Journal (Rückfall ohne Verbindung + Einstiegsformen für die KI). Selbst geschrieben, 10.10.2026; Morgen- und Mittagsfragen seit 11.10.2026. Feld „zeit“ (morgen | mittag | abend) an Fragen und Einstiegsformen: ohne Feld gilt abend – außer bei folgen/folgenWort/nachhaken, die passen zu jeder Tageszeit. Kategorien: einstieg (erste Frage), abschluss (letzte), folgen/folgenWort (gehen auf die letzte Antwort ein, {wort} = Stichwort daraus), nachhaken (nach sehr knapper Antwort, {antwort} = seine Antwort wörtlich), spiel (Überraschung), dank (selten), Rest für die Mitte.",
  "einstiegsformen": [
   {
    "id": "moment",
@@ -100,6 +100,136 @@
   {
    "id": "gedankenexperiment",
    "text": "ein kurzes Gedankenexperiment, das direkt in den Tag führt"
+  },
+  {
+   "id": "m-aufwachen",
+   "text": "der erste Gedanke oder das erste Gefühl beim Aufwachen – noch bevor das Handy dran war",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-skala",
+   "text": "Skalierungsfrage: Energie oder Stimmung jetzt gerade von 1 bis 10, mit dem, was genau diese Zahl ausmacht",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-koerper",
+   "text": "Körper: wie er sich gerade anfühlt – Schlaf, Kopf, Bauch, Schultern",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-wetter",
+   "text": "Bild: das innere Wetter an diesem Morgen (oder eine Landschaft, ein Tier)",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-das-eine",
+   "text": "das Eine: was heute wirklich zählt, wenn sonst nichts klappt",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-abend-ich",
+   "text": "Perspektive vom Abend aus: woran er heute Abend merkt, dass der Tag gut war",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-magen",
+   "text": "was ihm von heute schon jetzt ein bisschen im Magen liegt",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-vorfreude",
+   "text": "Vorfreude: worauf er sich heute – vielleicht heimlich – freut",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-faden",
+   "text": "der Faden von gestern: was gestern offen blieb und heute weitergehen darf",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-erster-schritt",
+   "text": "der kleinste erste Schritt für die Sache, die heute am meisten Widerstand macht",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-menschen",
+   "text": "Menschen: wem er heute begegnet und was er sich davon wünscht",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-reicht",
+   "text": "was heute schon reichen würde, damit er abends nicht mit sich hadert",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-nacht",
+   "text": "die Nacht: ein Traumrest, ein Gedanke von nachts oder wie er geschlafen hat – konkret, nicht „gut/schlecht“",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-tempo",
+   "text": "Tempo: in welchem Tempo dieser Tag laufen will – und ob das zu ihm passt",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-vermeiden",
+   "text": "Vermeiden: wovor er sich heute drücken könnte – neugierig, nicht vorwurfsvoll",
+   "zeit": "morgen"
+  },
+  {
+   "id": "m-satz",
+   "text": "ein Satz, den er sich selbst für heute mitgeben würde",
+   "zeit": "morgen"
+  },
+  {
+   "id": "z-standort",
+   "text": "Standort: eine Zahl von 1 bis 10 für den bisherigen Tag und was sie ausmacht",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-vormittag",
+   "text": "ein konkreter Moment vom Vormittag, der noch nachhängt",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-kurs",
+   "text": "Kurskorrektur: was vom Morgen noch gilt und was nicht mehr",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-energie",
+   "text": "Energie: was gerade zieht und was auflädt",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-koerper",
+   "text": "Körper: wie es ihm gerade körperlich geht – ohne Belehrung",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-nachmittag",
+   "text": "das Eine für den Nachmittag",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-anders",
+   "text": "was heute bisher anders gelaufen ist als gedacht",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-kopf",
+   "text": "was gerade im Kopf am lautesten ist",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-pause",
+   "text": "eine echte Pause: was ihm jetzt fünf Minuten guttun würde",
+   "zeit": "mittag"
+  },
+  {
+   "id": "z-mensch",
+   "text": "ein Mensch von heute Vormittag – ein Satz, ein Blick, eine Nachricht",
+   "zeit": "mittag"
   }
  ],
  "ueberraschungen": [
@@ -712,7 +842,8 @@
   {
    "id": "n08",
    "kat": "energie",
-   "text": "Was hat dich heute abgelenkt – und wovon eigentlich?"
+   "text": "Was hat dich heute abgelenkt – und wovon eigentlich?",
+   "zeit": "abend"
   },
   {
    "id": "x01",
@@ -957,7 +1088,8 @@
   {
    "id": "g07",
    "kat": "folgenWort",
-   "text": "Was weißt du jetzt über „{wort}“, das du heute früh noch nicht wusstest?"
+   "text": "Was weißt du jetzt über „{wort}“, das du heute früh noch nicht wusstest?",
+   "zeit": "abend"
   },
   {
    "id": "g08",
@@ -1012,7 +1144,8 @@
   {
    "id": "n08",
    "kat": "nachhaken",
-   "text": "Wann heute war „{antwort}“ kurz mal leiser oder weg?"
+   "text": "Wann heute war „{antwort}“ kurz mal leiser oder weg?",
+   "zeit": "abend"
   },
   {
    "id": "n09",
@@ -1027,12 +1160,440 @@
   {
    "id": "n11",
    "kat": "nachhaken",
-   "text": "Von 1 bis 10: Wie viel „{antwort}“ war heute – und was macht die Zahl so hoch?"
+   "text": "Von 1 bis 10: Wie viel „{antwort}“ war heute – und was macht die Zahl so hoch?",
+   "zeit": "abend"
   },
   {
    "id": "n12",
    "kat": "nachhaken",
-   "text": "Wer hat heute etwas davon mitbekommen – oder hat es niemand gemerkt?"
+   "text": "Wer hat heute etwas davon mitbekommen – oder hat es niemand gemerkt?",
+   "zeit": "abend"
+  },
+  {
+   "id": "mo01",
+   "kat": "einstieg",
+   "text": "Mit welchem Gedanken bist du heute aufgewacht – noch bevor das Handy dran war?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo02",
+   "kat": "einstieg",
+   "text": "Welche Zahl von 1 bis 10 hat deine Energie gerade – und was macht sie so hoch?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo03",
+   "kat": "einstieg",
+   "text": "Wie fühlt sich dein Körper heute Morgen an, wenn du einmal von Kopf bis Fuß durchgehst?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo04",
+   "kat": "einstieg",
+   "text": "Wenn dein Morgen ein Wetter wäre: welches – und wo ziehen schon Wolken auf?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo05",
+   "kat": "einstieg",
+   "text": "Was liegt dir von heute schon jetzt ein bisschen im Magen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo06",
+   "kat": "einstieg",
+   "text": "Worauf freust du dich heute – auch wenn es nur eine Kleinigkeit ist?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo07",
+   "kat": "einstieg",
+   "text": "Was war das Erste, das dir zum heutigen Tag eingefallen ist?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo08",
+   "kat": "einstieg",
+   "text": "Was ist von gestern noch da – im Kopf oder im Körper?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo09",
+   "kat": "einstieg",
+   "text": "Wie war die Nacht – woran merkst du das gerade?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo10",
+   "kat": "einstieg",
+   "text": "Welche Stunde von heute würdest du gern vorspulen – und welche lieber dehnen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo11",
+   "kat": "einstieg",
+   "text": "Wenn du den heutigen Tag mit einem einzigen Satz ankündigen müsstest – wie hieße er?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo12",
+   "kat": "einstieg",
+   "text": "In welchem Tempo will dieser Tag heute laufen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo13",
+   "kat": "fokus",
+   "text": "Wenn heute nur eine Sache klappt – welche soll es sein?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo14",
+   "kat": "fokus",
+   "text": "Woran merkst du heute Abend, dass der Tag gut war – an einer Sache, nicht an zehn?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo15",
+   "kat": "fokus",
+   "text": "Was würde heute schon reichen, damit du abends nicht mit dir haderst?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo16",
+   "kat": "fokus",
+   "text": "Was davon ist wirklich deins – und was hat dir jemand anderes auf den Tisch gelegt?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo17",
+   "kat": "reibung",
+   "text": "Wovor könntest du dich heute drücken, wenn du ehrlich bist?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo18",
+   "kat": "reibung",
+   "text": "Wo könnte es heute haken – und was würde es leichter machen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo19",
+   "kat": "reibung",
+   "text": "Welche Sache schiebst du schon länger vor dir her?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo20",
+   "kat": "reibung",
+   "text": "Was wäre, wenn die schwierige Sache heute nur halb so schwer ist, wie sie sich gerade anfühlt?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo21",
+   "kat": "schritt",
+   "text": "Was ist der kleinste Schritt, mit dem die schwierige Sache heute anfangen könnte?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo22",
+   "kat": "schritt",
+   "text": "Was kannst du in den nächsten zehn Minuten tun, das den Tag leichter macht?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo23",
+   "kat": "schritt",
+   "text": "Wann genau heute wäre ein guter Moment für das, was dir am wichtigsten ist?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo24",
+   "kat": "energie",
+   "text": "Wann bist du heute vermutlich am klarsten im Kopf – und was gehört in diese Zeit?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo25",
+   "kat": "energie",
+   "text": "Was wird dir heute vermutlich Energie rauben, und was gibt dir welche zurück?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo26",
+   "kat": "energie",
+   "text": "Was brauchst du heute, damit der Nachmittag nicht absackt?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo27",
+   "kat": "menschen",
+   "text": "Wem begegnest du heute – und was wünschst du dir von dieser Begegnung?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo28",
+   "kat": "menschen",
+   "text": "Wem könntest du heute eine kleine Freude machen, ohne großen Aufwand?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo29",
+   "kat": "menschen",
+   "text": "Mit wem müsstest du heute eigentlich mal reden?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo30",
+   "kat": "perspektive",
+   "text": "Was würde dein Abend-Ich deinem Morgen-Ich jetzt gern sagen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo31",
+   "kat": "perspektive",
+   "text": "Wenn ein guter Freund deinen Tag heute planen würde – was würde er streichen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo32",
+   "kat": "perspektive",
+   "text": "Was würdest du heute machen, wenn du niemandem etwas beweisen müsstest?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo33",
+   "kat": "mitgefuehl",
+   "text": "Was darf heute ruhig liegen bleiben, ohne dass du dir Vorwürfe machst?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo34",
+   "kat": "mitgefuehl",
+   "text": "Wie würdest du heute mit jemandem reden, der genauso müde ist wie du?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo35",
+   "kat": "koerper",
+   "text": "Was braucht dein Körper heute, das du sonst gern übergehst?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo36",
+   "kat": "koerper",
+   "text": "Wo im Körper spürst du den Tag schon, bevor er richtig angefangen hat?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo37",
+   "kat": "spiel",
+   "text": "Wenn der heutige Tag eine Schlagzeile bekäme – welche wünschst du dir?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo38",
+   "kat": "spiel",
+   "text": "Vervollständige: „Heute bin ich jemand, der …“",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo39",
+   "kat": "spiel",
+   "text": "Du darfst heute eine Regel für dich aufstellen, nur für einen Tag. Welche?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo40",
+   "kat": "spiel",
+   "text": "Wenn dein Tag ein Spiel wäre: Was ist heute das Level – und wer der Endgegner?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo41",
+   "kat": "abschluss",
+   "text": "Welcher Satz soll dich heute begleiten?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo42",
+   "kat": "abschluss",
+   "text": "Was ist das Eine für heute – in fünf Wörtern?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo43",
+   "kat": "abschluss",
+   "text": "Was ist dein erster Schritt, sobald du hier fertig bist?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo44",
+   "kat": "abschluss",
+   "text": "Woran willst du dich heute erinnern, wenn es hektisch wird?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo45",
+   "kat": "abschluss",
+   "text": "Was darfst du heute weglassen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo46",
+   "kat": "abschluss",
+   "text": "Wenn du heute Abend zurückschaust: Worüber würdest du dich freuen?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mo47",
+   "kat": "abschluss",
+   "text": "Wie willst du heute mit dir umgehen, wenn etwas nicht klappt?",
+   "zeit": "morgen"
+  },
+  {
+   "id": "mi01",
+   "kat": "einstieg",
+   "text": "Wenn der Vormittag eine Zahl von 1 bis 10 bekommt – was macht genau diese Zahl aus?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi02",
+   "kat": "einstieg",
+   "text": "Was vom Vormittag hängt dir noch nach – im Guten oder im Schlechten?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi03",
+   "kat": "einstieg",
+   "text": "Was ist heute bisher anders gelaufen als gedacht?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi04",
+   "kat": "einstieg",
+   "text": "Was ist gerade am lautesten in deinem Kopf?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi05",
+   "kat": "einstieg",
+   "text": "Wie geht es deinem Körper gerade, wenn du kurz innehältst?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi06",
+   "kat": "einstieg",
+   "text": "Welcher Moment vom Vormittag war der beste – auch wenn er klein war?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi07",
+   "kat": "einstieg",
+   "text": "Wo stehst du gerade mit dem, was du dir für heute vorgenommen hattest?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi08",
+   "kat": "kurs",
+   "text": "Was vom Morgen gilt noch – und was darf jetzt anders werden?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi09",
+   "kat": "kurs",
+   "text": "Was hast du heute Vormittag geschafft, das du schon fast vergessen hast?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi10",
+   "kat": "kurs",
+   "text": "Was hat dich heute bisher am meisten Zeit gekostet – und hat es sich gelohnt?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi11",
+   "kat": "energie",
+   "text": "Was zieht dir gerade Energie ab, und was lädt dich wieder auf?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi12",
+   "kat": "energie",
+   "text": "Was würde dir in den nächsten fünf Minuten guttun?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi13",
+   "kat": "energie",
+   "text": "Wann hast du heute zuletzt wirklich Pause gemacht?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi14",
+   "kat": "koerper",
+   "text": "Was sagt dir dein Körper gerade, das du bisher überhört hast?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi15",
+   "kat": "koerper",
+   "text": "Was hat dein Körper heute Vormittag zu kurz bekommen?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi16",
+   "kat": "fokus",
+   "text": "Welche eine Sache würde den Nachmittag gut machen, wenn sonst nichts klappt?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi17",
+   "kat": "fokus",
+   "text": "Was davon muss heute wirklich noch sein – und was nur gefühlt?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi18",
+   "kat": "mitgefuehl",
+   "text": "Wo warst du heute Vormittag streng mit dir – und war das nötig?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi19",
+   "kat": "mitgefuehl",
+   "text": "Was würdest du einem Freund sagen, der jetzt mitten in deinem Tag steht?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi20",
+   "kat": "abschluss",
+   "text": "Was ist das Erste, was du nach diesem Zwischenhalt machst?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi21",
+   "kat": "abschluss",
+   "text": "Was darf der Nachmittag weglassen?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi22",
+   "kat": "abschluss",
+   "text": "Mit welchem Satz gehst du in den Nachmittag?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi23",
+   "kat": "abschluss",
+   "text": "Was soll heute Abend vom Nachmittag übrig sein?",
+   "zeit": "mittag"
+  },
+  {
+   "id": "mi24",
+   "kat": "abschluss",
+   "text": "Was nimmst du dir für den Nachmittag vor – nur eine Sache?",
+   "zeit": "mittag"
   }
  ]
 }
