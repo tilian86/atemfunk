@@ -57,8 +57,10 @@ def _el(stimme, text):
 
 
 def _grok(stimme, text):
-    key = subprocess.run(["defaults", "read", "com.florian.pagevoice", "grokApiKey"],
-                         capture_output=True, text=True).stdout.strip()
+    # Schlüssel liegt seit Oktober 2026 in der Funk-App (PageVoice ist abgelöst)
+    key = next((k for k in (subprocess.run(["defaults", "read", dom, name], capture_output=True, text=True).stdout.strip()
+                            for dom, name in (("de.florianthiel.funk.mac", "vorlesen.grokSchluessel"),
+                                              ("com.florian.pagevoice", "grokApiKey"))) if k), "")
     body = json.dumps({"text": text, "voice_id": stimme, "language": "de", "speed": 0.85,
                        "output_format": {"codec": "mp3", "sample_rate": 24000, "bit_rate": 128000}}).encode()
     req = urllib.request.Request("https://api.x.ai/v1/tts", data=body, method="POST",
@@ -83,7 +85,8 @@ def clip(stimme, text):
     h = hashlib.sha1(f"{dienst}|{voice}|{EL_MODELL}|{EL_TAG}|{EL_SEED}|{text}".encode()).hexdigest()[:16]
     mp3, raw = f"{CACHE}/{h}.mp3", f"{CACHE}/{h}.f32"
     if not os.path.exists(mp3):
-        open(mp3, "wb").write(_el(voice, text) if dienst == "el" else _grok(voice, text))
+        daten = _el(voice, text) if dienst == "el" else _grok(voice, text)   # erst holen, dann schreiben – sonst bleibt bei Fehlern eine leere Datei im Cache
+        open(mp3, "wb").write(daten)
     if not os.path.exists(raw):
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", mp3, "-ac", "1",
                         "-ar", str(SR), "-f", "f32le", raw], check=True)
