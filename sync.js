@@ -393,7 +393,8 @@
       el.setAttribute("role", "button");
       el.tabIndex = 0;
       el.setAttribute("aria-live", "polite");
-      el.addEventListener("click", () => (basis() ? lauf({ voll: true }) : verbindenDialog()));
+      /* „Link ungültig“ (z. B. nach dem PIN-Wechsel 25.10.2026, der den Link neu würfelt): Tippen fragt neu nach der PIN */
+      el.addEventListener("click", () => (basis() && fehler !== "Link ungültig" ? lauf({ voll: true }) : verbindenDialog()));
       el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.click(); } });
     }
     return el;
