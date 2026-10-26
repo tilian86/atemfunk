@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Baut audio/prog/sitzen/{5,10,15,20}.mp3 (+ audio/m/…) aus sitzen_texte.py — die klassische
+"""Baut audio/prog/sitzen/{1,3,5,7,10,15,20}.mp3 (+ audio/m/…) aus sitzen_texte.py — die klassische
 Meditation „Einfach sitzen“ (Florian 26.10.2026): Atem nur beobachten, Körperscan, offen sitzen.
 Wie innehalten_bauen.py, aber ganz ohne Atemtakt: Sätze einzeln vertont (Cache ~/.cache/atemfunk-tts),
 auf einer Zeitleiste angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme −21 LUFS, ohne
@@ -9,7 +9,7 @@ Stimmen: ElevenLabs v4 Bella (w) / Eric (m), Stabilität 0.6, ohne [softly] – 
 Die Kugel bekommt keinen Atemplan (nur „frei“), sie soll keinen Rhythmus vorgeben.
 Am Ende druckt das Skript PROG_ATEM für index.html.
 
-Aufruf: python3 tools/sitzen_bauen.py [5 10 15 20] [--zeichen]
+Aufruf: python3 tools/sitzen_bauen.py [1 3 5 7 10 15 20] [--zeichen]
 --zeichen: nur zählen, wie viele Zeichen je Stimme neu vertont würden (nichts wird abgerufen).
 """
 import json, math, os, subprocess, sys
@@ -110,7 +110,7 @@ def zeichen(laengen):
 
 
 if __name__ == "__main__":
-    laengen = [int(a) for a in sys.argv[1:] if a.isdigit()] or [5, 10, 15, 20]
+    laengen = [int(a) for a in sys.argv[1:] if a.isdigit()] or sorted(TEXTE)
     if "--zeichen" in sys.argv:
         n, saetze = zeichen(laengen)
         print(f"{saetze} Sätze, {n} Zeichen je Stimme, {2 * n} für beide (ohne Cache-Treffer)")

@@ -79,6 +79,7 @@
   .runter .dur { flex: 1 1 45%; border-color: rgba(216,196,143,0.45); background: rgba(216,196,143,0.07); }
   .runter .dur .lbl { color: var(--gold); }
   .runter.innehalten .dur { flex: 1 1 20%; }   /* Platz für vier Längen */
+  .runter.zweireihig { flex-wrap: wrap; }      /* Einfach sitzen: sieben Längen, 4 + 3 */
   .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
   .dur .lbl { font-size: 10px; color: var(--ink-dim); margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -274,13 +275,16 @@
   <div class="runter-hinweis">Die Meditation für jeden Tag, jede Länge vollständig: ankommen, Seufzer- und 4·6-Atmung, Körperscan, Präsenz, Loslassen</div>
 
   <div class="section-cap">Einfach sitzen</div>
-  <div class="runter innehalten">   <!-- tools/sitzen_bauen.py, ElevenLabs Bella/Eric, Version 58 -->
+  <div class="runter innehalten zweireihig">   <!-- tools/sitzen_bauen.py, ElevenLabs Bella/Eric, Version 58 (1, 3 und 7 Min seit Version 60) -->
+    <div class="dur" role="button" tabindex="0" data-prog="sitzen-1" data-min="1" aria-label="Einfach sitzen, 1 Minute, achtsame Minute"><div class="num">1</div><div class="lbl">Minute</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="sitzen-3" data-min="3" aria-label="Einfach sitzen, 3 Minuten, nur Atem beobachten"><div class="num">3</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="sitzen-5" data-min="5" aria-label="Einfach sitzen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="sitzen-7" data-min="7" aria-label="Einfach sitzen, 7 Minuten, geführt"><div class="num">7</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="sitzen-10" data-min="10" aria-label="Einfach sitzen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="sitzen-15" data-min="15" aria-label="Einfach sitzen, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="sitzen-20" data-min="20" aria-label="Einfach sitzen, 20 Minuten, geführt"><div class="num">20</div><div class="lbl">Minuten</div></div>
   </div>
-  <div class="runter-hinweis">Klassisch meditieren: den Atem nur beobachten, Körperscan, offen sitzen · keine Atemübung, die Kugel gibt keinen Takt vor</div>
+  <div class="runter-hinweis">Klassisch meditieren: den Atem nur beobachten, Körperscan, offen sitzen (1 und 3 Min: nur der Atem) · keine Atemübung, die Kugel gibt keinen Takt vor</div>
   <!-- Hintergrund für Täglich, Sitzen + Innehalten: die Tonspuren sind seit Version 56 reine Stimme -->
   <div class="section-cap" style="margin-top:4px">Hintergrund · Täglich, Sitzen, Innehalten</div>
   <div class="rhythms" id="progKulisse" role="radiogroup" aria-label="Hintergrund für Täglich, Einfach sitzen und Innehalten">
@@ -439,7 +443,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 59</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 60</div>
 
 </div>
 
@@ -1248,7 +1252,7 @@ const PROG_ATEM = {
   "taeglich-7":  [[0, "frei"], [63.5, "seufzer"], [104.0, "frei"], [116.0, "ruhig"], [166.0, "frei"]],
   "taeglich-10": [[0, "frei"], [70.5, "seufzer"], [124.5, "frei"], [136.5, "ruhig"], [216.5, "frei"]],
   /* Einfach sitzen: tools/sitzen_bauen.py – der Atem wird nur beobachtet, die Kugel gibt keinen Takt vor */
-  "sitzen-5": [[0, "frei"]], "sitzen-10": [[0, "frei"]], "sitzen-15": [[0, "frei"]], "sitzen-20": [[0, "frei"]],
+  "sitzen-1": [[0, "frei"]], "sitzen-3": [[0, "frei"]], "sitzen-5": [[0, "frei"]], "sitzen-7": [[0, "frei"]], "sitzen-10": [[0, "frei"]], "sitzen-15": [[0, "frei"]], "sitzen-20": [[0, "frei"]],
 };
 /* Fassung im Dateinamen (tools/*_bauen.py FASSUNG): Audio kommt cache-first aus dem
    Service Worker, neu gebaute Tonspuren brauchen deshalb neue Namen. -2 = Wald leiser, -3 = Vögel statt Wald,
@@ -1262,7 +1266,7 @@ const progDatei = prog => voicePath() + "prog/" + prog.replace(/^(innehalten|tae
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",
-  "sitzen-5": "Einfach sitzen", "sitzen-10": "Einfach sitzen", "sitzen-15": "Einfach sitzen", "sitzen-20": "Einfach sitzen",
+  "sitzen-1": "Achtsame Minute", "sitzen-3": "Einfach sitzen", "sitzen-5": "Einfach sitzen", "sitzen-7": "Einfach sitzen", "sitzen-10": "Einfach sitzen", "sitzen-15": "Einfach sitzen", "sitzen-20": "Einfach sitzen",
   koerperreise: "Körperreise", frei: "Freie Meditation" };
 
 /* Atemzustand der laufenden Sitzung. Mit Atemplan ist die Uhr die Tonspur
