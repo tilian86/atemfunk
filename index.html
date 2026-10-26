@@ -87,6 +87,8 @@
   /* Fünf Rhythmen passen auf schmalen Handys nicht in eine Zeile – umbrechen lassen */
   #rhythms { flex-wrap: wrap; }
   #rhythms .rhy { flex: 1 1 84px; }
+  #ambients, #progKulisse { flex-wrap: wrap; }
+  .rhythms .umbruch { flex-basis: 100%; height: 0; }
   .rhy {
     flex: 1; padding: 11px 4px; border-radius: 14px; cursor: pointer; font-size: 12px;
     color: var(--ink-dim); background: rgba(255,255,255,0.03);
@@ -263,13 +265,27 @@
   <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
 
   <div class="section-cap">Täglich</div>
-  <div class="runter innehalten">   <!-- tools/taeglich_bauen.py, Grok-Stimmen wie Innehalten -->
+  <div class="runter innehalten">   <!-- tools/taeglich_bauen.py, ElevenLabs Bella/Eric -->
     <div class="dur" role="button" tabindex="0" data-prog="taeglich-3" data-min="3" aria-label="Tägliche Meditation, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="taeglich-5" data-min="5" aria-label="Tägliche Meditation, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="taeglich-7" data-min="7" aria-label="Tägliche Meditation, 7 Minuten, geführt"><div class="num">7</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="taeglich-10" data-min="10" aria-label="Tägliche Meditation, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
   </div>
-  <div class="runter-hinweis">Die Meditation für jeden Tag, jede Länge vollständig: ankommen, Seufzer- und 4·6-Atmung, Körperscan, Präsenz, Loslassen · mit leisem Vogelgezwitscher</div>
+  <div class="runter-hinweis">Die Meditation für jeden Tag, jede Länge vollständig: ankommen, Seufzer- und 4·6-Atmung, Körperscan, Präsenz, Loslassen</div>
+  <!-- Hintergrund für Täglich + Innehalten: die Tonspuren sind seit Version 56 reine Stimme -->
+  <div class="section-cap" style="margin-top:4px">Hintergrund · Täglich &amp; Innehalten</div>
+  <div class="rhythms" id="progKulisse" role="radiogroup" aria-label="Hintergrund für Täglich und Innehalten">
+    <div class="rhy" role="radio" tabindex="0" data-pk="waldvoegel">Vögel</div>
+    <div class="rhy" role="radio" tabindex="0" data-pk="aus">Stille</div>
+    <div class="rhy" role="radio" tabindex="0" data-pk="hz432">432 Hz<small>Ton</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-pk="alpha">Alpha<small>🎧 10 Hz</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-pk="theta">Theta<small>🎧 6 Hz</small></div>
+  </div>
+  <div id="progVolWrap" style="width:100%; margin-top:-4px">
+    <input type="range" id="progVol" min="0" max="100" value="60" aria-label="Lautstärke des Hintergrunds"
+           style="width:100%; accent-color:var(--accent); height:24px">
+  </div>
+  <div class="runter-hinweis">Gilt beim Start von Täglich und Innehalten · 🎧 = nur mit Kopfhörern (linkes und rechtes Ohr hören leicht verschiedene Töne)</div>
 
   <div class="section-cap">Runterkommen</div>
   <div class="runter">
@@ -287,7 +303,7 @@
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
   </div>
-  <div class="runter-hinweis">Fertige Meditation mit leisem Vogelgezwitscher: ankommen, langes Ausatmen, Körper, Gedanken, Freundlichkeit · für zu Hause oder mit Kopfhörern</div>
+  <div class="runter-hinweis">Fertige Meditation: ankommen, langes Ausatmen, Körper, Gedanken, Freundlichkeit · für zu Hause oder mit Kopfhörern · Hintergrund wie bei Täglich</div>
 
   <div class="links" id="flexBox">
     <div class="section-cap">Geführte Meditationen</div>
@@ -352,6 +368,10 @@
     <div class="rhy" role="radio" tabindex="0" data-amb="fluss">Bach</div>
     <div class="rhy" role="radio" tabindex="0" data-amb="meer">Meer</div>
     <div class="rhy" role="radio" tabindex="0" data-amb="klavier">Klavier</div>
+    <div class="umbruch" aria-hidden="true"></div>
+    <div class="rhy" role="radio" tabindex="0" data-amb="hz432">432 Hz<small>Ton</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-amb="alpha">Alpha<small>🎧 10 Hz</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-amb="theta">Theta<small>🎧 6 Hz</small></div>
   </div>
   <div id="ambVolWrap" style="width:100%; margin-top:12px; display:none">
     <input type="range" id="ambVol" min="0" max="100" value="60" aria-label="Lautstärke der Klangkulisse"
@@ -408,7 +428,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 55</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 56</div>
 
 </div>
 
@@ -840,7 +860,7 @@ function playClosing() {
 
 /* ---------- Klangkulisse ---------- */
 let ambKey = store.get("atemfunk_amb", store.get("atemfunk_ocean", "off") === "on" ? "meer" : "wald");
-if (!["aus", "meer", "wald", "voegel", "fluss", "klavier"].includes(ambKey)) ambKey = "wald";
+if (!["aus", "meer", "wald", "voegel", "fluss", "klavier", "hz432", "alpha", "theta"].includes(ambKey)) ambKey = "wald";
 let ambVol = parseInt(store.get("atemfunk_ambvol", "60"), 10);
 if (!(ambVol >= 0 && ambVol <= 100)) ambVol = 60;
 function renderAmbients() {
@@ -858,6 +878,7 @@ document.querySelectorAll("#ambients .rhy").forEach(el => {
     ambKey = el.dataset.amb;
     store.set("atemfunk_amb", ambKey);
     renderAmbients();
+    if (progKontext()) return;          /* Täglich/Innehalten laufen mit ihrem eigenen Hintergrund */
     stopAmbient();
     ensureAmbient();
   });
@@ -865,12 +886,43 @@ document.querySelectorAll("#ambients .rhy").forEach(el => {
 $("ambVol").addEventListener("input", e => {
   ambVol = +e.target.value;
   store.set("atemfunk_ambvol", String(ambVol));
-  if (amb) {
-    amb.base = (AMB_LEVEL[amb.type] || 0.5) * (ambVol / 60);
-    try { amb.gain.gain.setTargetAtTime(amb.base, amb.gain.context.currentTime, 0.2); } catch {}
-  }
+  if (!progKontext()) ambLautstaerke();
 });
 renderAmbients();
+
+/* Hintergrund für Täglich + Innehalten (Florian 26.10.2026: „manchmal einfach ohne
+   Hintergrundgeräusche“) – eigene Wahl und eigener Regler, die übrigen Meditationen
+   behalten die Klangkulisse oben. Standard: leise Vögel wie bis Version 55 fest eingemischt. */
+let progAmbKey = store.get("atemfunk_prog_amb", "waldvoegel");
+if (!["aus", "waldvoegel", "hz432", "alpha", "theta"].includes(progAmbKey)) progAmbKey = "waldvoegel";
+let progVol = parseInt(store.get("atemfunk_prog_vol", "60"), 10);
+if (!(progVol >= 0 && progVol <= 100)) progVol = 60;
+function renderProgKulisse() {
+  document.querySelectorAll("#progKulisse .rhy").forEach(el => {
+    const sel = el.dataset.pk === progAmbKey;
+    el.classList.toggle("sel", sel);
+    el.setAttribute("aria-checked", sel ? "true" : "false");
+  });
+  $("progVolWrap").style.display = progAmbKey === "aus" ? "none" : "block";
+  $("progVol").value = progVol;
+}
+document.querySelectorAll("#progKulisse .rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => {
+    progAmbKey = el.dataset.pk;
+    store.set("atemfunk_prog_amb", progAmbKey);
+    renderProgKulisse();
+    if (!progKontext()) return;
+    stopAmbient();
+    ensureAmbient();
+  });
+});
+$("progVol").addEventListener("input", e => {
+  progVol = +e.target.value;
+  store.set("atemfunk_prog_vol", String(progVol));
+  if (progKontext()) ambLautstaerke();
+});
+renderProgKulisse();
 
 function updateNote() {
   const el = $("voiceNote");
@@ -963,29 +1015,81 @@ function bowl(vol = 0.13) {
 }
 
 /* ---------- Klangkulissen: echte Naturaufnahmen (gemeinfrei), nahtlos geloopt ---------- */
-const AMB_LEVEL = { wald: 0.60, voegel: 0.55, fluss: 0.50, meer: 0.55, klavier: 0.38 };
+/* Alle Dateien liegen bei rund −26 LUFS, die Frequenzen sind auf denselben Wert gerechnet. */
+const AMB_LEVEL = { wald: 0.60, voegel: 0.55, fluss: 0.50, meer: 0.55, klavier: 0.38,
+                    hz432: 0.30, alpha: 0.30, theta: 0.30 };
+/* Unter Täglich/Innehalten (Stimme −21 LUFS): Vögel 0.063 ≈ −50 LUFS wie bis Version 55
+   eingemischt; Töne etwas lauter (≈ −44), sonst gehen sie in den Sprechpausen unter. */
+const PROG_LEVEL = { waldvoegel: 0.063, hz432: 0.12, alpha: 0.12, theta: 0.12 };
+/* Frequenzen erzeugt die App selbst – Sinustöne, nahtlos ohne Datei.
+   432 Hz: Ton mit Unteroktave. Alpha/Theta: binaurale Schwebung, links 200 Hz, rechts
+   210 bzw. 206 Hz – den 10- bzw. 6-Hz-Unterschied „hört“ erst der Kopf, nur mit Kopfhörern. */
+const FREQUENZEN = {
+  hz432: { mono: [[432, 0.065], [216, 0.041]] },
+  alpha: { links: 200, rechts: 210, amp: 0.077 },
+  theta: { links: 200, rechts: 206, amp: 0.077 },
+};
 const ambBuffers = {};
 let amb = null, ambLoading = false;
 
+function progKontext() { return !!(session && session.progKulisse); }
+function ambZiel() { return progKontext() ? progAmbKey : ambKey; }
+function ambBase(key) {
+  return progKontext() ? (PROG_LEVEL[key] || 0.06) * (progVol / 60) ** 2
+                       : (AMB_LEVEL[key] || 0.5) * (ambVol / 60);
+}
+function ambLautstaerke() {
+  if (!amb) return;
+  amb.base = ambBase(amb.type);
+  try { amb.gain.gain.setTargetAtTime(amb.base, amb.gain.context.currentTime, 0.2); } catch {}
+}
+
+function frequenzQuelle(ctx, f, ziel) {
+  const oscs = [];
+  const ton = (hz, amp, wohin, eingang) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = hz; g.gain.value = amp;
+    o.connect(g); g.connect(wohin, 0, eingang);
+    o.start(); oscs.push(o);
+  };
+  if (f.mono) f.mono.forEach(([hz, amp]) => ton(hz, amp, ziel, 0));
+  else {
+    const m = ctx.createChannelMerger(2);
+    ton(f.links, f.amp, m, 0);
+    ton(f.rechts, f.amp, m, 1);
+    m.connect(ziel);
+  }
+  return { stop(t) { oscs.forEach(o => { try { o.stop(t); } catch {} }); } };
+}
+
 async function startAmbient() {
-  if (ambKey === "aus" || amb || ambLoading) return;
-  const key = ambKey;
+  const key = ambZiel();
+  if (key === "aus" || amb || ambLoading) return;
   ambLoading = true;
   try {
     const ctx = audioCtx();
-    if (!ambBuffers[key]) {
+    if (!FREQUENZEN[key] && !ambBuffers[key]) {
       const arr = await (await fetch("audio/atmo/" + key + ".mp3")).arrayBuffer();
       ambBuffers[key] = await new Promise((res, rej) => ctx.decodeAudioData(arr, res, rej));
     }
-    if (ambKey !== key || amb) { ambLoading = false; return; }   /* inzwischen umgeschaltet */
-    const src = ctx.createBufferSource();
-    src.buffer = ambBuffers[key];
-    src.loop = true;
+    if (ambZiel() !== key || amb || stumm) {          /* inzwischen umgeschaltet */
+      ambLoading = false;
+      ensureAmbient();
+      return;
+    }
     const g = ctx.createGain();
     g.gain.value = 0.0001;
-    src.connect(g); g.connect(ctx.destination);
-    src.start();
-    amb = { type: key, src, gain: g, base: (AMB_LEVEL[key] || 0.5) * (ambVol / 60) };
+    g.connect(ctx.destination);
+    let src;
+    if (FREQUENZEN[key]) src = frequenzQuelle(ctx, FREQUENZEN[key], g);
+    else {
+      src = ctx.createBufferSource();
+      src.buffer = ambBuffers[key];
+      src.loop = true;
+      src.connect(g);
+      src.start();
+    }
+    amb = { type: key, src, gain: g, base: ambBase(key) };
     g.gain.setTargetAtTime(amb.base, ctx.currentTime, 1.5);      /* sanft einblenden */
   } catch { amb = null; }
   ambLoading = false;
@@ -996,7 +1100,7 @@ function ambientUpdate(bs, elapsed) {
   if (!amb) return;
   try {
     const ctx = amb.gain.context;
-    const tiefe = amb.type === "klavier" ? 0.12 : 0.22;
+    const tiefe = amb.type === "klavier" ? 0.12 : FREQUENZEN[amb.type] ? 0.15 : 0.22;
     amb.gain.gain.setTargetAtTime(amb.base * (1 - tiefe + tiefe * 2 * bs.value), ctx.currentTime, 0.6);
   } catch {}
 }
@@ -1004,7 +1108,7 @@ function ambientUpdate(bs, elapsed) {
 /* Kulisse läuft ab dem ersten Antippen – dauerhaft oder nur während einer Sitzung.
    Browser erlauben Ton ohnehin erst nach einer Geste. */
 function ensureAmbient() {
-  if (amb || ambKey === "aus" || stumm || (session && session.eigeneKulisse)) return;
+  if (amb || ambZiel() === "aus" || stumm) return;
   startAmbient();
 }
 ["pointerdown", "keydown"].forEach(ev =>
@@ -1135,8 +1239,8 @@ const PROG_ATEM = {
 };
 /* Fassung im Dateinamen (tools/*_bauen.py FASSUNG): Audio kommt cache-first aus dem
    Service Worker, neu gebaute Tonspuren brauchen deshalb neue Namen. -2 = Wald leiser, -3 = Vögel statt Wald,
-   Täglich in Bella/Eric (26.10.2026) */
-const PROG_FASSUNG = { innehalten: "-3", taeglich: "-3" };
+   Täglich in Bella/Eric (26.10.2026), -4 = reine Stimme, Hintergrund kommt aus der App (Version 56) */
+const PROG_FASSUNG = { innehalten: "-4", taeglich: "-4" };
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",
@@ -1337,7 +1441,7 @@ async function startSession(min, prog, flexArt) {
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: bowlJede, bowlJede,
     rhythm, atemPlan, planTeil: 0,
-    eigeneKulisse: !!prog && /^(innehalten|taeglich)-/.test(prog),   /* Tonspur bringt die Vogelkulisse schon mit */
+    progKulisse: !!prog && /^(innehalten|taeglich)-/.test(prog),   /* eigener Hintergrund (Vögel/Stille/Frequenzen) */
     ausklang: false,          /* läuft gerade die letzte Atemrunde nach Ablauf? */
   };
   buildBreathRing(session.rhythm);
@@ -1387,7 +1491,8 @@ async function startSession(min, prog, flexArt) {
   }
   if (!session) { audio.pause(); audio.removeAttribute("src"); return; } /* während play() beendet */
 
-  if (session.eigeneKulisse) stopAmbient(); else ensureAmbient();
+  if (session.progKulisse) stopAmbient();     /* auf den Hintergrund für Täglich/Innehalten wechseln */
+  ensureAmbient();
 
   const orb = $("orb");
   const phaseEl = $("phase");
@@ -1506,9 +1611,9 @@ function finishSession(completed) {
     : elapsedOf(session);
   const warFrage = session.frage;
   const eintrag = { t: session.startedAt, art: session.art, titel: session.titel };
-  const kulisseZurueck = session.eigeneKulisse;
+  const kulisseZurueck = session.progKulisse;
   session = null;
-  if (kulisseZurueck) ensureAmbient();
+  if (kulisseZurueck) { stopAmbient(); ensureAmbient(); }   /* zurück zur normalen Klangkulisse */
   $("breathDot").style.display = "none";
   $("phaseCount").textContent = "";
   $("frageImLauf").textContent = "";
