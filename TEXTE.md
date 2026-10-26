@@ -1,6 +1,10 @@
-# Atemfunk – Meditationstexte (Entwurf zur Freigabe)
+# Atemfunk – Meditationstexte der Atemuhr
 
-**Stimme:** Lily (warm, ruhig) · eleven_multilingual_v2
+> Seit Version 59 (26.10.2026) gesprochen von ElevenLabs v4 **Bella / Eric**. Maßgeblich für den Bau ist
+> `tools/atemuhr_texte.py` – dort stehen auch die Texte für **1 und 7 Minuten** (aus den alten Aufnahmen
+> zurückgeholt). Bau: `python3 tools/atemuhr_bauen.py`, Prüfung: `python3 tools/tts_pruefen.py atemuhr_texte`.
+
+**Stimme (ursprünglich):** Lily (warm, ruhig) · eleven_multilingual_v2
 **Technik:** Jeder Absatz wird einzeln vertont, dann mit ffmpeg und exakten
 Stille-Pausen zusammengesetzt → die Gesamtlänge stimmt auf die Sekunde
 (3:00 / 5:00 / 10:00 inkl. Anfangs- und End-Gong aus der App).

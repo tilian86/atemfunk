@@ -25,6 +25,7 @@ for _st, _voice in {"w": "hpp4J3VqNfWAUOO0d1Us", "m": "cjVigY5qzO86Huf0OWal"}.it
     STIMMEN[_st] = ("el", _voice, STIMMEN[_st][2])
 
 SCHLUSS_LUFT = 3.0
+NAME = "sitzen"          # Ordner/Programmname – atemuhr_bauen.py setzt „atem“ und eigene Texte
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
 FASSUNG = "-1"
 os.makedirs(CACHE, exist_ok=True)
@@ -90,12 +91,12 @@ def bauen(minuten):
             i = int(round(start * SR))
             assert i + len(a) <= len(spur), (s, minuten, start)
             spur[i:i + len(a)] += a
-        raw = f"{CACHE}/sitzen-{minuten}-{s}.f32"
+        raw = f"{CACHE}/{NAME}-{minuten}-{s}.f32"
         spur.tofile(raw)
         spur *= 10 ** ((-21 - lautheit(raw)) / 20)
         spur.tofile(raw)
-        os.makedirs(f"{ziel}/sitzen", exist_ok=True)
-        aus = f"{ziel}/sitzen/{minuten}{FASSUNG}.mp3"
+        os.makedirs(f"{ziel}/{NAME}", exist_ok=True)
+        aus = f"{ziel}/{NAME}/{minuten}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
                         "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)

@@ -439,7 +439,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 58</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 59</div>
 
 </div>
 
@@ -1254,10 +1254,11 @@ const PROG_ATEM = {
    Service Worker, neu gebaute Tonspuren brauchen deshalb neue Namen. -2 = Wald leiser, -3 = Vögel statt Wald,
    Täglich in Bella/Eric (26.10.2026), -4 = reine Stimme, Hintergrund kommt aus der App (Version 56),
    Innehalten -5 = Bella/Eric statt Grok (Version 57), Runterkommen -2 = Bella/Eric statt Sarah/Brian
-   (Version 58, vorher prog/runterkommen-N.mp3) */
-const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4", sitzen: "-1", runterkommen: "-2" };
+   (Version 58, vorher prog/runterkommen-N.mp3), Atemuhr atem -1 = Bella/Eric statt Edge (Version 59,
+   vorher atem-N.mp3, tools/atemuhr_bauen.py) */
+const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4", sitzen: "-1", runterkommen: "-2", atem: "-1" };
 /* Tonspur eines festen Programms: liegt im Unterordner der Art, mit Fassung im Namen */
-const progDatei = prog => voicePath() + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3";
+const progDatei = prog => voicePath() + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3";
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",
@@ -1501,7 +1502,7 @@ async function startSession(min, prog, flexArt) {
   } else if (guided) {
     audio.src = session.prog
       ? progDatei(session.prog)
-      : voicePath() + "atem-" + min + ".mp3";
+      : progDatei("atem-" + min);   /* Atemuhr */
     try {
       await audio.play();
     } catch {
@@ -2209,7 +2210,7 @@ function sprichVorlesen(text) {
 }
 
 /* ---------- Hinweis, falls Audio fehlt (GET mit Range prüft auch den SW-Pfad) ---------- */
-fetch("audio/atem-3.mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
+fetch("audio/prog/atem/3" + PROG_FASSUNG.atem + ".mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
   if (!r.ok) {
     $("voiceNote").dataset.fallback = "Sprachaufnahmen nicht erreichbar – bis dahin: Nur Klang.";
     updateNote();
