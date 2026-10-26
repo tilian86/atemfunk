@@ -299,7 +299,7 @@
   <div class="runter innehalten">
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-3" data-min="3" aria-label="Innehalten, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-5" data-min="5" aria-label="Innehalten, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <!-- alle vier Längen mit Grok-Stimmen (orion/celeste), tools/innehalten_bauen.py --grok -->
+    <!-- alle vier Längen seit Version 57 mit ElevenLabs Bella/Eric (vorher Grok), tools/innehalten_bauen.py -->
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
   </div>
@@ -428,7 +428,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 56</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 57</div>
 
 </div>
 
@@ -1227,10 +1227,10 @@ const PROG_ATEM = {
   "runterkommen-5":  [[0, "frei"], [64, "seufzer"], [185.5, "frei"], [196, "ruhig"], [256, "frei"]],
   "runterkommen-10": [[0, "frei"], [85, "seufzer"], [287.5, "frei"], [298, "ruhig"], [498, "frei"]],
   /* Innehalten: tools/innehalten_bauen.py – nur der Takt-Teil gibt ein Tempo vor */
-  "innehalten-3":  [[0, "frei"], [70.0, "ruhig"], [90.0, "frei"]],
-  "innehalten-5":  [[0, "frei"], [86.0, "ruhig"], [126.0, "frei"]],
-  "innehalten-10": [[0, "frei"], [117.5, "ruhig"], [177.5, "frei"]],
-  "innehalten-15": [[0, "frei"], [135.5, "ruhig"], [225.5, "frei"]],
+  "innehalten-3":  [[0, "frei"], [66.5, "ruhig"], [86.5, "frei"]],
+  "innehalten-5":  [[0, "frei"], [81.5, "ruhig"], [121.5, "frei"]],
+  "innehalten-10": [[0, "frei"], [113.0, "ruhig"], [173.0, "frei"]],
+  "innehalten-15": [[0, "frei"], [130.0, "ruhig"], [220.0, "frei"]],
   /* Täglich: tools/taeglich_bauen.py – Seufzer-Runden, dann 4 · 6 */
   "taeglich-3":  [[0, "frei"], [31.5, "seufzer"], [58.5, "frei"]],
   "taeglich-5":  [[0, "frei"], [49.0, "seufzer"], [76.0, "frei"], [81.0, "ruhig"], [121.0, "frei"]],
@@ -1239,8 +1239,9 @@ const PROG_ATEM = {
 };
 /* Fassung im Dateinamen (tools/*_bauen.py FASSUNG): Audio kommt cache-first aus dem
    Service Worker, neu gebaute Tonspuren brauchen deshalb neue Namen. -2 = Wald leiser, -3 = Vögel statt Wald,
-   Täglich in Bella/Eric (26.10.2026), -4 = reine Stimme, Hintergrund kommt aus der App (Version 56) */
-const PROG_FASSUNG = { innehalten: "-4", taeglich: "-4" };
+   Täglich in Bella/Eric (26.10.2026), -4 = reine Stimme, Hintergrund kommt aus der App (Version 56),
+   Innehalten -5 = Bella/Eric statt Grok (Version 57) */
+const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4" };
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",

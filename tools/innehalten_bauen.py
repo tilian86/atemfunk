@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Baut audio/prog/innehalten/{3,5,10,15}.mp3 (+ audio/m/…) aus innehalten_texte.py:
-Sätze einzeln aus ElevenLabs v3 (Sarah/Brian, Cache ~/.cache/atemfunk-tts), auf einer
+Sätze einzeln aus ElevenLabs v4 (Bella/Eric, Cache ~/.cache/atemfunk-tts), auf einer
 Zeitleiste angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme auf −21 LUFS,
 ohne Hintergrund: den legt seit Version 56 (26.10.2026) die App darunter – Vögel, Stille oder
 Frequenzen, eigener Regler (Florian: „manchmal einfach ohne Hintergrundgeräusche“).
@@ -10,20 +10,27 @@ Kugel einen Atemplan hat. Am Ende druckt das Skript PROG_ATEM für index.html.
 
 Aufruf: python3 tools/innehalten_bauen.py [3 5 10 15] [--grok]
 --grok: Grok-Stimmen (orion/celeste, api.x.ai, Schlüssel aus Funk) statt ElevenLabs —
-seit 28.09.2026 sind alle vier Längen damit gebaut (ElevenLabs-Gratisschlüssel leer, Florians Wunsch).
+so gebaut vom 28.09. bis 26.10.2026 (Fassung -4), danach wieder ElevenLabs.
 """
 import json, math, os, subprocess, sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
+import runter_bauen
 from runter_bauen import clip, SR, AUDIO, CACHE, STIMMEN
 from innehalten_texte import S, TEXTE, ZUEGE
+
+# Seit 26.10.2026 wie Täglich: ElevenLabs v4 Bella (w) / Eric (m), Stabilität 0.6, ohne [softly]
+# (Florian hat dafür Starter-Abos gebucht). Bis dahin Grok celeste/orion.
+runter_bauen.EL_MODELL, runter_bauen.EL_TAG, runter_bauen.EL_STABIL = "eleven_v4", "", 0.6
+for _st, _voice in {"w": "hpp4J3VqNfWAUOO0d1Us", "m": "cjVigY5qzO86Huf0OWal"}.items():
+    STIMMEN[_st] = ("el", _voice, STIMMEN[_st][2])
 
 GROK_STIMMEN = {"w": "celeste", "m": "orion"}   # Florians Hörprobe 30.08.2026
 SCHLUSS_LUFT = 3.0
 TAKT = 10.0                      # 4 ein · 6 aus
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-4"
+FASSUNG = "-5"
 os.makedirs(CACHE, exist_ok=True)
 
 
