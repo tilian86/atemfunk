@@ -408,7 +408,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 53</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 54</div>
 
 </div>
 
@@ -1123,16 +1123,19 @@ const PROG_ATEM = {
   "runterkommen-5":  [[0, "frei"], [64, "seufzer"], [185.5, "frei"], [196, "ruhig"], [256, "frei"]],
   "runterkommen-10": [[0, "frei"], [85, "seufzer"], [287.5, "frei"], [298, "ruhig"], [498, "frei"]],
   /* Innehalten: tools/innehalten_bauen.py – nur der Takt-Teil gibt ein Tempo vor */
-  "innehalten-3":  [[0, "frei"], [70.5, "ruhig"], [90.5, "frei"]],
-  "innehalten-5":  [[0, "frei"], [86.5, "ruhig"], [126.5, "frei"]],
+  "innehalten-3":  [[0, "frei"], [70.0, "ruhig"], [90.0, "frei"]],
+  "innehalten-5":  [[0, "frei"], [86.0, "ruhig"], [126.0, "frei"]],
   "innehalten-10": [[0, "frei"], [117.5, "ruhig"], [177.5, "frei"]],
   "innehalten-15": [[0, "frei"], [135.5, "ruhig"], [225.5, "frei"]],
   /* Täglich: tools/taeglich_bauen.py – Seufzer-Runden, dann 4 · 6 */
-  "taeglich-3":  [[0, "frei"], [33.0, "seufzer"], [60.0, "frei"]],
-  "taeglich-5":  [[0, "frei"], [51.0, "seufzer"], [78.0, "frei"], [83.0, "ruhig"], [123.0, "frei"]],
+  "taeglich-3":  [[0, "frei"], [32.5, "seufzer"], [59.5, "frei"]],
+  "taeglich-5":  [[0, "frei"], [50.5, "seufzer"], [77.5, "frei"], [83.0, "ruhig"], [123.0, "frei"]],
   "taeglich-7":  [[0, "frei"], [66.5, "seufzer"], [107.0, "frei"], [119.5, "ruhig"], [169.5, "frei"]],
   "taeglich-10": [[0, "frei"], [73.5, "seufzer"], [127.5, "frei"], [140.0, "ruhig"], [220.0, "frei"]],
 };
+/* Fassung im Dateinamen (tools/*_bauen.py FASSUNG): Audio kommt cache-first aus dem
+   Service Worker, neu gebaute Tonspuren brauchen deshalb neue Namen. -2 = Wald leiser (26.10.2026) */
+const PROG_FASSUNG = { innehalten: "-2", taeglich: "-2" };
 const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",
@@ -1372,7 +1375,7 @@ async function startSession(min, prog, flexArt) {
     $("sessionNote").textContent = "Stimme ist aus – die Sitzung läuft still.";
   } else if (guided) {
     audio.src = session.prog
-      ? voicePath() + "prog/" + session.prog.replace(/^(innehalten|taeglich)-/, "$1/") + ".mp3"   /* Innehalten + Täglich liegen im Unterordner */
+      ? voicePath() + "prog/" + session.prog.replace(/^(innehalten|taeglich)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3"   /* Innehalten + Täglich liegen im Unterordner */
       : voicePath() + "atem-" + min + ".mp3";
     try {
       await audio.play();

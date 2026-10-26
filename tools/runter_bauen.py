@@ -15,7 +15,7 @@ Stimmen gleich: die langsamere Stimme bestimmt sie. Nur so kann die App einen
 einzigen Atemplan für die Kugel haben. Am Ende druckt das Skript diesen Plan
 (PROG_ATEM in index.html).
 
-Aufruf: python3 tools/runter_bauen.py   (Cache in /tmp/runter-cache)
+Aufruf: python3 tools/runter_bauen.py   (Cache in ~/.cache/atemfunk-tts)
 """
 import base64, hashlib, json, math, os, subprocess, sys, time, urllib.error, urllib.request
 import numpy as np
@@ -25,7 +25,7 @@ from runter_texte import TEXTE, ZUEGE, SEUFZER_TAKT, RUHIG_TAKT
 
 HIER = os.path.dirname(os.path.abspath(__file__))
 AUDIO = os.path.join(HIER, "..", "audio")
-CACHE = "/tmp/runter-cache"
+CACHE = os.path.expanduser("~/.cache/atemfunk-tts")   # bleibt über Neustarts (in /tmp waren nach dem Neustart alle Sätze weg)
 SR = 44100
 # (Dienst, Stimme, Ziel) — w = Standard, m = Männerstimme der App
 STIMMEN = {
@@ -79,11 +79,17 @@ SCHLUSS_LUFT = 3.0   # so viel Stille nach dem letzten Satz, dann Gong der App
 os.makedirs(CACHE, exist_ok=True)
 
 
+def clip_pfad(stimme, text):
+    """Cache-Dateien eines Satzes ohne Endung (…/<hash>), für clip() und tts_pruefen.py."""
+    dienst, voice, _ = STIMMEN[stimme]
+    h = hashlib.sha1(f"{dienst}|{voice}|{EL_MODELL}|{EL_TAG}|{EL_SEED}|{text}".encode()).hexdigest()[:16]
+    return f"{CACHE}/{h}"
+
+
 def clip(stimme, text):
     """Satz → numpy-Array (float32, 44,1 kHz mono), Stille vorn/hinten entfernt."""
     dienst, voice, _ = STIMMEN[stimme]
-    h = hashlib.sha1(f"{dienst}|{voice}|{EL_MODELL}|{EL_TAG}|{EL_SEED}|{text}".encode()).hexdigest()[:16]
-    mp3, raw = f"{CACHE}/{h}.mp3", f"{CACHE}/{h}.f32"
+    mp3, raw = clip_pfad(stimme, text) + ".mp3", clip_pfad(stimme, text) + ".f32"
     if not os.path.exists(mp3):
         daten = _el(voice, text) if dienst == "el" else _grok(voice, text)   # erst holen, dann schreiben – sonst bleibt bei Fehlern eine leere Datei im Cache
         open(mp3, "wb").write(daten)

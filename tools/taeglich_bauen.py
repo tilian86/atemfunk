@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Baut audio/prog/taeglich/{3,5,7,10}.mp3 (+ audio/m/…) aus taeglich_texte.py — wie
-innehalten_bauen.py: Sätze einzeln vertont (Cache /tmp/runter-cache), auf einer Zeitleiste
+innehalten_bauen.py: Sätze einzeln vertont (Cache ~/.cache/atemfunk-tts), auf einer Zeitleiste
 angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme −21 LUFS, darunter die
-Waldkulisse −32 LUFS. Neu gegenüber Innehalten: Seufzer-Runden (4 · 1,5 · 8) vor dem
+Waldkulisse −40 LUFS. Neu gegenüber Innehalten: Seufzer-Runden (4 · 1,5 · 8) vor dem
 4 · 6-Takt, und Übergangssätze mitten im Atemtakt („Allein weiter …“), die über dem
 Ausatmen der letzten angesagten Runde liegen und den Takt nicht verschieben.
 
@@ -25,7 +25,9 @@ for _st, _voice in GROK_STIMMEN.items():
 SCHLUSS_LUFT = 3.0
 SEUFZER = (4.0, 1.5, 8.0)        # ein · nachfassen · aus
 TAKT = (4.0, 6.0)                # ein · aus
-KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -32
+KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -40   # bis 26.10.2026 −32, Florian zu laut
+# Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
+FASSUNG = "-2"
 os.makedirs(CACHE, exist_ok=True)
 
 
@@ -80,7 +82,7 @@ def anordnen(stimme, minuten, marken, dehn):
 
 
 def kulisse(gesamt):
-    raw = f"{CACHE}/kulisse-{int(gesamt)}.f32"
+    raw = f"{CACHE}/kulisse{KULISSE_LUFS}-{int(gesamt)}.f32"
     if not os.path.exists(raw):
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", KULISSE, "-t", str(gesamt),
                         "-af", f"loudnorm=I={KULISSE_LUFS}:TP=-8:LRA=11,afade=t=in:st=0:d=4,afade=t=out:st={gesamt - 6}:d=6",
@@ -132,7 +134,7 @@ def bauen(minuten):
         raw = f"{CACHE}/taeglich-mix-{minuten}-{s}.f32"
         mix.astype(np.float32).tofile(raw)
         os.makedirs(f"{ziel}/taeglich", exist_ok=True)
-        aus = f"{ziel}/taeglich/{minuten}.mp3"
+        aus = f"{ziel}/taeglich/{minuten}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
                         "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)

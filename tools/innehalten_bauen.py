@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Baut audio/prog/innehalten/{3,5,10,15}.mp3 (+ audio/m/…) aus innehalten_texte.py:
-Sätze einzeln aus ElevenLabs v3 (Sarah/Brian, Cache /tmp/runter-cache), auf einer
+Sätze einzeln aus ElevenLabs v3 (Sarah/Brian, Cache ~/.cache/atemfunk-tts), auf einer
 Zeitleiste angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme auf −21 LUFS,
-darunter die Waldkulisse (audio/atmo/wald.mp3, geloopt) auf −32 LUFS — so laut wie
-die Kulisse in der App bei Standardlautstärke. Die App schaltet ihre eigene Kulisse
+darunter die Waldkulisse (audio/atmo/wald.mp3, geloopt) auf −40 LUFS (bis 26.10.2026 −32,
+war Florian zu laut). Die App schaltet ihre eigene Kulisse
 während dieser Programme ab.
 
 Zeitmarken („teil") sind für beide Stimmen gleich (die langsamere bestimmt), damit die
 Kugel einen Atemplan hat. Am Ende druckt das Skript PROG_ATEM für index.html.
 
 Aufruf: python3 tools/innehalten_bauen.py [3 5 10 15] [--grok]
---grok: Grok-Stimmen (orion/celeste, api.x.ai, Schlüssel aus PageVoice) statt ElevenLabs —
+--grok: Grok-Stimmen (orion/celeste, api.x.ai, Schlüssel aus Funk) statt ElevenLabs —
 seit 28.09.2026 sind alle vier Längen damit gebaut (ElevenLabs-Gratisschlüssel leer, Florians Wunsch).
 """
 import json, math, os, subprocess, sys
@@ -23,7 +23,9 @@ from innehalten_texte import S, TEXTE, ZUEGE
 GROK_STIMMEN = {"w": "celeste", "m": "orion"}   # Florians Hörprobe 30.08.2026
 SCHLUSS_LUFT = 3.0
 TAKT = 10.0                      # 4 ein · 6 aus
-KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -32
+KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -40   # bis 26.10.2026 −32, Florian zu laut
+# Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
+FASSUNG = "-2"
 os.makedirs(CACHE, exist_ok=True)
 
 
@@ -60,7 +62,7 @@ def anordnen(stimme, minuten, marken, dehn):
 
 
 def kulisse(gesamt):
-    raw = f"{CACHE}/kulisse-{int(gesamt)}.f32"
+    raw = f"{CACHE}/kulisse{KULISSE_LUFS}-{int(gesamt)}.f32"
     if not os.path.exists(raw):
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", KULISSE, "-t", str(gesamt),
                         "-af", f"loudnorm=I={KULISSE_LUFS}:TP=-8:LRA=11,afade=t=in:st=0:d=4,afade=t=out:st={gesamt - 6}:d=6",
@@ -115,7 +117,7 @@ def bauen(minuten):
         mix.astype(np.float32).tofile(raw)
         os.makedirs(ziel, exist_ok=True)
         os.makedirs(f"{ziel}/innehalten", exist_ok=True)
-        aus = f"{ziel}/innehalten/{minuten}.mp3"      # Unterordner seit dem Wechsel auf Grok (Cache auf den Geräten)
+        aus = f"{ziel}/innehalten/{minuten}{FASSUNG}.mp3"      # Unterordner seit dem Wechsel auf Grok (Cache auf den Geräten)
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
                         "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)
