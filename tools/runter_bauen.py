@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Baut audio/prog/runterkommen-{5,10}.mp3 (+ audio/m/…) aus runter_texte.py.
+"""Baut audio/prog/runterkommen/{5,10}-2.mp3 (+ audio/m/…) aus runter_texte.py.
 
-ElevenLabs v3 (Gratis-Schlüssel aus ~/.klarkreis/keys.txt, rotiert bei
-Sperre/leerem Kontingent) oder Grok (Schlüssel aus den PageVoice-Einstellungen)
+ElevenLabs v4 Bella/Eric seit 26.10.2026 (Starter-Abos; bis dahin v3 Sarah/Brian mit
+Gratis-Schlüsseln, Dateien runterkommen-{5,10}.mp3). Schlüssel aus ~/.klarkreis/keys_ok.txt,
+rotiert bei Sperre/leerem Kontingent; oder Grok (Schlüssel aus der Funk-App)
 → jeder Satz einzeln, Stille abgeschnitten → auf einer Zeitleiste platziert →
 sekundengenau 300/600 s, −21 LUFS, mono 44,1 kHz 96 kbit/s wie die übrigen
 Meditationen. Edge-TTS klang Florian zu künstlich (24.09.2026).
 
 Gratis-Konten dürfen über die API nur die Standardstimmen nutzen, keine aus
-der Bibliothek und kein Voice Design (402/403).
+der Bibliothek und kein Voice Design (402/403). Die Grundeinstellung hier gilt für alle
+*_bauen.py, die clip() von hier holen (Flex, Abschluss, Fragen …).
 
 Die Zeitmarken der Teile (Seufzer, ruhiges Atmen, Hören) sind für beide
 Stimmen gleich: die langsamere Stimme bestimmt sie. Nur so kann die App einen
@@ -29,11 +31,14 @@ CACHE = os.path.expanduser("~/.cache/atemfunk-tts")   # bleibt über Neustarts (
 SR = 44100
 # (Dienst, Stimme, Ziel) — w = Standard, m = Männerstimme der App
 STIMMEN = {
-    "w": ("el", "EXAVITQu4vr4xnSDxMaL", AUDIO + "/prog"),     # Sarah
-    "m": ("el", "nPczCjzI2devNBz1zQrb", AUDIO + "/m/prog"),   # Brian
+    "w": ("el", "hpp4J3VqNfWAUOO0d1Us", AUDIO + "/prog"),     # Bella (bis 26.10.2026 Sarah EXAVITQu4vr4xnSDxMaL)
+    "m": ("el", "cjVigY5qzO86Huf0OWal", AUDIO + "/m/prog"),   # Eric (bis dahin Brian nPczCjzI2devNBz1zQrb)
 }
-EL_MODELL, EL_TAG, EL_SEED = "eleven_v3", "[softly] ", 7
-EL_STABIL = 0.5                  # Täglich (v4, Bella/Eric) setzt 0.6
+# v4 ohne [softly] – das Tag ließ v4 zufällig flüstern (Florians Hörprobe 26.10.2026)
+EL_MODELL, EL_TAG, EL_SEED = "eleven_v4", "", 7
+EL_STABIL = 0.6
+# Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
+FASSUNG = "-2"
 # keys_ok.txt = die zuletzt funktionierenden zuerst, damit gesperrte nicht jedes Mal durchprobiert werden
 _ok = os.path.expanduser("~/.klarkreis/keys_ok.txt")
 EL_KEYS = (open(_ok).read().split() if os.path.exists(_ok) else []) or open(os.path.expanduser("~/.klarkreis/keys.txt")).read().split()
@@ -220,8 +225,8 @@ def bauen(minuten):
         m = json.loads(mess[anf:mess.index("}", anf) + 1])
         ln = (f"loudnorm=I=-21:TP=-2:LRA=11:measured_I={m['input_i']}:measured_TP={m['input_tp']}:"
               f"measured_LRA={m['input_lra']}:measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true")
-        os.makedirs(ziel, exist_ok=True)
-        aus = f"{ziel}/runterkommen-{minuten}.mp3"
+        os.makedirs(f"{ziel}/runterkommen", exist_ok=True)
+        aus = f"{ziel}/runterkommen/{minuten}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", ln + f",aresample={SR}", "-t", str(gesamt), "-ac", "1", "-ar", str(SR),
                         "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)

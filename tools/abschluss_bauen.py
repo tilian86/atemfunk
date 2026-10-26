@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Baut audio/abschluss/<key>.mp3 (+ audio/m/abschluss/) aus abschluss_texte.py —
-ElevenLabs v3 Sarah/Brian, gemeinsame Verstärkung je Stimme auf −21 LUFS wie flex_bauen.py.
+"""Baut audio/abschluss2/<key>.mp3 (+ audio/m/abschluss2/) aus abschluss_texte.py —
+ElevenLabs v4 Bella/Eric (seit 26.10.2026; bis dahin v3 Sarah/Brian in abschluss/), gemeinsame Verstärkung je Stimme auf −21 LUFS wie flex_bauen.py.
 Aufruf: python3 tools/abschluss_bauen.py"""
 import json, os, subprocess, sys
 import numpy as np
@@ -9,7 +9,7 @@ from runter_bauen import clip, SR, AUDIO, CACHE
 from flex_bauen import lautheit
 from abschluss_texte import ABSCHLUSS
 
-ZIEL = {"w": AUDIO + "/abschluss", "m": AUDIO + "/m/abschluss"}
+ZIEL = {"w": AUDIO + "/abschluss2", "m": AUDIO + "/m/abschluss2"}   # neuer Ordner = neuer Klang (Service Worker cache-first)
 VORLAUF, NACHLAUF = 0.25, 0.5
 for stimme, ziel in ZIEL.items():
     clips = {k: clip(stimme, t) for k, t in ABSCHLUSS.items()}

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Vertont alle Sätze eines Textmoduls (S + ZUEGE) in den Cache und hört sie mit
-mlx_whisper gegen den Text ab. Weicht ein Satz ab (Ähnlichkeit < 0,9), wird er bis zu
-dreimal neu geholt; der beste Take bleibt im Cache, die Bau-Skripte nehmen dann ihn.
+"""Vertont alle Sätze eines Textmoduls in den Cache und hört sie mit mlx_whisper gegen den
+Text ab. Weicht ein Satz ab (Ähnlichkeit < 0,9), wird er bis zu dreimal neu geholt; der beste
+Take bleibt im Cache, die Bau-Skripte nehmen dann ihn. Danach das Bau-Skript neu laufen lassen.
 
-Aufruf: python3 tools/tts_pruefen.py taeglich_texte|innehalten_texte [--grok]
+Aufruf: python3 tools/tts_pruefen.py <modul> [--nur w|m] [--grok]
+<modul>: taeglich_texte, innehalten_texte, sitzen_texte (S + ZUEGE), runter_texte (Sätze in TEXTE),
+flex_texte (ARTEN), abschluss_texte (ABSCHLUSS) oder fragen (fragen.json)
+--nur w: nur eine Stimme prüfen (Flex + Fragen gibt es seit 26.10.2026 nur mit Bella)
 """
-import difflib, importlib, os, re, shutil, sys
+import difflib, importlib, json, os, re, shutil, sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 import runter_bauen as rb
@@ -29,15 +32,34 @@ def guete(text, gehoert):
     return difflib.SequenceMatcher(None, norm(text), norm(gehoert)).ratio()
 
 
+def saetze_von(name):
+    """{Schlüssel: Satz} – die Textmodule legen ihre Sätze unterschiedlich ab."""
+    if name == "fragen":
+        from fragen_bauen import FRAGEN, sprechtext
+        return {str(i): sprechtext(t) for i, t in enumerate(FRAGEN)}
+    modul = importlib.import_module(name)
+    if hasattr(modul, "S"):
+        importlib.import_module(name.replace("_texte", "_bauen"))   # Stimmen wie im Bau
+        return {**modul.S, **getattr(modul, "ZUEGE", {})}
+    saetze = dict(getattr(modul, "ZUEGE", {}))
+    for m, teile in getattr(modul, "TEXTE", {}).items():          # Runterkommen: Sätze direkt im Ablauf
+        for e in teile:
+            if e[0] == "sag" and e[1] not in saetze.values():
+                saetze[f"{m}/{len(saetze)}"] = e[1]
+    for art, d in getattr(modul, "ARTEN", {}).items():
+        saetze.update({f"{art}/{k}": t for k, t in d.items() if k not in ("titel", "kurz")})
+    saetze.update(getattr(modul, "ABSCHLUSS", {}))
+    return saetze
+
+
 if __name__ == "__main__":
-    modul = importlib.import_module(sys.argv[1])
-    importlib.import_module(sys.argv[1].replace("_texte", "_bauen"))   # Stimmen wie im Bau (Täglich: v4 Bella/Eric)
+    saetze = saetze_von(sys.argv[1])
     if "--grok" in sys.argv:
         for st, voice in GROK_STIMMEN.items():
             rb.STIMMEN[st] = ("grok", voice, rb.STIMMEN[st][2])
-    saetze = {**modul.S, **modul.ZUEGE}
+    stimmen = [sys.argv[sys.argv.index("--nur") + 1]] if "--nur" in sys.argv else list(rb.STIMMEN)
     auffaellig = []
-    for st in rb.STIMMEN:
+    for st in stimmen:
         for k, text in saetze.items():
             rb.clip(st, text)
             basis = rb.clip_pfad(st, text)
@@ -70,5 +92,5 @@ if __name__ == "__main__":
             if beste[0] < 0.9:
                 auffaellig.append(zeile)
             print(zeile, flush=True)
-    print(f"\n{len(saetze) * len(rb.STIMMEN)} Sätze geprüft, auffällig: {len(auffaellig)}")
+    print(f"\n{len(saetze) * len(stimmen)} Sätze geprüft, auffällig: {len(auffaellig)}")
     print("\n".join(auffaellig))

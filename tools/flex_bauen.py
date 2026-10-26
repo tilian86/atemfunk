@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Baut die Bausteine audio/flex/<art>/<key>.mp3 (+ audio/m/flex/…) aus
-flex_texte.py und trägt die Sekundenlängen in flex.json ein.
+"""Baut die Bausteine audio/flex2/<art>/<key>.mp3 aus flex_texte.py und trägt die
+Sekundenlängen in flex.json ein.
 
 Stimmen, Schlüsselrotation, Beschneiden und Cache kommen aus runter_bauen.py
-(ElevenLabs v3, Sarah/Brian). Lautheit: eine gemeinsame Verstärkung je Stimme,
+(seit 26.10.2026 ElevenLabs v4 Bella, Ordner flex2/). Florian: „eigentlich reicht nur Bella“ –
+darum baut der Aufruf ohne Stimme nur w; die Männerstimme bleibt Brian (v3) in audio/m/flex/.
+Lautheit: eine gemeinsame Verstärkung je Stimme,
 gemessen über alle Bausteine zusammen (−21 LUFS wie der Rest der App), damit
 die Sätze untereinander so laut bleiben, wie die Stimme sie gesprochen hat.
 
-Aufruf: python3 tools/flex_bauen.py [m|w] [art …] [--nur-neu]   (ohne Argumente: alles)
+Aufruf: python3 tools/flex_bauen.py [m|w] [art …] [--nur-neu]   (ohne Argumente: alle Arten, nur w)
 Geänderter Klang → neuer Ordnername, der Service Worker liefert Audio
 cache-first und ignoriert ?v=.
 """
@@ -18,7 +20,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from runter_bauen import clip, SR, AUDIO, CACHE
 from flex_texte import ARTEN
 
-ZIEL = {"w": AUDIO + "/flex", "m": AUDIO + "/m/flex"}
+ZIEL = {"w": AUDIO + "/flex2", "m": AUDIO + "/m/flex2"}   # m/flex2 gibt es erst, wenn jemand m baut (index.html FLEX_ORDNER)
 VORLAUF, NACHLAUF = 0.25, 0.6
 def keys_von(art): return [k for k in ARTEN[art] if k not in ("titel", "kurz")]
 
@@ -62,7 +64,7 @@ def bauen(stimme, arten, nur_neu=False):
 if __name__ == "__main__":
     args = sys.argv[1:]
     nur_neu = "--nur-neu" in args          # vorhandene Dateien unangetastet lassen (Cache auf den Geräten)
-    stimmen = [a for a in args if a in ("m", "w")] or ["m", "w"]
+    stimmen = [a for a in args if a in ("m", "w")] or ["w"]
     arten = [a for a in args if a in ARTEN] or list(ARTEN)
     pfad = os.path.join(AUDIO, "..", "flex.json")
     flex = json.load(open(pfad))
