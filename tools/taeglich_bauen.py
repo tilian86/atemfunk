@@ -2,11 +2,11 @@
 """Baut audio/prog/taeglich/{3,5,7,10}.mp3 (+ audio/m/…) aus taeglich_texte.py — wie
 innehalten_bauen.py: Sätze einzeln vertont (Cache ~/.cache/atemfunk-tts), auf einer Zeitleiste
 angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme −21 LUFS, darunter die
-Waldkulisse −40 LUFS. Neu gegenüber Innehalten: Seufzer-Runden (4 · 1,5 · 8) vor dem
+Vogelkulisse (tools/kulisse/voegel.mp3, −50 LUFS). Neu gegenüber Innehalten: Seufzer-Runden (4 · 1,5 · 8) vor dem
 4 · 6-Takt, und Übergangssätze mitten im Atemtakt („Allein weiter …“), die über dem
 Ausatmen der letzten angesagten Runde liegen und den Takt nicht verschieben.
 
-Stimmen: Grok celeste (w) / orion (m) wie bei Innehalten — ElevenLabs-Kontingent bis 23.10. leer.
+Stimmen: ElevenLabs v4 Bella (w) / Eric (m), seit 26.10.2026 (vorher Grok celeste/orion).
 Am Ende druckt das Skript PROG_ATEM für index.html.
 
 Aufruf: python3 tools/taeglich_bauen.py [3 5 7 10]
@@ -15,19 +15,22 @@ import json, math, os, subprocess, sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
+import runter_bauen
 from runter_bauen import clip, SR, AUDIO, CACHE, STIMMEN
 from taeglich_texte import S, TEXTE, ZUEGE
 
-GROK_STIMMEN = {"w": "celeste", "m": "orion"}   # Florians Hörprobe 30.08.2026
-for _st, _voice in GROK_STIMMEN.items():
-    STIMMEN[_st] = ("grok", _voice, STIMMEN[_st][2])
+# Florians Hörprobe 26.10.2026: ElevenLabs v4 Bella (w) / Eric (m), Stabilität 0.6, ohne [softly] –
+# das Tag ließ v4 zufällig flüstern. Bis dahin Grok celeste/orion.
+runter_bauen.EL_MODELL, runter_bauen.EL_TAG, runter_bauen.EL_STABIL = "eleven_v4", "", 0.6
+for _st, _voice in {"w": "hpp4J3VqNfWAUOO0d1Us", "m": "cjVigY5qzO86Huf0OWal"}.items():
+    STIMMEN[_st] = ("el", _voice, STIMMEN[_st][2])
 
 SCHLUSS_LUFT = 3.0
 SEUFZER = (4.0, 1.5, 8.0)        # ein · nachfassen · aus
 TAKT = (4.0, 6.0)                # ein · aus
-KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -40   # bis 26.10.2026 −32, Florian zu laut
+KULISSE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kulisse", "voegel.mp3")   # −50 LUFS, Florian 26.10.2026: Wald war Rauschen + zu laut (−40, davor −32)
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-2"
+FASSUNG = "-3"
 os.makedirs(CACHE, exist_ok=True)
 
 
@@ -82,14 +85,19 @@ def anordnen(stimme, minuten, marken, dehn):
 
 
 def kulisse(gesamt):
-    raw = f"{CACHE}/kulisse{KULISSE_LUFS}-{int(gesamt)}.f32"
-    if not os.path.exists(raw):
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", KULISSE, "-t", str(gesamt),
-                        "-af", f"loudnorm=I={KULISSE_LUFS}:TP=-8:LRA=11,afade=t=in:st=0:d=4,afade=t=out:st={gesamt - 6}:d=6",
-                        "-ac", "1", "-ar", str(SR), "-f", "f32le", raw], check=True)
+    """Vogel-Kulisse ist schon fertig gepegelt (kulisse_bauen.py) – hier nur wiederholen und blenden.
+    Kein loudnorm mehr: das zog beim Wald das Grundrauschen zwischen den Rufen mit hoch."""
+    raw = f"{CACHE}/kulisse-voegel.f32"
+    if not os.path.exists(raw) or os.path.getmtime(raw) < os.path.getmtime(KULISSE):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", KULISSE, "-ac", "1", "-ar", str(SR), "-f", "f32le", raw],
+                       check=True)
     a = np.fromfile(raw, dtype=np.float32)
     n = int(gesamt * SR)
-    return np.pad(a[:n], (0, max(0, n - len(a))))
+    a = np.tile(a, n // len(a) + 1)[:n]          # die Datei ist nahtlos geschnitten
+    ein, aus = int(4 * SR), int(6 * SR)
+    a[:ein] *= np.linspace(0, 1, ein, dtype=np.float32)
+    a[-aus:] *= np.linspace(1, 0, aus, dtype=np.float32)
+    return a
 
 
 def marken_fuer(minuten, dehn):

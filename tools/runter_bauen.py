@@ -33,6 +33,7 @@ STIMMEN = {
     "m": ("el", "nPczCjzI2devNBz1zQrb", AUDIO + "/m/prog"),   # Brian
 }
 EL_MODELL, EL_TAG, EL_SEED = "eleven_v3", "[softly] ", 7
+EL_STABIL = 0.5                  # Täglich (v4, Bella/Eric) setzt 0.6
 # keys_ok.txt = die zuletzt funktionierenden zuerst, damit gesperrte nicht jedes Mal durchprobiert werden
 _ok = os.path.expanduser("~/.klarkreis/keys_ok.txt")
 EL_KEYS = (open(_ok).read().split() if os.path.exists(_ok) else []) or open(os.path.expanduser("~/.klarkreis/keys.txt")).read().split()
@@ -40,7 +41,7 @@ EL_KEYS = (open(_ok).read().split() if os.path.exists(_ok) else []) or open(os.p
 
 def _el(stimme, text):
     body = json.dumps({"text": EL_TAG + text, "model_id": EL_MODELL, "seed": EL_SEED,
-                       "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}).encode()
+                       "voice_settings": {"stability": EL_STABIL, "similarity_boost": 0.75}}).encode()
     for k in list(EL_KEYS):
         req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{stimme}", data=body, method="POST",
                                      headers={"xi-api-key": k, "Content-Type": "application/json", "Accept": "audio/mpeg"})

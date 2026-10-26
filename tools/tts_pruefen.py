@@ -31,6 +31,7 @@ def guete(text, gehoert):
 
 if __name__ == "__main__":
     modul = importlib.import_module(sys.argv[1])
+    importlib.import_module(sys.argv[1].replace("_texte", "_bauen"))   # Stimmen wie im Bau (Täglich: v4 Bella/Eric)
     if "--grok" in sys.argv:
         for st, voice in GROK_STIMMEN.items():
             rb.STIMMEN[st] = ("grok", voice, rb.STIMMEN[st][2])
@@ -49,6 +50,12 @@ if __name__ == "__main__":
                 for ext in (".mp3", ".f32"):
                     if os.path.exists(basis + ext):
                         os.remove(basis + ext)
+                dienst, voice, _ = rb.STIMMEN[st]
+                if dienst == "el":   # gleicher Seed gäbe denselben Take – Neuversuch mit anderem Seed, gleicher Cache-Name
+                    alt, rb.EL_SEED = rb.EL_SEED, rb.EL_SEED + versuch
+                    daten = rb._el(voice, text)
+                    rb.EL_SEED = alt
+                    open(basis + ".mp3", "wb").write(daten)
                 rb.clip(st, text)
                 g = hoeren(basis + ".mp3")
                 if guete(text, g) > beste[0]:

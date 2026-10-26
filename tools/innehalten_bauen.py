@@ -2,8 +2,8 @@
 """Baut audio/prog/innehalten/{3,5,10,15}.mp3 (+ audio/m/…) aus innehalten_texte.py:
 Sätze einzeln aus ElevenLabs v3 (Sarah/Brian, Cache ~/.cache/atemfunk-tts), auf einer
 Zeitleiste angeordnet, dehnbare Stillen nehmen die Restzeit auf, Stimme auf −21 LUFS,
-darunter die Waldkulisse (audio/atmo/wald.mp3, geloopt) auf −40 LUFS (bis 26.10.2026 −32,
-war Florian zu laut). Die App schaltet ihre eigene Kulisse
+darunter die Vogelkulisse (tools/kulisse/voegel.mp3, −50 LUFS; bis 26.10.2026 Wald −40, davor −32,
+war Florian zu laut und „nur Rauschen“). Die App schaltet ihre eigene Kulisse
 während dieser Programme ab.
 
 Zeitmarken („teil") sind für beide Stimmen gleich (die langsamere bestimmt), damit die
@@ -23,9 +23,9 @@ from innehalten_texte import S, TEXTE, ZUEGE
 GROK_STIMMEN = {"w": "celeste", "m": "orion"}   # Florians Hörprobe 30.08.2026
 SCHLUSS_LUFT = 3.0
 TAKT = 10.0                      # 4 ein · 6 aus
-KULISSE, KULISSE_LUFS = AUDIO + "/atmo/wald.mp3", -40   # bis 26.10.2026 −32, Florian zu laut
+KULISSE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kulisse", "voegel.mp3")   # −50 LUFS, Florian 26.10.2026: Wald war Rauschen + zu laut (−40, davor −32)
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-2"
+FASSUNG = "-3"
 os.makedirs(CACHE, exist_ok=True)
 
 
@@ -62,14 +62,19 @@ def anordnen(stimme, minuten, marken, dehn):
 
 
 def kulisse(gesamt):
-    raw = f"{CACHE}/kulisse{KULISSE_LUFS}-{int(gesamt)}.f32"
-    if not os.path.exists(raw):
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", KULISSE, "-t", str(gesamt),
-                        "-af", f"loudnorm=I={KULISSE_LUFS}:TP=-8:LRA=11,afade=t=in:st=0:d=4,afade=t=out:st={gesamt - 6}:d=6",
-                        "-ac", "1", "-ar", str(SR), "-f", "f32le", raw], check=True)
+    """Vogel-Kulisse ist schon fertig gepegelt (kulisse_bauen.py) – hier nur wiederholen und blenden.
+    Kein loudnorm mehr: das zog beim Wald das Grundrauschen zwischen den Rufen mit hoch."""
+    raw = f"{CACHE}/kulisse-voegel.f32"
+    if not os.path.exists(raw) or os.path.getmtime(raw) < os.path.getmtime(KULISSE):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", KULISSE, "-ac", "1", "-ar", str(SR), "-f", "f32le", raw],
+                       check=True)
     a = np.fromfile(raw, dtype=np.float32)
     n = int(gesamt * SR)
-    return np.pad(a[:n], (0, max(0, n - len(a))))
+    a = np.tile(a, n // len(a) + 1)[:n]          # die Datei ist nahtlos geschnitten
+    ein, aus = int(4 * SR), int(6 * SR)
+    a[:ein] *= np.linspace(0, 1, ein, dtype=np.float32)
+    a[-aus:] *= np.linspace(1, 0, aus, dtype=np.float32)
+    return a
 
 
 def marken_fuer(minuten, dehn):
