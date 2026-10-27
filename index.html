@@ -79,9 +79,10 @@
   .runter .dur { flex: 1 1 45%; border-color: rgba(216,196,143,0.45); background: rgba(216,196,143,0.07); }
   .runter .dur .lbl { color: var(--gold); }
   .runter.innehalten .dur { flex: 1 1 20%; }   /* Platz für vier Längen */
-  .runter.akut .dur { border-color: rgba(232,150,128,0.5); background: rgba(232,150,128,0.08); }
-  .runter.akut .dur .num { font-size: 22px; font-weight: 300; }
-  .runter.akut .dur .lbl { color: #e8a08c; }
+  /* Akut (Notbremse, Panik): seit Version 65 unter „Geführt“ und zurückhaltend, nur das Etikett leicht koralle */
+  .runter.akut .dur { border-color: rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); padding: 14px 0 11px; }
+  .runter.akut .dur .num { font-size: 18px; font-weight: 300; }
+  .runter.akut .dur .lbl { color: #e8a08c; opacity: 0.85; }
   .runter.zweireihig { flex-wrap: wrap; }      /* Einfach sitzen: sieben Längen, 4 + 3 */
   .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
@@ -92,6 +93,21 @@
   #rhythms { flex-wrap: wrap; }
   #rhythms .rhy { flex: 1 1 84px; }
   #ambients, #progKulisse { flex-wrap: wrap; }
+  /* Art-Wahl (7 = 4 + 3) und Nur Klang (8 = 4 + 4) */
+  #artWahl, #klangWahl { flex-wrap: wrap; }
+  #artWahl .rhy, #klangWahl .rhy { flex: 1 1 22%; }
+  /* Zugeklappte Bereiche (Hintergrund, Einstellungen, externe Links): Kopf sieht aus wie ein .vid-Knopf.
+     Kein display auf details setzen, sonst wirkt hidden nicht mehr. */
+  details.einst { width: 100%; margin-bottom: 14px; }
+  details.einst > summary {
+    list-style: none; cursor: pointer; padding: 12px 16px; border-radius: 14px; min-height: 44px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    color: var(--ink-dim); font-size: 13px; text-align: left; line-height: 20px;
+  }
+  details.einst > summary::-webkit-details-marker { display: none; }
+  details.einst > summary::after { content: "›"; float: right; font-size: 18px; line-height: 20px; transition: transform 0.2s; }
+  details.einst[open] > summary { margin-bottom: 12px; }
+  details.einst[open] > summary::after { transform: rotate(90deg); }
   .rhythms .umbruch { flex-basis: 100%; height: 0; }
   .rhy {
     flex: 1; padding: 11px 4px; border-radius: 14px; cursor: pointer; font-size: 12px;
@@ -269,83 +285,80 @@
   <div id="syncAnzeige"></div>
   <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
 
-  <!-- Akut: ganz oben, damit man sie im Ärger oder in der Panik nicht suchen muss (tools/notbremse_bauen.py Version 63, tools/panik_bauen.py Version 64, nur Bella) -->
-  <div class="runter akut">
-    <div class="dur" role="button" tabindex="0" data-prog="notbremse-3" data-min="3" aria-label="Notbremse, 3 Minuten, wenn du auf hundert bist"><div class="num">Notbremse</div><div class="lbl">3 Min · auf hundert</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="panik-3" data-min="3" aria-label="Panik, 3 Minuten, zurück ins Hier und Jetzt"><div class="num">Panik</div><div class="lbl">3 Min · zurück ins Hier</div></div>
-  </div>
-  <div class="runter-hinweis">Notbremse bei Wut und Überreizung · Panik bei Angst und Herzrasen · zum ersten Mal so oder Schmerz in der Brust: 112</div>
-
-  <div class="section-cap">Täglich</div>
-  <div class="runter innehalten">   <!-- tools/taeglich_bauen.py, ElevenLabs Bella/Eric -->
-    <div class="dur" role="button" tabindex="0" data-prog="taeglich-3" data-min="3" aria-label="Tägliche Meditation, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="taeglich-5" data-min="5" aria-label="Tägliche Meditation, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="taeglich-7" data-min="7" aria-label="Tägliche Meditation, 7 Minuten, geführt"><div class="num">7</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="taeglich-10" data-min="10" aria-label="Tägliche Meditation, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
-  </div>
-  <div class="runter-hinweis">Die Meditation für jeden Tag, jede Länge vollständig: ankommen, Seufzer- und 4·6-Atmung, Körperscan, Präsenz, Loslassen</div>
-
-  <div class="section-cap">Einfach sitzen</div>
-  <div class="runter innehalten zweireihig">   <!-- tools/sitzen_bauen.py, ElevenLabs Bella/Eric, Version 58 (1, 3 und 7 Min seit Version 60) -->
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-1" data-min="1" aria-label="Einfach sitzen, 1 Minute, achtsame Minute"><div class="num">1</div><div class="lbl">Minute</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-3" data-min="3" aria-label="Einfach sitzen, 3 Minuten, nur Atem beobachten"><div class="num">3</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-5" data-min="5" aria-label="Einfach sitzen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-7" data-min="7" aria-label="Einfach sitzen, 7 Minuten, geführt"><div class="num">7</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-10" data-min="10" aria-label="Einfach sitzen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-15" data-min="15" aria-label="Einfach sitzen, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="sitzen-20" data-min="20" aria-label="Einfach sitzen, 20 Minuten, geführt"><div class="num">20</div><div class="lbl">Minuten</div></div>
-  </div>
-  <div class="runter-hinweis">Klassisch meditieren: den Atem nur beobachten, Körperscan, offen sitzen (1 und 3 Min: nur der Atem) · keine Atemübung, die Kugel gibt keinen Takt vor</div>
-  <div class="section-cap">Zazen</div>
-  <div class="runter innehalten">   <!-- tools/zen_bauen.py, nur Bella, Version 61 -->
-    <div class="dur" role="button" tabindex="0" data-prog="zen-7" data-min="7" aria-label="Zazen, 7 Minuten"><div class="num">7</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="zen-10" data-min="10" aria-label="Zazen, 10 Minuten"><div class="num">10</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="zen-15" data-min="15" aria-label="Zazen, 15 Minuten"><div class="num">15</div><div class="lbl">Minuten</div></div>
-  </div>
-  <div class="runter-hinweis">Zen: drei Gongschläge, Haltung, Atemzüge zählen bis zehn, dann fast nur Stille</div>
-  <div class="section-cap">Gehen</div>
-  <div class="runter innehalten">   <!-- tools/gehen_bauen.py, nur Bella, Version 62 -->
-    <div class="dur" role="button" tabindex="0" data-prog="gehen-3" data-min="3" aria-label="Gehen, 3 Minuten"><div class="num">3</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="gehen-5" data-min="5" aria-label="Gehen, 5 Minuten"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="gehen-7" data-min="7" aria-label="Gehen, 7 Minuten"><div class="num">7</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="gehen-10" data-min="10" aria-label="Gehen, 10 Minuten"><div class="num">10</div><div class="lbl">Minuten</div></div>
-  </div>
-  <div class="runter-hinweis">Beim ganz normalen Spazieren, mit Kopfhörern: Augen offen, eigenes Tempo, Atem im Takt der Schritte, dann Hören und Sehen · ohne Hintergrund, draußen ist genug zu hören</div>
-  <!-- Hintergrund für Täglich, Sitzen, Zazen + Innehalten: die Tonspuren sind seit Version 56 reine Stimme -->
-  <div class="section-cap" style="margin-top:4px">Hintergrund · Täglich, Sitzen, Zazen, Innehalten</div>
-  <div class="rhythms" id="progKulisse" role="radiogroup" aria-label="Hintergrund für Täglich, Einfach sitzen, Zazen und Innehalten">
-    <div class="rhy" role="radio" tabindex="0" data-pk="waldvoegel">Vögel</div>
-    <div class="rhy" role="radio" tabindex="0" data-pk="aus">Stille</div>
-    <div class="rhy" role="radio" tabindex="0" data-pk="hz432">432 Hz<small>Ton</small></div>
-    <div class="rhy" role="radio" tabindex="0" data-pk="alpha">Alpha<small>🎧 10 Hz</small></div>
-    <div class="rhy" role="radio" tabindex="0" data-pk="theta">Theta<small>🎧 6 Hz</small></div>
-  </div>
-  <div id="progVolWrap" style="width:100%; margin-top:-4px">
-    <input type="range" id="progVol" min="0" max="100" value="60" aria-label="Lautstärke des Hintergrunds"
-           style="width:100%; accent-color:var(--accent); height:24px">
-  </div>
-  <div class="runter-hinweis">Gilt beim Start von Täglich, Einfach sitzen, Zazen und Innehalten · 🎧 = nur mit Kopfhörern (linkes und rechtes Ohr hören leicht verschiedene Töne)</div>
-
-  <div class="section-cap">Runterkommen</div>
-  <div class="runter">
-    <div class="dur" role="button" tabindex="0" data-prog="runterkommen-5" data-min="5" aria-label="Runterkommen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="runterkommen-10" data-min="10" aria-label="Runterkommen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+  <!-- Geführt: eine Art wählen, darunter nur ihre Längen und eine Zeile, was sie ausmacht (Umbau Version 65,
+       Florian 27.10.2026: „nicht weniger Funktion, nur übersichtlicher“). Standard Täglich, die Wahl bleibt gemerkt. -->
+  <div class="section-cap">Geführte Meditation</div>
+  <div class="rhythms" id="artWahl" role="radiogroup" aria-label="Welche geführte Meditation">
+    <div class="rhy" role="radio" tabindex="0" data-wahl="taeglich">Täglich<small>Standard</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="sitzen">Sitzen<small>nur beobachten</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="zen">Zazen<small>zählen, Stille</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="gehen">Gehen<small>spazieren</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="runterkommen">Runter&shy;kommen<small>nach Stress</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="innehalten">Innehalten<small>sanft</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="flex">Nach Wahl<small>Thema + Länge</small></div>
   </div>
 
-  <div class="runter-hinweis">Geführt: ankommen, Seufzer-Atmung, langes Ausatmen · für die Bank unterwegs</div>
-
-  <div class="section-cap">Innehalten</div>
-  <div class="runter innehalten">
-    <div class="dur" role="button" tabindex="0" data-prog="innehalten-3" data-min="3" aria-label="Innehalten, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="innehalten-5" data-min="5" aria-label="Innehalten, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
-    <!-- alle vier Längen seit Version 57 mit ElevenLabs Bella/Eric (vorher Grok), tools/innehalten_bauen.py -->
-    <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
-    <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
+  <div class="artgruppe" data-gruppe="taeglich">   <!-- tools/taeglich_bauen.py, ElevenLabs Bella/Eric -->
+    <div class="runter innehalten">
+      <div class="dur" role="button" tabindex="0" data-prog="taeglich-3" data-min="3" aria-label="Tägliche Meditation, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="taeglich-5" data-min="5" aria-label="Tägliche Meditation, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="taeglich-7" data-min="7" aria-label="Tägliche Meditation, 7 Minuten, geführt"><div class="num">7</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="taeglich-10" data-min="10" aria-label="Tägliche Meditation, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Die Standard-Meditation für jeden Tag, mit Atemübungen: ankommen, Seufzer- und 4·6-Atmung (die Kugel atmet mit), Körperscan, einfach da sein, loslassen · jede Länge vollständig</div>
   </div>
-  <div class="runter-hinweis">Fertige Meditation: ankommen, langes Ausatmen, Körper, Gedanken, Freundlichkeit · für zu Hause oder mit Kopfhörern · Hintergrund wie bei Täglich</div>
 
-  <div class="links" id="flexBox">
-    <div class="section-cap">Geführte Meditationen</div>
+  <div class="artgruppe" data-gruppe="sitzen" hidden>   <!-- tools/sitzen_bauen.py, ElevenLabs Bella/Eric, Version 58 (1, 3 und 7 Min seit Version 60) -->
+    <div class="runter innehalten zweireihig">
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-1" data-min="1" aria-label="Einfach sitzen, 1 Minute, achtsame Minute"><div class="num">1</div><div class="lbl">Minute</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-3" data-min="3" aria-label="Einfach sitzen, 3 Minuten, nur Atem beobachten"><div class="num">3</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-5" data-min="5" aria-label="Einfach sitzen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-7" data-min="7" aria-label="Einfach sitzen, 7 Minuten, geführt"><div class="num">7</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-10" data-min="10" aria-label="Einfach sitzen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-15" data-min="15" aria-label="Einfach sitzen, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="sitzen-20" data-min="20" aria-label="Einfach sitzen, 20 Minuten, geführt"><div class="num">20</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Einfach sitzen, klassisch und leise: keine Atemübung, du beobachtest den Atem nur, ab 5 Min auch Körper und offenes Sitzen · viel Stille, die Kugel gibt keinen Takt vor · 1 Min = achtsame Minute</div>
+  </div>
+
+  <div class="artgruppe" data-gruppe="zen" hidden>   <!-- tools/zen_bauen.py, nur Bella, Version 61 -->
+    <div class="runter innehalten">
+      <div class="dur" role="button" tabindex="0" data-prog="zen-7" data-min="7" aria-label="Zazen, 7 Minuten"><div class="num">7</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="zen-10" data-min="10" aria-label="Zazen, 10 Minuten"><div class="num">10</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="zen-15" data-min="15" aria-label="Zazen, 15 Minuten"><div class="num">15</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Zen, die wenigsten Worte: drei Gongschläge, Haltung, Atemzüge bis zehn zählen, danach fast nur Stille · darum erst ab 7 Min</div>
+  </div>
+
+  <div class="artgruppe" data-gruppe="gehen" hidden>   <!-- tools/gehen_bauen.py, nur Bella, Version 62 -->
+    <div class="runter innehalten">
+      <div class="dur" role="button" tabindex="0" data-prog="gehen-3" data-min="3" aria-label="Gehen, 3 Minuten"><div class="num">3</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="gehen-5" data-min="5" aria-label="Gehen, 5 Minuten"><div class="num">5</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="gehen-7" data-min="7" aria-label="Gehen, 7 Minuten"><div class="num">7</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="gehen-10" data-min="10" aria-label="Gehen, 10 Minuten"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Beim ganz normalen Spazieren, mit Kopfhörern: Augen offen, eigenes Tempo, Atem im Takt der Schritte, dann Hören und Sehen · ohne Hintergrund, draußen ist genug zu hören</div>
+  </div>
+
+  <div class="artgruppe" data-gruppe="runterkommen" hidden>
+    <div class="runter">
+      <div class="dur" role="button" tabindex="0" data-prog="runterkommen-5" data-min="5" aria-label="Runterkommen, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="runterkommen-10" data-min="10" aria-label="Runterkommen, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Nach Stress, unterwegs, zum Beispiel auf einer Bank: Blick wandern lassen, Seufzer-Atmung, langes Ausatmen, Hören · die Kugel atmet mit · Klangkulisse aus den Einstellungen</div>
+  </div>
+
+  <div class="artgruppe" data-gruppe="innehalten" hidden>   <!-- alle vier Längen seit Version 57 mit ElevenLabs Bella/Eric (vorher Grok), tools/innehalten_bauen.py -->
+    <div class="runter innehalten">
+      <div class="dur" role="button" tabindex="0" data-prog="innehalten-3" data-min="3" aria-label="Innehalten, 3 Minuten, geführt"><div class="num">3</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="innehalten-5" data-min="5" aria-label="Innehalten, 5 Minuten, geführt"><div class="num">5</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="innehalten-10" data-min="10" aria-label="Innehalten, 10 Minuten, geführt"><div class="num">10</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="innehalten-15" data-min="15" aria-label="Innehalten, 15 Minuten, geführt"><div class="num">15</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Sanft, für zu Hause: ankommen, langes Ausatmen, Körper spüren, Gedanken ziehen lassen, zum Schluss Freundlichkeit für dich und andere</div>
+  </div>
+
+  <div class="artgruppe" data-gruppe="flex" id="flexBox" hidden>
     <div class="flexQuick" id="flexModus" role="group" aria-label="Eine Art oder mehrere Teile">
       <button type="button" data-modus="eine">Eine Art</button><button type="button" data-modus="kombi">Zusammenstellen</button>
     </div>
@@ -366,8 +379,50 @@
     <input type="range" id="flexMin" min="1" max="45" step="1" value="12" aria-label="Länge in Minuten">
     <button class="vid" id="flexStart" style="text-align:center; margin:8px 0 0">12 Minuten starten</button>
     <div class="voice-note" id="flexNote">Art antippen, Länge wählen – die Anleitung wird passend zusammengesetzt, die Pausen wachsen mit der Länge. Eine Minute ist nur ein kurzes Ankommen.</div>
+    <div class="runter-hinweis" style="margin-top:6px">Nach Wahl: Thema und Länge (1–45 Min) selbst bestimmen, mit „Zusammenstellen“ auch mehrere Teile hintereinander</div>
+  </div>
 
-  <div class="section-cap" id="capDur">Tippen zum Starten</div>
+  <!-- Hintergrund für Täglich, Sitzen, Zazen + Innehalten (die Tonspuren sind seit Version 56 reine Stimme); nur bei diesen Arten sichtbar -->
+  <details class="einst" id="progHg">
+    <summary>Hintergrund · <span id="progHgName">Vögel</span></summary>
+    <div class="rhythms" id="progKulisse" role="radiogroup" aria-label="Hintergrund für Täglich, Einfach sitzen, Zazen und Innehalten">
+      <div class="rhy" role="radio" tabindex="0" data-pk="waldvoegel">Vögel</div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="aus">Stille</div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="hz432">432 Hz<small>Ton</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="alpha">Alpha<small>🎧 10 Hz</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="theta">Theta<small>🎧 6 Hz</small></div>
+    </div>
+    <div id="progVolWrap" style="width:100%; margin-top:-4px">
+      <input type="range" id="progVol" min="0" max="100" value="60" aria-label="Lautstärke des Hintergrunds"
+             style="width:100%; accent-color:var(--accent); height:24px">
+    </div>
+    <div class="runter-hinweis">Gilt für Täglich, Einfach sitzen, Zazen und Innehalten · 🎧 = nur mit Kopfhörern (linkes und rechtes Ohr hören leicht verschiedene Töne)</div>
+  </details>
+
+  <!-- Akut: Notbremse (tools/notbremse_bauen.py, Version 63) + Panik (tools/panik_bauen.py, Version 64), nur Bella; seit Version 65 unter „Geführt“ statt ganz oben -->
+  <div class="section-cap" style="margin-top:14px">Akut</div>
+  <div class="runter akut">
+    <div class="dur" role="button" tabindex="0" data-prog="notbremse-3" data-min="3" aria-label="Notbremse, 3 Minuten, wenn du auf hundert bist"><div class="num">Notbremse</div><div class="lbl">3 Min · auf hundert</div></div>
+    <div class="dur" role="button" tabindex="0" data-prog="panik-3" data-min="3" aria-label="Panik, 3 Minuten, zurück ins Hier und Jetzt"><div class="num">Panik</div><div class="lbl">3 Min · zurück ins Hier</div></div>
+  </div>
+  <div class="runter-hinweis">Notbremse bei Wut und Überreizung: Druck ablassen, Seufzer-Atmung, Gefühl benennen · Panik bei Angst und Herzrasen: langsam atmen, mit den Sinnen zurück ins Hier · zum ersten Mal so oder Schmerz in der Brust: 112</div>
+
+  <!-- Nur Klang (Version 65): Klangkulisse ohne Stimme, Signale, Klangschale und Zeitlimit; Lautstärke wie die Klangkulisse -->
+  <div class="section-cap" style="margin-top:14px">Nur Klang</div>
+  <div class="rhythms" id="klangWahl" role="group" aria-label="Nur Klang, Tippen startet">
+    <div class="rhy" role="button" tabindex="0" data-klang="meer">Meer</div>
+    <div class="rhy" role="button" tabindex="0" data-klang="wald">Wald</div>
+    <div class="rhy" role="button" tabindex="0" data-klang="voegel">Vögel</div>
+    <div class="rhy" role="button" tabindex="0" data-klang="fluss">Bach</div>
+    <div class="rhy" role="button" tabindex="0" data-klang="klavier">Klavier</div>
+    <div class="rhy" role="button" tabindex="0" data-klang="hz432">432 Hz<small>Ton</small></div>
+    <div class="rhy" role="button" tabindex="0" data-klang="alpha">Alpha<small>🎧 10 Hz</small></div>
+    <div class="rhy" role="button" tabindex="0" data-klang="theta">Theta<small>🎧 6 Hz</small></div>
+  </div>
+  <div class="runter-hinweis">Tippen startet nur den Klang: ohne Stimme, ohne Zeitlimit, „Fertig“ beendet · 🎧 Alpha und Theta nur mit Kopfhörern</div>
+
+  <!-- Atemuhr: selbst atmen, die Kugel gibt den Rhythmus vor -->
+  <div class="section-cap" id="capDur" style="margin-top:14px">Atemuhr · selbst atmen</div>
   <div class="durations">
     <div class="dur" role="button" tabindex="0" data-min="1" aria-label="1 Minute meditieren"><div class="num">1</div><div class="lbl">Minute</div></div>
     <div class="dur" role="button" tabindex="0" data-min="3" aria-label="3 Minuten meditieren"><div class="num">3</div><div class="lbl">Minuten</div></div>
@@ -377,8 +432,6 @@
     <div class="dur" role="button" tabindex="0" data-min="0" aria-label="Ohne Zeitlimit meditieren"><div class="num">∞</div><div class="lbl">Offen</div></div>
   </div>
 
-  </div>
-
   <div class="rhythms" id="rhythms" role="radiogroup" aria-label="Atemrhythmus">
     <div class="rhy" role="radio" tabindex="0" data-rhy="ruhig">Ruhig<small>4 ein · 6 aus</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="box">Box<small>4 · 4 · 4 · 4</small></div>
@@ -386,38 +439,43 @@
     <div class="rhy" role="radio" tabindex="0" data-rhy="seufzer">Beruhigen<small>Seufzer</small></div>
     <div class="rhy" role="radio" tabindex="0" data-rhy="frei">Frei<small>ohne Vorgabe</small></div>
   </div>
+  <div class="voice-note" id="voiceNote" style="margin-top:0; margin-bottom:10px"></div>
 
-  <div class="rhythms" id="voices" role="radiogroup" aria-label="Stimme" style="margin-bottom:14px">
-    <div class="rhy" role="radio" tabindex="0" data-sex="w">Weibliche Stimme</div>
-    <div class="rhy" role="radio" tabindex="0" data-sex="m">Männliche Stimme</div>
-  </div>
+  <!-- Einstellungen für alles (Stimme, Signale, Klangschale, Klangkulisse) – zugeklappt, damit die Startseite ruhig bleibt -->
+  <details class="einst" id="einstellungen">
+    <summary>⚙︎ Einstellungen · Stimme, Signale, Klangkulisse</summary>
+    <div class="rhythms" id="voices" role="radiogroup" aria-label="Stimme" style="margin-bottom:14px">
+      <div class="rhy" role="radio" tabindex="0" data-sex="w">Weibliche Stimme</div>
+      <div class="rhy" role="radio" tabindex="0" data-sex="m">Männliche Stimme</div>
+    </div>
 
-  <div class="toggles">
-    <div class="tgl" role="switch" tabindex="0" id="tglVoice"><span class="dot"></span><span>Stimme</span></div>
-    <div class="tgl" role="switch" tabindex="0" id="tglSignals"><span class="dot"></span><span>Signale</span></div>
-    <div class="tgl" role="switch" tabindex="0" id="tglBowl"><span class="dot"></span><span>Klangschale</span></div>
-  </div>
-  <div class="flexQuick" id="bowlJede" role="group" aria-label="Klangschale wie oft" hidden>
-    <button type="button" data-sek="60">alle 1 Min</button><button type="button" data-sek="120">alle 2 Min</button><button type="button" data-sek="300">alle 5 Min</button>
-  </div>
-  <div class="rhythms" id="ambients" role="radiogroup" aria-label="Klangkulisse" style="margin-top:12px">
-    <div class="rhy" role="radio" tabindex="0" data-amb="aus">Stille</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="wald">Wald</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="voegel">Vögel</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="fluss">Bach</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="meer">Meer</div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="klavier">Klavier</div>
-    <div class="umbruch" aria-hidden="true"></div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="hz432">432 Hz<small>Ton</small></div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="alpha">Alpha<small>🎧 10 Hz</small></div>
-    <div class="rhy" role="radio" tabindex="0" data-amb="theta">Theta<small>🎧 6 Hz</small></div>
-  </div>
-  <div id="ambVolWrap" style="width:100%; margin-top:12px; display:none">
-    <input type="range" id="ambVol" min="0" max="100" value="60" aria-label="Lautstärke der Klangkulisse"
-           style="width:100%; accent-color:var(--accent); height:24px">
-    <div class="section-cap" style="margin:0">Klangkulisse · Lautstärke</div>
-  </div>
-  <div class="voice-note" id="voiceNote"></div>
+    <div class="toggles">
+      <div class="tgl" role="switch" tabindex="0" id="tglVoice"><span class="dot"></span><span>Stimme</span></div>
+      <div class="tgl" role="switch" tabindex="0" id="tglSignals"><span class="dot"></span><span>Signale</span></div>
+      <div class="tgl" role="switch" tabindex="0" id="tglBowl"><span class="dot"></span><span>Klangschale</span></div>
+    </div>
+    <div class="flexQuick" id="bowlJede" role="group" aria-label="Klangschale wie oft" hidden>
+      <button type="button" data-sek="60">alle 1 Min</button><button type="button" data-sek="120">alle 2 Min</button><button type="button" data-sek="300">alle 5 Min</button>
+    </div>
+    <div class="section-cap" style="margin:16px 0 8px">Klangkulisse · Atemuhr, Runterkommen, Nach Wahl, Akut</div>
+    <div class="rhythms" id="ambients" role="radiogroup" aria-label="Klangkulisse">
+      <div class="rhy" role="radio" tabindex="0" data-amb="aus">Stille</div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="wald">Wald</div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="voegel">Vögel</div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="fluss">Bach</div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="meer">Meer</div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="klavier">Klavier</div>
+      <div class="umbruch" aria-hidden="true"></div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="hz432">432 Hz<small>Ton</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="alpha">Alpha<small>🎧 10 Hz</small></div>
+      <div class="rhy" role="radio" tabindex="0" data-amb="theta">Theta<small>🎧 6 Hz</small></div>
+    </div>
+    <div id="ambVolWrap" style="width:100%; margin-top:12px; display:none">
+      <input type="range" id="ambVol" min="0" max="100" value="60" aria-label="Lautstärke der Klangkulisse"
+             style="width:100%; accent-color:var(--accent); height:24px">
+      <div class="section-cap" style="margin:0">Klangkulisse · Lautstärke (auch für „Nur Klang“)</div>
+    </div>
+  </details>
 
   <div class="links" id="frageSection">
     <div class="section-cap">Über eine Frage meditieren</div>
@@ -430,7 +488,10 @@
     <div class="voice-note" id="frageNote"></div>
   </div>
 
-  <div class="links">
+  <!-- Externe Links zugeklappt (Version 65) -->
+  <details class="einst" id="weiterhoeren" style="margin-top:28px">
+    <summary>Weiterhören · andere Stimmen und Spotify</summary>
+  <div class="links" style="margin-top:4px">
     <div class="section-cap">Andere Stimmen · extern</div>
     <a href="https://insighttimer.com/de/heckenbeck/gefuehrte-meditation/3-minuten-atemraum" target="_blank" rel="noopener"><span>Tobias Polzin</span> · 3-Minuten-Atemraum · 3 Min</a>
     <a href="https://insighttimer.com/de/britta.hoelzel/gefuehrte-meditation/kurze-atemachtsamkeit-deutsch" target="_blank" rel="noopener"><span>Britta Hölzel</span> · Kurze Atemachtsamkeit · 4 Min</a>
@@ -444,6 +505,7 @@
     <a href="https://open.spotify.com/playlist/5AcLzybdnqrg7oOs1pzjxE" target="_blank" rel="noopener"><span>Handpan Meditation</span> · Malte Marten, ruhige Handpan</a>
     <a href="https://open.spotify.com/playlist/2txTkjvvuLKUXWiTokRNlE" target="_blank" rel="noopener"><span>Handpan Vibes</span> · deine eigene Playlist</a>
   </div>
+  </details>
 
   <div class="links" id="librarySection">
     <div class="section-cap" id="capAudio" style="display:none">Meditationen · offline · läuft bei Bildschirm aus</div>
@@ -469,7 +531,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 64</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 65</div>
 
 </div>
 
@@ -605,7 +667,7 @@ function renderNochmal() {
   sm.textContent = "Nochmal, mit einem Tipp";
   el.append(t, sm);
   el.hidden = false;
-  el.onclick = () => startSession(z.min, z.prog || undefined, z.flexArt || undefined);
+  el.onclick = () => startSession(z.min, z.prog || undefined, z.flexArt || undefined, z.klang || undefined);
 }
 keyActivate($("nochmal"));
 renderHome();
@@ -946,6 +1008,7 @@ function renderProgKulisse() {
   });
   $("progVolWrap").style.display = progAmbKey === "aus" ? "none" : "block";
   $("progVol").value = progVol;
+  $("progHgName").textContent = { waldvoegel: "Vögel", aus: "Stille", hz432: "432 Hz", alpha: "Alpha 🎧", theta: "Theta 🎧" }[progAmbKey];
 }
 document.querySelectorAll("#progKulisse .rhy").forEach(el => {
   keyActivate(el);
@@ -1074,7 +1137,10 @@ const ambBuffers = {};
 let amb = null, ambLoading = false;
 
 function progKontext() { return !!(session && session.progKulisse); }
-function ambZiel() { return progKontext() ? (/^gehen-/.test(session.prog) ? "aus" : progAmbKey) : ambKey; }   /* Gehen: draußen nie Hintergrund */
+function ambZiel() {   /* Gehen: draußen nie Hintergrund; „Nur Klang“ spielt seinen Klang mit der Lautstärke der Klangkulisse */
+  if (session && session.klang) return session.klang;
+  return progKontext() ? (/^gehen-/.test(session.prog) ? "aus" : progAmbKey) : ambKey;
+}
 function ambBase(key) {
   return progKontext() ? (PROG_LEVEL[key] || 0.06) * (progVol / 60) ** 2
                        : (AMB_LEVEL[key] || 0.5) * (ambVol / 60);
@@ -1459,7 +1525,11 @@ function baueKombi(teile, totalSec) {
   return plan.map(x => ({ at: Math.round(x.at * 10) / 10, f: x.f, art: x.art }));
 }
 
-async function startSession(min, prog, flexArt) {
+/* „Nur Klang“ (Version 65): klang = Schlüssel aus AMB_LEVEL/FREQUENZEN, offen, ohne Stimme, Signale, Schale */
+const KLANG_NAME = { meer: "Meer", wald: "Wald", voegel: "Vögel", fluss: "Bach", klavier: "Klavier",
+                     hz432: "432 Hz", alpha: "Alpha", theta: "Theta" };
+async function startSession(min, prog, flexArt, klang) {
+  if (klang && !KLANG_NAME[klang]) klang = undefined;
   if (session) return;
   if (libPlayingId !== null) libStop();   /* laufende Bibliotheks-Aufnahme beenden (und gutschreiben) */
   stopClosing();                 /* Abschlussansage der letzten Sitzung beenden */
@@ -1474,29 +1544,33 @@ async function startSession(min, prog, flexArt) {
   const offen = min === 0;                              /* ohne Zeitlimit */
   const totalSec = offen ? Infinity : min * 60;
   /* Programme sind immer geführt; sonst nur der ruhige 4-6-Rhythmus */
-  const mitFrage = !!frage && !prog && !flexArt;
+  const mitFrage = !!frage && !prog && !flexArt && !klang;
   const gefuehrt = !!prog || !!flexArt;
   const atemPlan = (prog && PROG_ATEM[prog]) || null;
-  const rhythm = atemPlan ? RHYTHMS[atemPlan[0][1]]
+  const rhythm = klang ? RHYTHMS.frei
+    : atemPlan ? RHYTHMS[atemPlan[0][1]]
     : gefuehrt ? (flexArt && flexArt !== "atmung" ? RHYTHMS.frei : RHYTHMS.ruhig)   /* nur Programme und die Atemmeditation atmen 4·6 mit – sonst gibt die Kugel kein Tempo vor */
     : RHYTHMS[rhythmKey];
-  const guided = !offen && voiceOn() && !mitFrage && (gefuehrt || rhythmKey === "ruhig");
+  const guided = !offen && !klang && voiceOn() && !mitFrage && (gefuehrt || rhythmKey === "ruhig");
   /* gesprochene Phasenansagen – beim freien Atmen bleibt es still */
   const spoken = voiceOn() && !guided && !rhythm.frei;
   /* Für die Statistik: welche Art, unter welchem Namen */
   const RHY_NAME = { ruhig: "Ruhig", box: "Box", schlaf: "Schlaf", seufzer: "Beruhigen", frei: "Frei" };
-  const art = mitFrage ? "frage"
+  const art = klang ? "klang"
+    : mitFrage ? "frage"
     : prog ? prog.replace(/-\d+$/, "")
     : flexArt ? (istKombi(flexArt) ? "kombi" : { atmung: "atemmeditation", koerperscan: "koerperreise" }[flexArt] || flexArt)
     : "atmen";
-  const titel = mitFrage ? "Frage: " + frage.text
+  const titel = klang ? "Nur Klang · " + KLANG_NAME[klang]
+    : mitFrage ? "Frage: " + frage.text
     : prog ? (PROG_TITEL[prog] || prog)
     : flexArt ? (istKombi(flexArt) ? kombiTeile(flexArt).map(t => FLEX_TITEL[t]).join(" → ") : FLEX_TITEL[flexArt] || "Geführte Meditation")
     : (offen ? "Offen" : "Atmen") + " · " + (RHY_NAME[rhythmKey] || rhythmKey);
-  if (!mitFrage) store.set("atemfunk_zuletzt", JSON.stringify({ min, prog: prog || null, flexArt: flexArt || null, titel }));
+  if (!mitFrage) store.set("atemfunk_zuletzt", JSON.stringify({ min, prog: prog || null, flexArt: flexArt || null, klang: klang || null, titel }));
   session = {
     art, titel,
-    min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, flexArt: null, plan: null, planIdx: 0, bowl: bowlOn(),
+    min, totalSec, offen, guided, spoken: spoken && !mitFrage, prog, flexArt: null, plan: null, planIdx: 0, bowl: !klang && bowlOn(),
+    klang: klang || null,
     frage: mitFrage ? frage.text : null, frageNr: mitFrage ? frage.nr : null, frageWiederholt: false,
     startedAt: Date.now(),
     endAt: offen ? Infinity : Date.now() + totalSec * 1000,
@@ -1513,7 +1587,8 @@ async function startSession(min, prog, flexArt) {
 
   $("frageImLauf").textContent = session.frage ? "„" + session.frage + "“" : "";
   acquireWakeLock();
-  gong();
+  if (klang && stumm) { stumm = false; store.set("atemfunk_stumm", "off"); renderStumm(); }   /* wer „Meer“ antippt, will es hören */
+  if (!klang) gong();
   if (/^zen-/.test(session.prog || "")) { gong(3.5); gong(7); }   /* Zazen: drei Schläge, die Tonspur wartet 11 s */
   setMediaSession(session.titel, min);
   if (session.frage && voiceOn()) setTimeout(() => sprichFrage(session.frage, session.frageNr), 4200);
@@ -1555,7 +1630,7 @@ async function startSession(min, prog, flexArt) {
   }
   if (!session) { audio.pause(); audio.removeAttribute("src"); return; } /* während play() beendet */
 
-  if (session.progKulisse) stopAmbient();     /* auf den Hintergrund für Täglich/Sitzen/Innehalten wechseln */
+  if (session.progKulisse || session.klang) stopAmbient();     /* auf den Hintergrund für Täglich/Sitzen/Innehalten bzw. den gewählten Klang wechseln */
   ensureAmbient();
 
   const orb = $("orb");
@@ -1675,7 +1750,8 @@ function finishSession(completed) {
     : elapsedOf(session);
   const warFrage = session.frage;
   const eintrag = { t: session.startedAt, art: session.art, titel: session.titel };
-  const kulisseZurueck = session.progKulisse;
+  const warKlang = session.klang;
+  const kulisseZurueck = session.progKulisse || !!warKlang;
   session = null;
   if (kulisseZurueck) { stopAmbient(); ensureAmbient(); }   /* zurück zur normalen Klangkulisse */
   $("breathDot").style.display = "none";
@@ -1689,14 +1765,13 @@ function finishSession(completed) {
   /* Offene Sitzung: ab einer Minute zählt sie. Sonst: ab der Hälfte zählt sie trotzdem. */
   const countsAnyway = !completed && (offen ? elapsedSec >= 60 : elapsedSec >= session_minHalf(min));
   if (completed || countsAnyway) {
-    gong(); gong(0.15);
-    playClosing();
+    if (!warKlang) { gong(); gong(0.15); playClosing(); }
     const credited = (completed && !offen) ? min : Math.max(1, Math.floor(elapsedSec / 60));
     /* Summen zählen ganze Minuten wie bisher, das Protokoll die tatsächliche Zeit */
     eintrag.min = (completed && !offen) ? min : elapsedSec / 60;
     const { streak, stats } = recordSession(credited, eintrag);
     $("doneTitle").textContent = (completed && !offen) ? "Gut gemacht." : (offen ? "Schön, dass du da warst." : "Zählt trotzdem.");
-    $("doneSub").textContent = credited + " " + (credited === 1 ? "Minute" : "Minuten") + " Atemmeditation · " + streak + (streak === 1 ? " Tag" : " Tage") + " in Folge";
+    $("doneSub").textContent = credited + " " + (credited === 1 ? "Minute" : "Minuten") + (warKlang ? " mit " + KLANG_NAME[warKlang] : " Atemmeditation") + " · " + streak + (streak === 1 ? " Tag" : " Tage") + " in Folge";
     if (warFrage) {
       $("doneSub").textContent = "„" + warFrage + "“";
       store.set("atemfunk_letzte_frage", warFrage);
@@ -1722,6 +1797,34 @@ document.querySelectorAll(".dur[data-min]:not([data-prog])").forEach(el => {   /
 document.querySelectorAll("[data-prog]").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => startSession(+el.dataset.min, el.dataset.prog));
+});
+
+/* ---------- Geführt: Art wählen (Version 65) ---------- */
+/* Nur die gewählte Art zeigt ihre Längen und ihre Erklärung; der Hintergrund nur bei den Arten, die ihn nutzen */
+const MIT_HINTERGRUND = ["taeglich", "sitzen", "zen", "innehalten"];
+let artWahl = store.get("atemfunk_artwahl", "taeglich");
+if (!document.querySelector('#artWahl [data-wahl="' + artWahl + '"]')) artWahl = "taeglich";
+function waehleArt(k, merken = true) {
+  artWahl = k;
+  if (merken) store.set("atemfunk_artwahl", k);
+  document.querySelectorAll("#artWahl .rhy").forEach(el => {
+    const sel = el.dataset.wahl === k;
+    el.classList.toggle("sel", sel);
+    el.setAttribute("aria-checked", sel ? "true" : "false");
+  });
+  document.querySelectorAll(".artgruppe").forEach(g => { g.hidden = g.dataset.gruppe !== k; });
+  $("progHg").hidden = !MIT_HINTERGRUND.includes(k);
+}
+document.querySelectorAll("#artWahl .rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => waehleArt(el.dataset.wahl));
+});
+waehleArt(artWahl, false);
+
+/* ---------- Nur Klang ---------- */
+document.querySelectorAll("#klangWahl .rhy").forEach(el => {
+  keyActivate(el);
+  el.addEventListener("click", () => startSession(0, undefined, undefined, el.dataset.klang));
 });
 
 /* ---------- Eigene Länge ---------- */
@@ -1813,6 +1916,7 @@ renderFlex();
     if (mn >= 1 && mn <= 45) flexMinuten = mn;
     renderFlex();
     setTimeout(() => {
+      waehleArt("flex", false);   /* nur zeigen – die gemerkte Art (meist Täglich) bleibt */
       $("flexBox").scrollIntoView({ behavior: "smooth", block: "start" });
       $("flexStart").classList.add("puls");
       $("flexStart").focus({ preventScroll: true });
@@ -2157,7 +2261,7 @@ function setzeFrage(text, quelle, nr) {
   a.innerHTML = "<span style='color:var(--gold)'>„" + text.replace(/[<>&]/g, "") + "“</span>"
     + "<span class='play-hint' id='frageWeg'>✕</span>";
   $("frageWeg").addEventListener("click", e => { e.stopPropagation(); setzeFrage(null); });
-  $("frageNote").textContent = "Wähle jetzt eine Dauer – die Frage begleitet dich still durch die Sitzung.";
+  $("frageNote").textContent = "Wähle jetzt oben unter „Atemuhr“ eine Dauer – die Frage begleitet dich still durch die Sitzung.";
   $("frageAnzeige").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
