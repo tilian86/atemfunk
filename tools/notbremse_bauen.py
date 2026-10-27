@@ -17,7 +17,7 @@ from runter_texte import ZUEGE, SEUFZER_TAKT, RUHIG_TAKT
 from notbremse_texte import S
 
 del sb.STIMMEN["m"]                # nur Bella
-FASSUNG = "-1"                     # index.html PROG_FASSUNG.notbremse
+NAME, FASSUNG = "notbremse", "-1"  # index.html PROG_FASSUNG.notbremse (panik_bauen.py setzt eigene)
 D = "dehnbar"
 
 ABLAUF = [
@@ -77,11 +77,11 @@ def bauen(minuten=3):
         i = int(round(start * rb.SR))
         assert i + len(a) <= len(spur), start
         spur[i:i + len(a)] += a
-    raw = f"{rb.CACHE}/notbremse-{minuten}-w.f32"
+    raw = f"{rb.CACHE}/{NAME}-{minuten}-w.f32"
     spur.tofile(raw)
     spur *= 10 ** ((-21 - sb.lautheit(raw)) / 20)
     spur.tofile(raw)
-    ziel = sb.STIMMEN["w"][2] + "/notbremse"
+    ziel = sb.STIMMEN["w"][2] + "/" + NAME
     os.makedirs(ziel, exist_ok=True)
     aus = f"{ziel}/{minuten}{FASSUNG}.mp3"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(rb.SR), "-ac", "1", "-i", raw,
@@ -98,4 +98,4 @@ def bauen(minuten=3):
 if __name__ == "__main__":
     plan, aus, rest, ende = bauen()
     print(f"{os.path.relpath(aus, rb.AUDIO + '/..')}: Stille nach der Frage {rest:.1f} s, letzter Satz endet bei {ende:.1f} s")
-    print("PROG_ATEM =", json.dumps({"notbremse-3": plan}))
+    print("PROG_ATEM =", json.dumps({f"{NAME}-3": plan}))
