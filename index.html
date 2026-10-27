@@ -79,6 +79,9 @@
   .runter .dur { flex: 1 1 45%; border-color: rgba(216,196,143,0.45); background: rgba(216,196,143,0.07); }
   .runter .dur .lbl { color: var(--gold); }
   .runter.innehalten .dur { flex: 1 1 20%; }   /* Platz für vier Längen */
+  .runter.akut .dur { border-color: rgba(232,150,128,0.5); background: rgba(232,150,128,0.08); }
+  .runter.akut .dur .num { font-size: 22px; font-weight: 300; }
+  .runter.akut .dur .lbl { color: #e8a08c; }
   .runter.zweireihig { flex-wrap: wrap; }      /* Einfach sitzen: sieben Längen, 4 + 3 */
   .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
@@ -264,6 +267,12 @@
   <div class="stats-line" id="statsLine"></div>
   <div id="syncAnzeige"></div>
   <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
+
+  <!-- Akut: ganz oben, damit man sie im Ärger nicht suchen muss (tools/notbremse_bauen.py, nur Bella, Version 63) -->
+  <div class="runter akut">
+    <div class="dur" role="button" tabindex="0" data-prog="notbremse-3" data-min="3" aria-label="Notbremse, 3 Minuten, wenn du auf hundert bist"><div class="num">Notbremse</div><div class="lbl">3 Min · auf hundert</div></div>
+  </div>
+  <div class="runter-hinweis">Bei Wut oder wenn alles zu viel ist: Druck ablassen, Seufzer-Atmung, Gefühl benennen, ruhiger atmen</div>
 
   <div class="section-cap">Täglich</div>
   <div class="runter innehalten">   <!-- tools/taeglich_bauen.py, ElevenLabs Bella/Eric -->
@@ -458,7 +467,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 62</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 63</div>
 
 </div>
 
@@ -1254,6 +1263,8 @@ const FLEX_TITEL = { atmung: "Atemmeditation", koerperscan: "Körperscan", gedan
    Die Zeitmarken kommen aus tools/runter_bauen.py und sind in beiden Stimmen
    gleich — die Stimme zählt die Seufzer genau dann an, wenn die Kugel sie zeigt. */
 const PROG_ATEM = {
+  /* Notbremse: tools/notbremse_bauen.py */
+  "notbremse-3": [[0.0, "frei"], [50.0, "seufzer"], [117.5, "frei"], [138.5, "ruhig"], [158.5, "frei"]],
   "runterkommen-5":  [[0, "frei"], [61, "seufzer"], [182.5, "frei"], [192.5, "ruhig"], [252.5, "frei"]],
   "runterkommen-10": [[0, "frei"], [81.5, "seufzer"], [284, "frei"], [294, "ruhig"], [494, "frei"]],
   /* Innehalten: tools/innehalten_bauen.py – nur der Takt-Teil gibt ein Tempo vor */
@@ -1279,12 +1290,12 @@ const PROG_ATEM = {
    Innehalten -5 = Bella/Eric statt Grok (Version 57), Runterkommen -2 = Bella/Eric statt Sarah/Brian
    (Version 58, vorher prog/runterkommen-N.mp3), Atemuhr atem -1 = Bella/Eric statt Edge (Version 59,
    vorher atem-N.mp3, tools/atemuhr_bauen.py), Zazen zen -1 (Version 61, nur Bella), Gehen gehen -1 (Version 62, nur Bella) */
-const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4", sitzen: "-1", runterkommen: "-2", atem: "-1", zen: "-1", gehen: "-1" };
+const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4", sitzen: "-1", runterkommen: "-2", atem: "-1", zen: "-1", gehen: "-1", notbremse: "-1" };
 /* Neues seit Version 61 gibt es nur mit Bella (Florian 26.10.2026) – auch bei eingestellter Männerstimme */
-const NUR_BELLA = /^(zen|gehen)-/;
+const NUR_BELLA = /^(zen|gehen|notbremse)-/;
 /* Tonspur eines festen Programms: liegt im Unterordner der Art, mit Fassung im Namen */
-const progDatei = prog => (NUR_BELLA.test(prog) ? "audio/" : voicePath()) + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem|zen|gehen)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3";
-const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen",
+const progDatei = prog => (NUR_BELLA.test(prog) ? "audio/" : voicePath()) + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem|zen|gehen|notbremse)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3";
+const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen", "notbremse-3": "Notbremse",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",
   "sitzen-1": "Achtsame Minute", "sitzen-3": "Einfach sitzen", "sitzen-5": "Einfach sitzen", "sitzen-7": "Einfach sitzen", "sitzen-10": "Einfach sitzen", "sitzen-15": "Einfach sitzen", "sitzen-20": "Einfach sitzen",
@@ -1313,7 +1324,7 @@ function atemZustand(s) {
    der gewählten Stimme einmal vorab in den Offline-Speicher holen. */
 function runterVorladen() {
   if (!("caches" in window) || !navigator.serviceWorker?.controller) return;
-  for (const d of ["runterkommen-5", "runterkommen-10"]) {
+  for (const d of ["runterkommen-5", "runterkommen-10", "notbremse-3"]) {   /* Notbremse auch: im Ärger kein Laden */
     const url = progDatei(d);
     caches.match(url, { ignoreSearch: true }).then(hit => hit || fetch(url)).catch(() => {});
   }
