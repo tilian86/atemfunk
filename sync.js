@@ -18,6 +18,7 @@
 "use strict";
 (function () {
   if (window.atemSync) return;
+  try { if (localStorage.getItem("atemfunk_gast") === "1") return; } catch {}   /* Gast-Version: kein Sync */
   const WORKER = "https://atemfunk-media.florian-s-thiel.workers.dev/";
   const META = "atemfunk_sync", WEG = "atemfunk_sync_weg", LIB = "atemfunk_lib_url";
   const KENN = /^[\w.:-]{1,120}$/;

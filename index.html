@@ -6,6 +6,18 @@
 <title>Atemfunk</title>
 <meta name="description" content="Deine tägliche Atemmeditation – 1, 3, 5 oder 10 Minuten.">
 <link rel="manifest" href="manifest.json">
+<script>
+/* Gast-Version (?gast=1, zum Weitergeben, Florian 04.11.2026): nur Meditieren + Statistik – keine KI,
+   kein Sync, keine Bibliothek, kein Push, keine Journal/Modus/Ziele-Seiten. Bleibt auf dem Gerät gemerkt;
+   ?gast=0 schaltet zurück. Eigenes Manifest, damit das Home-Symbol mit ?gast=1 startet. */
+(() => { try {
+  const q = new URLSearchParams(location.search).get("gast");
+  if (q === "1") localStorage.setItem("atemfunk_gast", "1"); else if (q === "0") localStorage.removeItem("atemfunk_gast");
+  if (localStorage.getItem("atemfunk_gast") !== "1") return;
+  document.documentElement.classList.add("gast");
+  document.querySelector('link[rel="manifest"]').href = "manifest-gast.json";
+} catch {} })();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Atemfunk">
@@ -14,6 +26,8 @@
 <link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
 <meta name="theme-color" content="#0b1026">
 <style>
+  /* Gast-Version: alles, was Florians Konto (KI, Sync, Bibliothek, Push) braucht, ausblenden */
+  .gast #syncAnzeige, .gast #frageImpuls, .gast #libConnect, .gast #journalBtn, .gast #eigenePlaylist, .gast .nav { display: none !important; }
   :root {
     --bg1: #0b1026;
     --bg2: #131b3a;
@@ -503,7 +517,7 @@
     <a href="https://open.spotify.com/playlist/6SJJ1n7kMgC9iKyIhkpxys" target="_blank" rel="noopener"><span>Meditation Mix</span> · zum Meditieren</a>
     <a href="https://open.spotify.com/playlist/4fXQWXCxLv9k2WUSqvjKs4" target="_blank" rel="noopener"><span>Klänge zum Entspannen</span> · Naturklänge</a>
     <a href="https://open.spotify.com/playlist/5AcLzybdnqrg7oOs1pzjxE" target="_blank" rel="noopener"><span>Handpan Meditation</span> · Malte Marten, ruhige Handpan</a>
-    <a href="https://open.spotify.com/playlist/2txTkjvvuLKUXWiTokRNlE" target="_blank" rel="noopener"><span>Handpan Vibes</span> · deine eigene Playlist</a>
+    <a id="eigenePlaylist" href="https://open.spotify.com/playlist/2txTkjvvuLKUXWiTokRNlE" target="_blank" rel="noopener"><span>Handpan Vibes</span> · deine eigene Playlist</a>
   </div>
   </details>
 
@@ -531,7 +545,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 65</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 66</div>
 
 </div>
 
@@ -585,7 +599,7 @@
   <button id="ovClose" style="position:fixed; top:calc(env(safe-area-inset-top) + 12px); right:16px; z-index:51; width:44px; height:44px; border-radius:50%; border:none; background:rgba(255,255,255,0.15); color:#fff; font-size:18px; cursor:pointer;">✕</button>
 </div>
 
-<script src="sync.js?v=1"></script>
+<script src="sync.js?v=2"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -2372,6 +2386,14 @@ if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
-<script src="https://pushfunk.46-225-133-113.sslip.io/pushfunk.js" data-app="atemfunk" data-name="Atemfunk" data-sw="vorhanden" defer></script>
+<script>
+/* Gäste bekommen keine Push-Abfrage (bräuchte die Funk-PIN) */
+if (!document.documentElement.classList.contains("gast")) {
+  const ps = document.createElement("script");
+  ps.src = "https://pushfunk.46-225-133-113.sslip.io/pushfunk.js";
+  Object.assign(ps.dataset, { app: "atemfunk", name: "Atemfunk", sw: "vorhanden" });
+  document.head.appendChild(ps);
+}
+</script>
 </body>
 </html>

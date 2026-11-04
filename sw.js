@@ -2,13 +2,14 @@
    Ändert sich pushfunk-push.js, hier ?v= UND CACHE hochzählen. */
 importScripts("pushfunk-push.js?v=1");
 
-const CACHE = "atemfunk-v65";   /* Nummer steht auch unten auf der Startseite (index.html #appVersion) – mitziehen */
+const CACHE = "atemfunk-v66";   /* Nummer steht auch unten auf der Startseite (index.html #appVersion) – mitziehen */
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
   ".",
   "index.html",
   "manifest.json",
+  "manifest-gast.json",
   "app.css",
   "fragen.json",
   "shared.js",
