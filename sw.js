@@ -2,10 +2,12 @@
    Ändert sich pushfunk-push.js, hier ?v= UND CACHE hochzählen. */
 importScripts("pushfunk-push.js?v=1");
 
-const CACHE = "atemfunk-v70";
+const CACHE = "atemfunk-v71";
 const OFFLINE = "atemfunk-offline";   /* nur Audio, gefüllt von index.html offlineLaden() aus offline.json */   /* Nummer steht auch unten auf der Startseite (index.html #appVersion) – mitziehen */
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
+/* Audios liegen seit Version 71 in R2 hinter dem Worker (nicht mehr im Repo) */
+const AUDIO = "https://atemfunk-media.florian-s-thiel.workers.dev/audio/";
 const ASSETS = [
   ".",
   "index.html",
@@ -28,18 +30,18 @@ const ASSETS = [
   "statistik.html",
   "icon-180.png",
   "icon-512.png",
-  "audio/cues2/Einatmen.mp3",
-  "audio/cues2/Halten.mp3",
-  "audio/cues2/Ausatmen.mp3",
-  "audio/cues2/Nachatmen.mp3",
-  "audio/abschluss3/ende.mp3",
-  "audio/prog/atem/1-2.mp3",
-  "audio/prog/atem/3-2.mp3",
-  "audio/prog/atem/5-2.mp3",
-  "audio/prog/atem/7-2.mp3",
-  "audio/prog/atem/10-2.mp3",
-  "audio/atmo/wald.mp3",
-  "audio/atmo/waldvoegel.mp3",
+  AUDIO + "cues2/Einatmen.mp3",
+  AUDIO + "cues2/Halten.mp3",
+  AUDIO + "cues2/Ausatmen.mp3",
+  AUDIO + "cues2/Nachatmen.mp3",
+  AUDIO + "abschluss3/ende.mp3",
+  AUDIO + "prog/atem/1-2.mp3",
+  AUDIO + "prog/atem/3-2.mp3",
+  AUDIO + "prog/atem/5-2.mp3",
+  AUDIO + "prog/atem/7-2.mp3",
+  AUDIO + "prog/atem/10-2.mp3",
+  AUDIO + "atmo/wald.mp3",
+  AUDIO + "atmo/waldvoegel.mp3",
   "flex.json"
 ];
 
@@ -75,6 +77,8 @@ async function rangeResponse(request, e) {
       holtGerade.add(url);
       e.waitUntil(caches.open(CACHE).then(c => c.add(url)).catch(() => {}).finally(() => holtGerade.delete(url)));
     }
+    /* R2-Audios (Version 71) ausdrücklich mit CORS holen: eine undurchsichtige Teilantwort mag iOS nicht immer */
+    if (url.startsWith(AUDIO)) return fetch(url, { mode: "cors", headers: { range: request.headers.get("range") } });
     return fetch(request);
   }
   const buf = await hit.arrayBuffer();
@@ -132,7 +136,9 @@ async function netzZuerst(e) {
 
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
-  if (new URL(e.request.url).origin !== location.origin) return;
+  const ziel = new URL(e.request.url);
+  /* Fremde Adressen nur für die Meditations-Audios aus R2 – nie für den Geheimpfad (KI, Sync) */
+  if (ziel.origin !== location.origin && !e.request.url.startsWith(AUDIO)) return;
   /* Der Offline-Knopf holt selbst aus dem Netz und legt in OFFLINE ab – hier nicht noch einmal in CACHE kopieren */
   if (new URL(e.request.url).searchParams.has("offline")) return;
 

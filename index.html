@@ -27,7 +27,14 @@
 <meta name="theme-color" content="#0b1026">
 <style>
   /* Gast-Version: alles, was Florians Konto (KI, Sync, Bibliothek, Push) braucht, ausblenden */
-  .gast #syncAnzeige, .gast #frageImpuls, .gast #libConnect, .gast #journalBtn, .gast #eigenePlaylist, .gast .nav { display: none !important; }
+  .gast #journalBtn, .gast #eigenePlaylist { display: none !important; }
+  /* Version 71: Florians Bereiche bleiben sichtbar, aber grau mit 🔒 – Tippen erklärt kurz, was es wäre */
+  .gast [data-gast] { opacity: 0.4; position: relative; }
+  .gast [data-gast]::after { content: "🔒"; font-size: 11px; position: absolute; top: 3px; right: 5px; }
+  .gast #syncAnzeige[data-gast] { display: inline-block; padding: 2px 22px 2px 0; font-size: 13px; color: var(--muted, #9aa3c7); cursor: pointer; }
+  #gastHinweis { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 84px); z-index: 60;
+    max-width: 420px; margin: 0 auto; padding: 14px 16px; border-radius: 14px; background: #1b2348; color: #e8ecff;
+    font-size: 15px; line-height: 1.45; box-shadow: 0 8px 30px rgba(0,0,0,0.45); }
   :root {
     --bg1: #0b1026;
     --bg2: #131b3a;
@@ -322,7 +329,7 @@
   <h1 class="greeting" id="greeting">Zeit zum Atmen.</h1>
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
-  <div id="syncAnzeige"></div>
+  <div id="syncAnzeige" data-gast="sync"></div>
   <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
 
   <!-- Geführt: eine Art wählen, darunter nur ihre Längen und eine Zeile, was sie ausmacht (Umbau Version 65,
@@ -443,12 +450,12 @@
     <div class="runter-hinweis">Sätze, die du glauben kannst: Freundlichkeit mit dir selbst, eigene Stärken und Werte erinnern, realistische Sätze wie „Ich darf lernen“ – jeder mit Zeit zum Nachspüren · passt ein Satz nicht, lass ihn weg</div>
   </div>
 
-  <div class="artgruppe" data-gruppe="nebenbei" hidden>   <!-- tools/nebenbei_bauen.py, nur Bella, Version 70 (Florian 05.11.2026: „neben dem Zähneputzen … beim Staubsaugen“) -->
+  <div class="artgruppe" data-gruppe="nebenbei" hidden>   <!-- tools/nebenbei_bauen.py, alle vier Stimmen seit Version 71 (Florian 05.11.2026: „neben dem Zähneputzen … beim Staubsaugen“) -->
     <div class="runter innehalten">
       <div class="dur" role="button" tabindex="0" data-prog="nebenbei-2" data-min="2" aria-label="Nebenbei, 2 Minuten"><div class="num">2</div><div class="lbl">Minuten</div></div>
       <div class="dur" role="button" tabindex="0" data-prog="nebenbei-5" data-min="5" aria-label="Nebenbei, 5 Minuten"><div class="num">5</div><div class="lbl">Minuten</div></div>
     </div>
-    <div class="runter-hinweis">Augen offen, einfach weitermachen: 2 Min beim Zähneputzen oder Händewaschen, 5 Min beim Staubsaugen, Abspülen, Aufräumen · Füße, Hände, Bewegung, Geräusche spüren · ohne Hintergrund · spricht immer Bella</div>
+    <div class="runter-hinweis">Augen offen, einfach weitermachen: 2 Min beim Zähneputzen oder Händewaschen, 5 Min beim Staubsaugen, Abspülen, Aufräumen · Füße, Hände, Bewegung, Geräusche spüren · ohne Hintergrund</div>
   </div>
 
   <div class="artgruppe" data-gruppe="flex" id="flexBox" hidden>
@@ -481,6 +488,10 @@
     <div class="rhythms" id="progKulisse" role="radiogroup" aria-label="Hintergrund für Täglich, Einfach sitzen, Zazen und Innehalten">
       <div class="rhy" role="radio" tabindex="0" data-pk="waldvoegel">Vögel</div>
       <div class="rhy" role="radio" tabindex="0" data-pk="aus">Stille</div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="wald">Wald</div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="fluss">Bach</div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="meer">Meer</div>
+      <div class="rhy" role="radio" tabindex="0" data-pk="klavier">Klavier</div>
       <div class="rhy" role="radio" tabindex="0" data-pk="hz432">432 Hz<small>Ton</small></div>
       <div class="rhy" role="radio" tabindex="0" data-pk="alpha">Alpha<small>🎧 10 Hz</small></div>
       <div class="rhy" role="radio" tabindex="0" data-pk="theta">Theta<small>🎧 6 Hz</small></div>
@@ -489,7 +500,7 @@
       <input type="range" id="progVol" min="0" max="100" value="60" aria-label="Lautstärke des Hintergrunds"
              style="width:100%; accent-color:var(--accent); height:24px">
     </div>
-    <div class="runter-hinweis">Gilt für Sitzen, Täglich, Zazen und Innehalten · Lautstärke und Klang lassen sich auch während der Meditation ändern (🎵 Hintergrund)</div>
+    <div class="runter-hinweis">Gilt für alle Meditationen und bleibt gespeichert (Version 71) · unter der Stimme etwas leiser gemischt · Lautstärke und Klang lassen sich auch während der Meditation ändern (🎵 Hintergrund)</div>
     <!-- Erklärung der Töne (Florian 05.11.2026: „steht nicht dabei, was das bedeutet“) – ehrlich, ohne Heilsversprechen -->
     <div class="runter-hinweis hg-erklaer"><b>432 Hz</b>: ein weicher, gleichbleibender Ton, der Gedankenlärm überdeckt. Viele finden ihn angenehm; eine besondere Wirkung gerade dieser Frequenz ist nicht belegt.<br>
       <b>Alpha 🎧</b>: links und rechts klingen zwei fast gleiche Töne, im Kopf entsteht daraus ein sanftes Pulsieren mit 10 Schlägen pro Sekunde – dem Takt entspannter Wachheit. Soll beim Ruhigwerden helfen, ohne müde zu machen.<br>
@@ -554,7 +565,7 @@
     <div class="flexQuick" id="bowlJede" role="group" aria-label="Klangschale wie oft" hidden>
       <button type="button" data-sek="60">alle 1 Min</button><button type="button" data-sek="120">alle 2 Min</button><button type="button" data-sek="300">alle 5 Min</button>
     </div>
-    <div class="section-cap" style="margin:16px 0 8px">Klangkulisse · Atemuhr, Runterkommen, Nach Wahl, Akut</div>
+    <div class="section-cap" style="margin:16px 0 8px">Klangkulisse · gilt für alle Meditationen</div>
     <div class="rhythms" id="ambients" role="radiogroup" aria-label="Klangkulisse">
       <div class="rhy" role="radio" tabindex="0" data-amb="aus">Stille</div>
       <div class="rhy" role="radio" tabindex="0" data-amb="wald">Wald</div>
@@ -581,7 +592,7 @@
     <div class="rhythms" id="frageThemen" style="flex-wrap:wrap"></div>
     <div class="row" style="display:flex; gap:8px; margin-top:4px">
       <button class="vid" id="frageEigene" style="flex:1; text-align:center; margin:0">Eigene Frage</button>
-      <button class="vid" id="frageImpuls" style="flex:1; text-align:center; margin:0">Aus meinem Journal</button>
+      <button class="vid" id="frageImpuls" data-gast="frage" style="flex:1; text-align:center; margin:0">Aus meinem Journal</button>
     </div>
     <div class="voice-note" id="frageNote"></div>
   </div>
@@ -611,7 +622,7 @@
     <div class="section-cap" id="capVideo" style="display:none; margin-top:22px">Morgen-Dehnen</div>
     <div id="libListVideo"></div>
     <label class="vid" style="text-align:center; display:block;">＋ Audio importieren<input type="file" accept="audio/*,video/*,.m4a,.mp3,.aac,.m4b,.wav,.mp4" multiple hidden id="libImport"></label>
-    <div class="vid" role="button" tabindex="0" id="libConnect" style="text-align:center">🔗 Bibliothek verbinden</div>
+    <div class="vid" role="button" tabindex="0" id="libConnect" data-gast="lib" style="text-align:center">🔗 Bibliothek verbinden</div>
     <div class="voice-note" id="libNote" style="margin-top:4px">Inhalte bleiben nur auf diesem Gerät.</div>
 
     <div class="player" id="player">
@@ -649,7 +660,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 70<br><small style="opacity:.7">Klangschale: „Tibetan Singing Bowl hit 11inch“ von דג בלי מלח, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" style="color:inherit">CC BY-SA 4.0</a>, gekürzt</small></div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 71<br><small style="opacity:.7">Klangschale: „Tibetan Singing Bowl hit 11inch“ von דג בלי מלח, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" style="color:inherit">CC BY-SA 4.0</a>, gekürzt</small></div>
 
 </div>
 
@@ -707,9 +718,9 @@
 
 <nav class="nav">
   <a href="index.html" class="sel"><span class="ico">🌙</span>Atmen</a>
-  <a href="schema.html"><span class="ico">🧭</span>Modus</a>
-  <a href="journal.html"><span class="ico">📓</span>Journal</a>
-  <a href="ziele.html"><span class="ico">🎯</span>Ziele</a>
+  <a href="schema.html" data-gast="modus"><span class="ico">🧭</span>Modus</a>
+  <a href="journal.html" data-gast="journal"><span class="ico">📓</span>Journal</a>
+  <a href="ziele.html" data-gast="ziele"><span class="ico">🎯</span>Ziele</a>
 </nav>
 
 <audio id="voiceAudio" preload="none" playsinline></audio>
@@ -1000,7 +1011,9 @@ renderStumm();
    Nicht jede Art gibt es in jeder Stimme – fehlt sie, spricht Bella (stimmeFuer). Signale, Nach Wahl und Fragen
    gibt es nur in Bella/Eric (altStimme). */
 let voiceSex = store.get("atemfunk_voicesex", "zen");   /* neu: Zen zuerst (die hochwertigeren, Florian 05.11.2026) */
-const STIMM_ORDNER = { w: "audio/", m: "audio/m/", zen: "audio/v/zen/", ela: "audio/v/ela/", eli: "audio/v/elion/" };
+/* Seit Version 71 liegen alle Audios in R2 hinter dem Worker (nicht mehr im Repo: Pages-Grenze 1 GB / 100 GB Verkehr) */
+const AUDIO = "https://atemfunk-media.florian-s-thiel.workers.dev/audio/";
+const STIMM_ORDNER = { w: AUDIO, m: AUDIO + "m/", zen: AUDIO + "v/zen/", ela: AUDIO + "v/ela/", eli: AUDIO + "v/elion/" };
 const STIMM_ARTEN = {
   m: /^(innehalten|taeglich|sitzen|runterkommen|atem)$/,
   zen: /./,   /* seit Version 69 sprechen Zen, Ela und Elion jede geführte Meditation */
@@ -1010,12 +1023,12 @@ const STIMM_ARTEN = {
 if (voiceSex === "m") voiceSex = "eli";   /* Elion ersetzt Eric als Männerstimme (Florians Wahl 05.11.2026) */
 if (!STIMM_ORDNER[voiceSex]) voiceSex = "zen";
 const voicePath = () => STIMM_ORDNER[voiceSex];
-const altStimme = () => (voiceSex === "m" ? "audio/m/" : "audio/");
+const altStimme = () => (voiceSex === "m" ? AUDIO + "m/" : AUDIO);
 /* Signale, Fragen und „Nach Wahl“: in welchen neuen Stimmen schon gebaut (sonst spricht Bella) */
 const NEBEN_FERTIG = { cues2: ["zen", "ela", "eli"], fragen2: ["zen", "ela", "eli"], flex2: ["zen", "ela", "eli"] };
 const nebenStimme = teil => (NEBEN_FERTIG[teil].includes(voiceSex) ? voicePath() : altStimme());
-const NUR_BELLA = /^(nebenbei)$/;   /* Neues seit Version 70 nur in Bella (Florian) – die anderen Stimmen sprechen hier nicht */
-const stimmeFuer = art => (voiceSex === "w" || (STIMM_ARTEN[voiceSex].test(art) && !NUR_BELLA.test(art)) ? voicePath() : "audio/");
+const NUR_BELLA = /(?!)/;   /* Arten nur in Bella (Version 70: nebenbei; seit 71 wieder leer – Florian: „von allen Stimmen“) */
+const stimmeFuer = art => (voiceSex === "w" || (STIMM_ARTEN[voiceSex].test(art) && !NUR_BELLA.test(art)) ? voicePath() : AUDIO);
 const STIMM_NAMEN = { w: "Bella", m: "Eric", zen: "Zen", ela: "Ela", eli: "Elion" };
 function renderVoiceSex() {
   document.querySelectorAll("#voices .rhy").forEach(el => {
@@ -1136,26 +1149,23 @@ function renderAmbients() {
 document.querySelectorAll("#ambients .rhy").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => {
-    ambKey = el.dataset.amb;
-    store.set("atemfunk_amb", ambKey);
-    renderAmbients();
-    if (progKontext()) return;          /* Täglich/Sitzen/Innehalten laufen mit ihrem eigenen Hintergrund */
+    hgGemeinsam(el.dataset.amb);
     stopAmbient();
     ensureAmbient();
   });
 });
 $("ambVol").addEventListener("input", e => {
-  ambVol = +e.target.value;
-  store.set("atemfunk_ambvol", String(ambVol));
-  if (!progKontext()) ambLautstaerke();
+  volGemeinsam(+e.target.value);
+  ambLautstaerke();
 });
 renderAmbients();
 
 /* Hintergrund für Täglich + Innehalten (Florian 26.10.2026: „manchmal einfach ohne
    Hintergrundgeräusche“) – eigene Wahl und eigener Regler, die übrigen Meditationen
    behalten die Klangkulisse oben. Standard: leise Vögel wie bis Version 55 fest eingemischt. */
+const HG_NAMEN = { waldvoegel: "Vögel", aus: "Stille", wald: "Wald", voegel: "Vögel", fluss: "Bach", meer: "Meer", klavier: "Klavier", hz432: "432 Hz", alpha: "Alpha 🎧", theta: "Theta 🎧" };
 let progAmbKey = store.get("atemfunk_prog_amb", "waldvoegel");
-if (!["aus", "waldvoegel", "hz432", "alpha", "theta"].includes(progAmbKey)) progAmbKey = "waldvoegel";
+if (!["aus", "waldvoegel", "wald", "fluss", "meer", "klavier", "hz432", "alpha", "theta"].includes(progAmbKey)) progAmbKey = "waldvoegel";
 let progVol = parseInt(store.get("atemfunk_prog_vol", "60"), 10);
 if (!(progVol >= 0 && progVol <= 100)) progVol = 60;
 function renderProgKulisse() {
@@ -1166,30 +1176,40 @@ function renderProgKulisse() {
   });
   $("progVolWrap").style.display = progAmbKey === "aus" ? "none" : "block";
   $("progVol").value = progVol;
-  $("progHgName").textContent = { waldvoegel: "Vögel", aus: "Stille", hz432: "432 Hz", alpha: "Alpha 🎧", theta: "Theta 🎧" }[progAmbKey];
+  $("progHgName").textContent = HG_NAMEN[progAmbKey];
 }
 document.querySelectorAll("#progKulisse .rhy").forEach(el => {
   keyActivate(el);
   el.addEventListener("click", () => {
-    progAmbKey = el.dataset.pk;
-    store.set("atemfunk_prog_amb", progAmbKey);
-    renderProgKulisse();
-    if (!progKontext()) return;
+    hgGemeinsam(el.dataset.pk);
     stopAmbient();
     ensureAmbient();
   });
 });
 $("progVol").addEventListener("input", e => {
-  progVol = +e.target.value;
-  store.set("atemfunk_prog_vol", String(progVol));
-  if (progKontext()) ambLautstaerke();
+  volGemeinsam(+e.target.value);
+  ambLautstaerke();
 });
 renderProgKulisse();
+
+/* Version 71 (Florian 05.11.2026: „die Hintergrundgeräusche und auch die Lautstärke … für alle Meditationen“):
+   eine Wahl gilt überall – die beiden Listen bleiben (eigene Pegel unter der Stimme), werden aber gemeinsam gesetzt.
+   Vögel heißt in den geführten Meditationen „waldvoegel“ (leiser Mix), in der Klangkulisse „voegel“. */
+function hgGemeinsam(key) {
+  ambKey = key === "waldvoegel" ? "voegel" : key;
+  progAmbKey = key === "voegel" ? "waldvoegel" : key;
+  store.set("atemfunk_amb", ambKey); store.set("atemfunk_prog_amb", progAmbKey);
+  renderAmbients(); renderProgKulisse();
+}
+function volGemeinsam(v) {
+  ambVol = progVol = v;
+  store.set("atemfunk_ambvol", String(v)); store.set("atemfunk_prog_vol", String(v));
+  $("ambVol").value = $("progVol").value = v;
+}
 
 /* Hintergrund in der laufenden Sitzung: spiegelt die passende Auswahl der Startseite
    (eigener Hintergrund bei Täglich/Sitzen/Zazen/Innehalten, sonst die Klangkulisse) und löst deren Klicks aus,
    damit Speichern und Umschalten an einer Stelle bleiben. */
-const HG_NAMEN = { waldvoegel: "Vögel", aus: "Stille", wald: "Wald", voegel: "Vögel", fluss: "Bach", meer: "Meer", klavier: "Klavier", hz432: "432 Hz", alpha: "Alpha 🎧", theta: "Theta 🎧" };
 function renderHgLive() {
   const wahl = $("hgLiveWahl"), vol = $("hgLiveVol"), note = $("hgLiveNote");
   wahl.innerHTML = ""; note.textContent = "";
@@ -1239,7 +1259,7 @@ function renderStimmLive() {
     el.addEventListener("click", () => { orig.click(); stimmeLiveWechseln(); renderStimmLive(); });
     wahl.appendChild(el);
   });
-  $("stimmLiveNote").textContent = session && session.progQuelle && stimmeFuer(session.progQuelle.replace(/-\d+[bc]?$/, "")) === "audio/" && voiceSex !== "w"
+  $("stimmLiveNote").textContent = session && session.progQuelle && stimmeFuer(session.progQuelle.replace(/-\d+[bc]?$/, "")) === AUDIO && voiceSex !== "w"
     ? STIMM_NAMEN[voiceSex] + " spricht diese Meditation noch nicht – hier spricht Bella." : "";
 }
 function stimmeLiveWechseln() {
@@ -1342,7 +1362,7 @@ let schaleBuf = null, schaleLaedt = false;
 function schaleLaden() {
   if (schaleBuf || schaleLaedt) return;
   schaleLaedt = true;
-  fetch("audio/atmo/schale.mp3").then(r => r.arrayBuffer())
+  fetch(AUDIO + "atmo/schale.mp3").then(r => r.arrayBuffer())
     .then(a => audioCtx().decodeAudioData(a))
     .then(b => { schaleBuf = b; })
     .catch(() => {}).finally(() => { schaleLaedt = false; });
@@ -1382,7 +1402,8 @@ const AMB_LEVEL = { wald: 0.60, voegel: 0.55, fluss: 0.50, meer: 0.55, klavier: 
                     hz432: 0.30, alpha: 0.30, theta: 0.30 };
 /* Unter Täglich/Innehalten (Stimme −21 LUFS): Vögel 0.063 ≈ −50 LUFS wie bis Version 55
    eingemischt; Töne etwas lauter (≈ −44), sonst gehen sie in den Sprechpausen unter. */
-const PROG_LEVEL = { waldvoegel: 0.063, hz432: 0.12, alpha: 0.12, theta: 0.12 };
+const PROG_LEVEL = { waldvoegel: 0.063, hz432: 0.12, alpha: 0.12, theta: 0.12,
+  wald: 0.069, fluss: 0.057, meer: 0.063, klavier: 0.044 };   /* Version 71: AMB_LEVEL × 0,115 (wie waldvoegel zu voegel) */
 /* Frequenzen erzeugt die App selbst – Sinustöne, nahtlos ohne Datei.
    432 Hz: Ton mit Unteroktave. Alpha/Theta: binaurale Schwebung, links 200 Hz, rechts
    210 bzw. 206 Hz – den 10- bzw. 6-Hz-Unterschied „hört“ erst der Kopf, nur mit Kopfhörern. */
@@ -1434,7 +1455,7 @@ async function startAmbient() {
   try {
     const ctx = audioCtx();
     if (!FREQUENZEN[key] && !ambBuffers[key]) {
-      const arr = await (await fetch("audio/atmo/" + key + ".mp3")).arrayBuffer();
+      const arr = await (await fetch(AUDIO + "atmo/" + key + ".mp3")).arrayBuffer();
       ambBuffers[key] = await new Promise((res, rej) => ctx.decodeAudioData(arr, res, rej));
     }
     if (ambZiel() !== key || amb || stumm) {          /* inzwischen umgeschaltet */
@@ -1588,6 +1609,17 @@ function setMediaSession(titel, min) {
 function maybeFinish() {
   if (!session || session.offen) return;
   if (session.ausklang) { finishSession(true); return; }        /* Runde ist zu Ende */
+  /* Die Uhr läuft ab Tipp, die Tonspur erst ab dem Laden – sie hinkt ein paar
+     Sekunden nach. Also den letzten Satz ausreden lassen, höchstens 20 s. */
+  if (session.guided && audio.getAttribute("src") && !audio.paused && !audio.ended
+      && audio.duration && audio.currentTime < audio.duration - 0.3) {
+    session.wartetSeit = session.wartetSeit || Date.now();
+    if (Date.now() - session.wartetSeit < 20000) {
+      clearTimeout(session.endTimer);
+      session.endTimer = setTimeout(maybeFinish, Math.min(1000, (audio.duration - audio.currentTime) * 1000 + 50));
+      return;
+    }
+  }
   if (session.guided || session.prog || session.rhythm.frei) { finishSession(true); return; }
   const zyklus = session.rhythm.phases.reduce((a, p) => a + p[1], 0);
   const jetzt = Date.now();
@@ -1661,7 +1693,7 @@ const PROG_ATEM = {
    (Version 58, vorher prog/runterkommen-N.mp3), Atemuhr atem -1 = Bella/Eric statt Edge (Version 59,
    vorher atem-N.mp3, tools/atemuhr_bauen.py), Zazen zen -1 (Version 61, nur Bella), Gehen gehen -1 (Version 62, nur Bella) */
 /* Version 69: runterkommen -3, atem/notbremse/panik/gefuehl -2 = alle vier Stimmen (Zen, Ela, Bella, Elion) */
-const PROG_FASSUNG = { innehalten: "-6", taeglich: "-5", sitzen: "-2", runterkommen: "-3", atem: "-2", zen: "-2", gehen: "-2", notbremse: "-2", panik: "-2", gefuehl: "-2", schlafen: "-1", morgen: "-1", checkin: "-1", staerken: "-1", nebenbei: "-1" };
+const PROG_FASSUNG = { innehalten: "-6", taeglich: "-5", sitzen: "-2", runterkommen: "-3", atem: "-2", zen: "-2", gehen: "-2", notbremse: "-2", panik: "-2", gefuehl: "-2", schlafen: "-1", morgen: "-1", checkin: "-1", staerken: "-1", nebenbei: "-2" };
 /* Tonspur eines festen Programms: liegt im Unterordner der Art, mit Fassung im Namen */
 /* Sitzen gibt es seit Version 69 in drei Varianten (Florian 05.11.2026: „drei, die sich abwechseln“):
    A wie bisher, B „Klang und Raum“, C „Benennen“ – Dateien 10-2.mp3, 10b-2.mp3, 10c-2.mp3 (tools/sitzen_bauen.py --variante).
@@ -2701,7 +2733,7 @@ function sprichVorlesen(text) {
 }
 
 /* ---------- Hinweis, falls Audio fehlt (GET mit Range prüft auch den SW-Pfad) ---------- */
-fetch("audio/prog/atem/3" + PROG_FASSUNG.atem + ".mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
+fetch(AUDIO + "prog/atem/3" + PROG_FASSUNG.atem + ".mp3", { headers: { "Range": "bytes=0-1" } }).then(r => {
   if (!r.ok) {
     $("voiceNote").dataset.fallback = "Sprachaufnahmen nicht erreichbar – bis dahin: Nur Klang.";
     updateNote();
@@ -2718,6 +2750,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:")
 <script>
 /* ---------- Alles offline laden (Version 69) ---------- */
 const OFFLINE_CACHE = "atemfunk-offline";
+const offlineUrl = pfad => AUDIO + pfad.slice(6);   /* offline.json führt „audio/…“, geladen wird aus R2 (Version 71) */
 const mb = b => Math.round(b / 1e6) + " MB";
 let offlineLaeuft = false;
 async function offlineListe() {
@@ -2760,7 +2793,7 @@ async function offlineFehlend(liste) {
   const c = await caches.open(OFFLINE_CACHE);
   const fehlt = [];
   for (const [pfad, groesse] of offlineAuswahl(liste)) {
-    if (!(await c.match(pfad))) fehlt.push([pfad, groesse]);
+    if (!(await c.match(offlineUrl(pfad)))) fehlt.push([pfad, groesse]);
   }
   return fehlt;
 }
@@ -2802,9 +2835,9 @@ async function offlineLaden() {
       while (i < fehlt.length && !voll) {
         const [pfad, groesse] = fehlt[i++];
         try {
-          const r = await fetch(pfad + "?offline=1", { cache: "no-store" });
+          const r = await fetch(offlineUrl(pfad) + "?offline=1", { cache: "no-store" });
           if (!r.ok) throw new Error(r.status);
-          await c.put(pfad, r);
+          await c.put(offlineUrl(pfad), r);
           fertig += groesse;
         } catch (err) {
           if (err && err.name === "QuotaExceededError") voll = true;
@@ -2815,7 +2848,7 @@ async function offlineLaden() {
     }
     await Promise.all([arbeiter(), arbeiter(), arbeiter(), arbeiter()]);
     /* Alte Fassungen, die nicht mehr in der Liste stehen, wieder freigeben */
-    const gilt = new Set(liste.dateien.map(([p]) => new URL(p, location.href).href));
+    const gilt = new Set(liste.dateien.map(([p]) => offlineUrl(p)));   /* auch die alten Repo-Adressen bis Version 70 fliegen raus */
     for (const req of await c.keys()) if (!gilt.has(req.url)) await c.delete(req);
     if (voll) $("offlineNote").textContent = "Der Speicher auf dem Gerät ist voll – ein Teil fehlt noch. Platz schaffen und noch einmal tippen.";
     else if (fehler) $("offlineNote").textContent = fehler + " Dateien kamen nicht an (Netz?). Noch einmal tippen lädt nur den Rest.";
@@ -2837,6 +2870,35 @@ $("offlineBtn").addEventListener("click", offlineLaden);
 keyActivate($("offlineBtn"));
 if (!("caches" in window)) $("offlineBtn").hidden = $("offlineWahl").hidden = true;
 else setTimeout(offlineAnzeigen, 2500);
+</script>
+<div id="gastHinweis" role="status" hidden></div>
+<script>
+/* Gast-Version: gesperrte Bereiche fangen den Tipp ab, bevor irgendein Handler (KI, Sync, Worker) läuft */
+if (document.documentElement.classList.contains("gast")) {
+  const GAST_TEXT = {
+    modus: "Hier würdest du eine Situation beschreiben und eine Einordnung nach dem Modusmodell der Schematherapie bekommen.",
+    journal: "Hier würdest du nach dem Meditieren festhalten, was dich beschäftigt.",
+    ziele: "Hier würdest du ein Vorhaben in kleine, machbare Schritte zerlegen lassen.",
+    frage: "Hier würde die KI aus deinen Journal-Einträgen eine Frage wählen, die dich durch die Meditation begleitet.",
+    lib: "Hier würdest du eigene Audios aus deiner Bibliothek aufs Gerät holen.",
+    sync: "Hier würden Statistik und Serie auf all deinen Geräten gleich bleiben.",
+  };
+  $("syncAnzeige").textContent = "☁️ Sync";
+  let gastZu;
+  const gastSperre = e => {
+    const el = e.target.closest && e.target.closest("[data-gast]");
+    if (!el) return;
+    if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const h = $("gastHinweis");
+    h.textContent = "🔒 Das ist Florians privater Bereich – er nutzt dafür sein eigenes KI-Kontingent. " + GAST_TEXT[el.dataset.gast];
+    h.hidden = false;
+    clearTimeout(gastZu); gastZu = setTimeout(() => { h.hidden = true; }, 6000);
+  };
+  document.addEventListener("click", gastSperre, true);
+  document.addEventListener("keydown", gastSperre, true);
+  $("gastHinweis").addEventListener("click", () => { $("gastHinweis").hidden = true; });
+}
 </script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
 <script>

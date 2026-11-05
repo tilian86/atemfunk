@@ -108,7 +108,8 @@ function wahl(id, schluessel) {
 wahl("wahlRunden", "runden"); wahl("wahlZuege", "zuege"); wahl("wahlTempo", "tempo"); wahl("wahlIntro", "intro");
 
 /* Stimme wie auf der Startseite (index.html STIMM_ORDNER); Eric gibt es seit Version 69 nicht mehr → Elion */
-const ORDNER = { w: "audio/kraft/", zen: "audio/v/zen/kraft/", ela: "audio/v/ela/kraft/", eli: "audio/v/elion/kraft/" };
+const AUDIO = "https://atemfunk-media.florian-s-thiel.workers.dev/audio/";   /* seit Version 71 aus R2 */
+const ORDNER = { w: AUDIO + "kraft/", zen: AUDIO + "v/zen/kraft/", ela: AUDIO + "v/ela/kraft/", eli: AUDIO + "v/elion/kraft/" };
 let stimme = store.get("atemfunk_voicesex", "zen");
 if (stimme === "m") stimme = "eli";
 const ordner = ORDNER[stimme] || ORDNER.zen;

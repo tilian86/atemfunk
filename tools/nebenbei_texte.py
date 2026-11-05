@@ -6,7 +6,7 @@ nichts unterbrechen, nur die Aufmerksamkeit in die Tätigkeit legen – Stand, H
 Mehr Sätze und kürzere Stillen als im Sitzen, weil die Aufmerksamkeit bei Bewegung schneller wegdriftet.
   2 Min: Zähneputzen, Hände waschen, Kaffee machen
   5 Min: Staubsaugen, Abspülen, Aufräumen, Wäsche
-Nur Bella (index.html NUR_BELLA). Einträge wie in programm_bauen.py.
+Alle vier Stimmen (seit Version 71). Einträge wie in programm_bauen.py.
 """
 
 ZUEGE = {}

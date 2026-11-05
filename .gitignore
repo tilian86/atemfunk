@@ -1,0 +1,4 @@
+# Seit Version 71 liegt das Audio in R2 (tools/r2_hochladen.py); audio/ bleibt nur als lokale Kopie
+audio/
+tools/.r2_stand.json
+.wrangler/
