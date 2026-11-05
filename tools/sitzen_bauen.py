@@ -100,7 +100,7 @@ def bauen(minuten):
         aus = f"{ziel}/{NAME}/{minuten}{VARIANTE}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
-                        "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)
+                        "-c:a", "libmp3lame", "-b:a", "64k", aus], check=True)
         ergebnis[s] = (aus, ende)
     return [[0, "frei"]], ergebnis, dehn, marken
 

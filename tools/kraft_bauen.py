@@ -47,5 +47,5 @@ for stimme, ziel in ZIEL.items():
         raw = f"{CACHE}/kraft-{stimme}-{k}.f32"
         b.astype(np.float32).tofile(raw)
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
-                        "-c:a", "libmp3lame", "-b:a", "96k", f"{ziel}/{k}.mp3"], check=True)
+                        "-c:a", "libmp3lame", "-b:a", "64k", f"{ziel}/{k}.mp3"], check=True)
         print(stimme, k, f"{len(b) / SR:.1f} s")

@@ -56,7 +56,7 @@ def bauen(stimme, arten, nur_neu=False):
         ordner = f"{ZIEL[stimme]}/{art}"
         os.makedirs(ordner, exist_ok=True)
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
-                        "-c:a", "libmp3lame", "-b:a", "96k", f"{ordner}/{k}.mp3"], check=True)
+                        "-c:a", "libmp3lame", "-b:a", "64k", f"{ordner}/{k}.mp3"], check=True)
         laengen[(art, k)] = round(len(b) / SR, 2)
     return laengen
 

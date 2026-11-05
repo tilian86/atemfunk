@@ -106,6 +106,10 @@
   .gefuehl-start .puls { animation: puls 1.2s ease-in-out 3; }
   .gefuehl-start .link { background: none; border: 0; color: var(--ink-dim); font: inherit; font-size: 13px; min-height: 40px; cursor: pointer; }
   .runter.zweireihig { flex-wrap: wrap; }      /* Einfach sitzen: sieben Längen, 4 + 3 */
+  .offline-wahl { display: flex; gap: 10px; margin-bottom: 10px; }
+  .offline-wahl label { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-dim); }
+  .offline-wahl select { display: block; width: 100%; margin-top: 4px; padding: 9px 8px; font-size: 16px; color: var(--ink);
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; }
   .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
   .dur .lbl { font-size: 10px; color: var(--ink-dim); margin-top: 7px; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -335,6 +339,7 @@
     <div class="rhy" role="radio" tabindex="0" data-wahl="morgen">Morgen<small>wach werden</small></div>
     <div class="rhy" role="radio" tabindex="0" data-wahl="checkin">Körper-Check<small>wie geht's mir?</small></div>
     <div class="rhy" role="radio" tabindex="0" data-wahl="staerken">Stärken<small>freundlich zu dir</small></div>
+    <div class="rhy" role="radio" tabindex="0" data-wahl="nebenbei">Nebenbei<small>Zähneputzen, Abspülen</small></div>
     <div class="rhy" role="radio" tabindex="0" data-wahl="flex">Nach Wahl<small>Thema + Länge</small></div>
   </div>
   <!-- Stimme (seit Version 69 hier statt in den Einstellungen, Florian 05.11.2026: „präsenter“); Zen + Ela aus seiner Hörprobe -->
@@ -436,6 +441,14 @@
       <div class="dur" role="button" tabindex="0" data-prog="staerken-10" data-min="10" aria-label="Stärken, 10 Minuten"><div class="num">10</div><div class="lbl">Minuten</div></div>
     </div>
     <div class="runter-hinweis">Sätze, die du glauben kannst: Freundlichkeit mit dir selbst, eigene Stärken und Werte erinnern, realistische Sätze wie „Ich darf lernen“ – jeder mit Zeit zum Nachspüren · passt ein Satz nicht, lass ihn weg</div>
+  </div>
+
+  <div class="artgruppe" data-gruppe="nebenbei" hidden>   <!-- tools/nebenbei_bauen.py, nur Bella, Version 70 (Florian 05.11.2026: „neben dem Zähneputzen … beim Staubsaugen“) -->
+    <div class="runter innehalten">
+      <div class="dur" role="button" tabindex="0" data-prog="nebenbei-2" data-min="2" aria-label="Nebenbei, 2 Minuten"><div class="num">2</div><div class="lbl">Minuten</div></div>
+      <div class="dur" role="button" tabindex="0" data-prog="nebenbei-5" data-min="5" aria-label="Nebenbei, 5 Minuten"><div class="num">5</div><div class="lbl">Minuten</div></div>
+    </div>
+    <div class="runter-hinweis">Augen offen, einfach weitermachen: 2 Min beim Zähneputzen oder Händewaschen, 5 Min beim Staubsaugen, Abspülen, Aufräumen · Füße, Hände, Bewegung, Geräusche spüren · ohne Hintergrund · spricht immer Bella</div>
   </div>
 
   <div class="artgruppe" data-gruppe="flex" id="flexBox" hidden>
@@ -617,12 +630,26 @@
   <!-- Offline (Version 69, Florian 05.11.2026: „auf einen Knopf drücken und dann wird alles offline geladen, auch alle Stimmen“).
        Liste: offline.json (tools/offline_liste.py), Ablage: Cache „atemfunk-offline“, den sw.js bei Versionswechseln behält -->
   <div class="section-cap" style="margin-top:28px">Offline</div>
-  <div class="vid" role="button" tabindex="0" id="offlineBtn"><span id="offlineTitel">📥 Alles offline laden</span><br><small id="offlineInfo">alle Meditationen in allen Stimmen aufs Gerät</small></div>
+  <!-- Version 70 (Florian 05.11.2026: „nur eine Stimme … nur eine Meditation, die man immer macht“): Auswahl, die MB stehen im Knopf -->
+  <div class="offline-wahl" id="offlineWahl">
+    <label>Stimme<select id="offlineStimme">
+      <option value="alle">alle Stimmen</option><option value="zen">Zen</option><option value="ela">Ela</option><option value="w">Bella</option><option value="eli">Elion</option>
+    </select></label>
+    <label>Meditation<select id="offlineArt">
+      <option value="alle">alle Meditationen</option>
+      <option value="sitzen">Sitzen</option><option value="taeglich">Täglich</option><option value="gehen">Gehen</option><option value="zen">Zazen</option>
+      <option value="runterkommen">Runterkommen</option><option value="innehalten">Innehalten</option><option value="schlafen">Einschlafen</option>
+      <option value="morgen">Morgen</option><option value="checkin">Körper-Check</option><option value="staerken">Stärken</option><option value="nebenbei">Nebenbei</option>
+      <option value="flex">Nach Wahl</option><option value="atem">Atemuhr</option><option value="notbremse">Notbremse + Panik</option>
+      <option value="gefuehl">Gefühls-Check</option><option value="kraft">Kraftatmung</option>
+    </select></label>
+  </div>
+  <div class="vid" role="button" tabindex="0" id="offlineBtn"><span id="offlineTitel">📥 Offline laden</span><br><small id="offlineInfo">die Auswahl aufs Gerät</small></div>
   <div class="runter-hinweis" id="offlineNote">Danach läuft Atemfunk komplett ohne Netz, auch im Wald oder im Flugmodus. Am besten im WLAN laden.</div>
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 69<br><small style="opacity:.7">Klangschale: „Tibetan Singing Bowl hit 11inch“ von דג בלי מלח, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" style="color:inherit">CC BY-SA 4.0</a>, gekürzt</small></div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 70<br><small style="opacity:.7">Klangschale: „Tibetan Singing Bowl hit 11inch“ von דג בלי מלח, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" style="color:inherit">CC BY-SA 4.0</a>, gekürzt</small></div>
 
 </div>
 
@@ -987,7 +1014,8 @@ const altStimme = () => (voiceSex === "m" ? "audio/m/" : "audio/");
 /* Signale, Fragen und „Nach Wahl“: in welchen neuen Stimmen schon gebaut (sonst spricht Bella) */
 const NEBEN_FERTIG = { cues2: ["zen", "ela", "eli"], fragen2: ["zen", "ela", "eli"], flex2: ["zen", "ela", "eli"] };
 const nebenStimme = teil => (NEBEN_FERTIG[teil].includes(voiceSex) ? voicePath() : altStimme());
-const stimmeFuer = art => (voiceSex === "w" || STIMM_ARTEN[voiceSex].test(art) ? voicePath() : "audio/");
+const NUR_BELLA = /^(nebenbei)$/;   /* Neues seit Version 70 nur in Bella (Florian) – die anderen Stimmen sprechen hier nicht */
+const stimmeFuer = art => (voiceSex === "w" || (STIMM_ARTEN[voiceSex].test(art) && !NUR_BELLA.test(art)) ? voicePath() : "audio/");
 const STIMM_NAMEN = { w: "Bella", m: "Eric", zen: "Zen", ela: "Ela", eli: "Elion" };
 function renderVoiceSex() {
   document.querySelectorAll("#voices .rhy").forEach(el => {
@@ -1165,8 +1193,8 @@ const HG_NAMEN = { waldvoegel: "Vögel", aus: "Stille", wald: "Wald", voegel: "V
 function renderHgLive() {
   const wahl = $("hgLiveWahl"), vol = $("hgLiveVol"), note = $("hgLiveNote");
   wahl.innerHTML = ""; note.textContent = "";
-  if (session && /^gehen-/.test(session.prog || "")) {
-    vol.hidden = true; note.textContent = "Beim Gehen gibt es keinen Hintergrund – draußen ist genug zu hören.";
+  if (session && /^(gehen|nebenbei)-/.test(session.prog || "")) {
+    vol.hidden = true; note.textContent = /^gehen/.test(session.prog) ? "Beim Gehen gibt es keinen Hintergrund – draußen ist genug zu hören." : "Nebenbei gibt es keinen Hintergrund – die Geräusche um dich gehören dazu.";
     return;
   }
   const klang = session && session.klang;
@@ -1369,7 +1397,7 @@ let amb = null, ambLoading = false;
 function progKontext() { return !!(session && session.progKulisse); }
 function ambZiel() {   /* Gehen: draußen nie Hintergrund; „Nur Klang“ spielt seinen Klang mit der Lautstärke der Klangkulisse */
   if (session && session.klang) return session.klang;
-  return progKontext() ? (/^gehen-/.test(session.prog) ? "aus" : progAmbKey) : ambKey;
+  return progKontext() ? (/^(gehen|nebenbei)-/.test(session.prog) ? "aus" : progAmbKey) : ambKey;
 }
 function ambBase(key) {
   return progKontext() ? (PROG_LEVEL[key] || 0.06) * (progVol / 60) ** 2
@@ -1603,6 +1631,7 @@ const PROG_ATEM = {
   "checkin-10": [[0.0, "frei"], [52.0, "ruhig"], [112.0, "frei"], [475.5, "ruhig"], [525.5, "frei"]],
   "staerken-5":  [[0.0, "frei"], [20.5, "ruhig"], [60.5, "frei"]],
   "staerken-10": [[0.0, "frei"], [22.5, "ruhig"], [92.5, "frei"]],
+  "nebenbei-2": [[0, "frei"]], "nebenbei-5": [[0, "frei"]],   /* tools/nebenbei_bauen.py, Augen offen, kein Takt */
   "notbremse-3": [[0.0, "frei"], [52.0, "seufzer"], [119.5, "frei"], [141.5, "ruhig"], [161.5, "frei"]],
   /* Panik: tools/panik_bauen.py */
   "panik-3": [[0.0, "frei"], [52.5, "ruhig"], [92.5, "frei"]],
@@ -1632,14 +1661,14 @@ const PROG_ATEM = {
    (Version 58, vorher prog/runterkommen-N.mp3), Atemuhr atem -1 = Bella/Eric statt Edge (Version 59,
    vorher atem-N.mp3, tools/atemuhr_bauen.py), Zazen zen -1 (Version 61, nur Bella), Gehen gehen -1 (Version 62, nur Bella) */
 /* Version 69: runterkommen -3, atem/notbremse/panik/gefuehl -2 = alle vier Stimmen (Zen, Ela, Bella, Elion) */
-const PROG_FASSUNG = { innehalten: "-6", taeglich: "-5", sitzen: "-2", runterkommen: "-3", atem: "-2", zen: "-2", gehen: "-2", notbremse: "-2", panik: "-2", gefuehl: "-2", schlafen: "-1", morgen: "-1", checkin: "-1", staerken: "-1" };
+const PROG_FASSUNG = { innehalten: "-6", taeglich: "-5", sitzen: "-2", runterkommen: "-3", atem: "-2", zen: "-2", gehen: "-2", notbremse: "-2", panik: "-2", gefuehl: "-2", schlafen: "-1", morgen: "-1", checkin: "-1", staerken: "-1", nebenbei: "-1" };
 /* Tonspur eines festen Programms: liegt im Unterordner der Art, mit Fassung im Namen */
 /* Sitzen gibt es seit Version 69 in drei Varianten (Florian 05.11.2026: „drei, die sich abwechseln“):
    A wie bisher, B „Klang und Raum“, C „Benennen“ – Dateien 10-2.mp3, 10b-2.mp3, 10c-2.mp3 (tools/sitzen_bauen.py --variante).
    Die Quelle heißt dann „sitzen-10b“; 1 Min gibt es nur als A. */
 const progDatei = prog => {
   const art = prog.replace(/-\d+[bc]?$/, "");
-  return stimmeFuer(art) + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem|zen|gehen|notbremse|panik|gefuehl|schlafen|morgen|checkin|staerken)-(\d+)([bc]?)$/, (_, art, n, v) => art + "/" + n + v + PROG_FASSUNG[art]) + ".mp3";
+  return stimmeFuer(art) + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem|zen|gehen|notbremse|panik|gefuehl|schlafen|morgen|checkin|staerken|nebenbei)-(\d+)([bc]?)$/, (_, art, n, v) => art + "/" + n + v + PROG_FASSUNG[art]) + ".mp3";
 };
 const SITZEN_VARIANTEN = ["", "b", "c"];
 const SITZEN_VAR_NAME = { "": "Atem und Körper", b: "Klang und Raum", c: "Benennen" };
@@ -1659,7 +1688,7 @@ const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runte
   "zen-7": "Zazen", "zen-10": "Zazen", "zen-15": "Zazen",
   "gehen-3": "Gehen", "gehen-5": "Gehen", "gehen-7": "Gehen", "gehen-10": "Gehen",
   "schlafen-10": "Einschlafen", "schlafen-20": "Einschlafen", "morgen-5": "Morgen", "morgen-10": "Morgen",
-  "checkin-5": "Körper-Check", "checkin-10": "Körper-Check", "staerken-5": "Stärken", "staerken-10": "Stärken",
+  "checkin-5": "Körper-Check", "checkin-10": "Körper-Check", "staerken-5": "Stärken", "staerken-10": "Stärken", "nebenbei-2": "Nebenbei", "nebenbei-5": "Nebenbei",
   koerperreise: "Körperreise", frei: "Freie Meditation" };
 
 /* Atemzustand der laufenden Sitzung. Mit Atemplan ist die Uhr die Tonspur
@@ -1871,7 +1900,7 @@ async function startSession(min, prog, flexArt, klang) {
     raf: null, endTimer: null, lastLabel: null, lastSecond: -1,
     nextBowlAt: bowlJede, bowlJede,
     rhythm, atemPlan, planTeil: 0,
-    progKulisse: !!prog && /^(innehalten|taeglich|sitzen|zen|gehen|morgen|checkin|staerken)-/.test(prog),   /* Einschlafen: die normale Klangkulisse (Meer/Regen) */   /* eigener Hintergrund (Vögel/Stille/Frequenzen; Gehen immer still) */
+    progKulisse: !!prog && /^(innehalten|taeglich|sitzen|zen|gehen|morgen|checkin|staerken|nebenbei)-/.test(prog),   /* Einschlafen: die normale Klangkulisse (Meer/Regen) */   /* eigener Hintergrund (Vögel/Stille/Frequenzen; Gehen immer still) */
     ausklang: false,          /* läuft gerade die letzte Atemrunde nach Ablauf? */
   };
   buildBreathRing(session.rhythm);
@@ -2696,10 +2725,41 @@ async function offlineListe() {
   if (!r.ok) throw new Error("Liste " + r.status);
   return r.json();
 }
+/* Auswahl (Version 70): Stimme und Meditation aus dem Pfad lesen. Klangkulissen (audio/atmo) und der Abschluss
+   der Stimme kommen immer mit; Arten, die es in einer Stimme nicht gibt (NUR_BELLA), lädt Bella mit. */
+const offlineWahl = { stimme: store.get("atemfunk_offline_stimme", "alle"), art: store.get("atemfunk_offline_art", "alle") };
+const OFFLINE_TEIL_ZU = { flex2: "flex", cues2: "atem flex", kraft: "kraft", fragen2: "", abschluss3: "*" };
+function offlineEinordnen(pfad) {
+  const t = pfad.split("/");
+  if (t[1] === "atmo") return { stimme: "*", teil: "*" };
+  const stimme = t[1] === "v" ? ({ zen: "zen", ela: "ela", elion: "eli" })[t[2]] : "w";
+  const rest = t[1] === "v" ? t.slice(3) : t.slice(1);
+  return { stimme, teil: rest[0] === "prog" ? rest[1] : rest[0] };
+}
+function offlineAuswahl(liste) {
+  const { stimme, art } = offlineWahl;
+  const arten = s => new Set(liste.dateien.map(([p]) => offlineEinordnen(p)).filter(e => e.stimme === s).map(e => e.teil));
+  const hat = stimme === "alle" ? null : arten(stimme);
+  return liste.dateien.filter(([p]) => {
+    const e = offlineEinordnen(p);
+    if (e.stimme === "*") return true;
+    const stimmeOk = stimme === "alle" || e.stimme === stimme || (e.stimme === "w" && !hat.has(e.teil));
+    if (!stimmeOk) return false;
+    if (art === "alle") return true;
+    const zu = OFFLINE_TEIL_ZU[e.teil];
+    if (zu === undefined) return e.teil === art || (art === "notbremse" && e.teil === "panik");
+    return zu === "*" || zu.split(" ").includes(art);
+  });
+}
+function offlineWasText() {
+  const st = offlineWahl.stimme === "alle" ? "alle Stimmen" : STIMM_NAMEN[offlineWahl.stimme];
+  const art = offlineWahl.art === "alle" ? "alle Meditationen" : $("offlineArt").selectedOptions[0].textContent;
+  return art + " · " + st;
+}
 async function offlineFehlend(liste) {
   const c = await caches.open(OFFLINE_CACHE);
   const fehlt = [];
-  for (const [pfad, groesse] of liste.dateien) {
+  for (const [pfad, groesse] of offlineAuswahl(liste)) {
     if (!(await c.match(pfad))) fehlt.push([pfad, groesse]);
   }
   return fehlt;
@@ -2708,17 +2768,19 @@ async function offlineAnzeigen() {
   if (!("caches" in window) || offlineLaeuft) return;
   try {
     const liste = await offlineListe();
+    const wahl = offlineAuswahl(liste);
+    const summe = wahl.reduce((a, [, g]) => a + g, 0);
     const fehlt = await offlineFehlend(liste);
     const rest = fehlt.reduce((a, [, g]) => a + g, 0);
     if (!fehlt.length) {
-      $("offlineTitel").textContent = "✓ Alles offline";
-      $("offlineInfo").textContent = liste.dateien.length + " Dateien · " + mb(liste.gesamt) + " auf dem Gerät";
-    } else if (fehlt.length < liste.dateien.length) {
-      $("offlineTitel").textContent = "📥 Neues offline laden";
-      $("offlineInfo").textContent = fehlt.length + " Dateien fehlen noch · " + mb(rest);
+      $("offlineTitel").textContent = "✓ Offline auf dem Gerät";
+      $("offlineInfo").textContent = offlineWasText() + " · " + mb(summe);
+    } else if (fehlt.length < wahl.length) {
+      $("offlineTitel").textContent = "📥 Rest offline laden · " + mb(rest);
+      $("offlineInfo").textContent = offlineWasText() + " · " + fehlt.length + " Dateien fehlen noch";
     } else {
-      $("offlineTitel").textContent = "📥 Alles offline laden";
-      $("offlineInfo").textContent = "alle Meditationen in allen Stimmen · " + mb(liste.gesamt);
+      $("offlineTitel").textContent = "📥 Offline laden · " + mb(summe);
+      $("offlineInfo").textContent = offlineWasText();
     }
   } catch {}
 }
@@ -2764,9 +2826,16 @@ async function offlineLaden() {
   offlineLaeuft = false;
   offlineAnzeigen();
 }
+$("offlineStimme").value = offlineWahl.stimme; $("offlineArt").value = offlineWahl.art;
+if (!$("offlineArt").value) $("offlineArt").value = offlineWahl.art = "alle";
+for (const [id, k] of [["offlineStimme", "stimme"], ["offlineArt", "art"]]) $(id).addEventListener("change", () => {
+  offlineWahl[k] = $(id).value; store.set("atemfunk_offline_" + k, offlineWahl[k]);
+  $("offlineNote").textContent = "Am besten im WLAN laden. Was schon auf dem Gerät ist, bleibt.";
+  offlineAnzeigen();
+});
 $("offlineBtn").addEventListener("click", offlineLaden);
 keyActivate($("offlineBtn"));
-if (!("caches" in window)) $("offlineBtn").hidden = true;
+if (!("caches" in window)) $("offlineBtn").hidden = $("offlineWahl").hidden = true;
 else setTimeout(offlineAnzeigen, 2500);
 </script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->

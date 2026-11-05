@@ -113,7 +113,7 @@ def bauen(minuten):
         aus = f"{ziel}/innehalten/{minuten}{FASSUNG}.mp3"      # Unterordner seit dem Wechsel auf Grok (Cache auf den Geräten)
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
-                        "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)
+                        "-c:a", "libmp3lame", "-b:a", "64k", aus], check=True)
         ergebnis[s] = (aus, ende)
     plan = [[0, "frei"], [marken["takt"], "ruhig"], [marken["takt_ende"], "frei"]]
     return plan, ergebnis, dehn, marken

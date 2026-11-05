@@ -93,7 +93,7 @@ def bauen(minuten=5):
         datei = f"{ziel}/{minuten}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(rb.SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
-                        "-c:a", "libmp3lame", "-b:a", "96k", datei], check=True)
+                        "-c:a", "libmp3lame", "-b:a", "64k", datei], check=True)
         print(f"  {os.path.relpath(datei, rb.AUDIO + '/..')}: letzter Satz endet bei {ende_s:.1f} s")
         if s == "w":
             aus = datei

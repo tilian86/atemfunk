@@ -233,7 +233,7 @@ def bauen(minuten):
         aus = f"{ziel}/runterkommen/{minuten}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", ln + f",aresample={SR}", "-t", str(gesamt), "-ac", "1", "-ar", str(SR),
-                        "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)
+                        "-c:a", "libmp3lame", "-b:a", "64k", aus], check=True)
         ergebnis[s] = (aus, luft)
     plan = [[marken[n], TEIL_RHYTHMUS[n]] for n in sorted(marken, key=marken.get)]
     return plan, ergebnis

@@ -39,5 +39,5 @@ if __name__ == "__main__":
             raw = f"{CACHE}/frage-{stimme}-{nr}.f32"
             b.astype(np.float32).tofile(raw)
             subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
-                            "-c:a", "libmp3lame", "-b:a", "96k", f"{ZIEL[stimme]}/{nr}.mp3"], check=True)
+                            "-c:a", "libmp3lame", "-b:a", "64k", f"{ZIEL[stimme]}/{nr}.mp3"], check=True)
         print(stimme, len(clips), "Fragen →", os.path.relpath(ZIEL[stimme], AUDIO + "/.."))

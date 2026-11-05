@@ -55,6 +55,6 @@ schleife *= 10 ** ((KULISSE_LUFS - lautheit(schleife)) / 20)
 
 os.makedirs(os.path.dirname(ZIEL), exist_ok=True)
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", "-",
-                "-c:a", "libmp3lame", "-b:a", "96k", ZIEL], input=schleife.astype(np.float32).tobytes(), check=True)
+                "-c:a", "libmp3lame", "-b:a", "64k", ZIEL], input=schleife.astype(np.float32).tobytes(), check=True)
 print(f"{ZIEL}: {len(schleife) / SR / 60:.1f} min, {lautheit(schleife):.1f} LUFS, "
       f"Spitze {20 * np.log10(np.max(np.abs(schleife))):.1f} dBFS")
