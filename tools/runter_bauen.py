@@ -33,12 +33,16 @@ SR = 44100
 STIMMEN = {
     "w": ("el", "hpp4J3VqNfWAUOO0d1Us", AUDIO + "/prog"),     # Bella (bis 26.10.2026 Sarah EXAVITQu4vr4xnSDxMaL)
     "m": ("el", "cjVigY5qzO86Huf0OWal", AUDIO + "/m/prog"),   # Eric (bis dahin Brian nPczCjzI2devNBz1zQrb)
+    # Florians Wahl aus der Hörprobe 05.11.2026, für alle Meditationen (seit Version 69)
+    "zen": ("el", "a0CA83xXpwCwAaIpZXae", AUDIO + "/v/zen/prog"),
+    "ela": ("el", "lg8F3Gh5vb5szDxQyvvE", AUDIO + "/v/ela/prog"),
+    "eli": ("el", "U6RBeo6AW7opwNtyQxh6", AUDIO + "/v/elion/prog"),  # Elion, Männerstimme (Wahl 05.11.)
 }
 # v4 ohne [softly] – das Tag ließ v4 zufällig flüstern (Florians Hörprobe 26.10.2026)
 EL_MODELL, EL_TAG, EL_SEED = "eleven_v4", "", 7
 EL_STABIL = 0.6
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-2"
+FASSUNG = "-3"
 # keys_ok.txt = die zuletzt funktionierenden zuerst, damit gesperrte nicht jedes Mal durchprobiert werden
 _ok = os.path.expanduser("~/.klarkreis/keys_ok.txt")
 EL_KEYS = (open(_ok).read().split() if os.path.exists(_ok) else []) or open(os.path.expanduser("~/.klarkreis/keys.txt")).read().split()

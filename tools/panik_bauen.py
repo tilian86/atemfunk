@@ -11,14 +11,14 @@ import notbremse_bauen as nb
 from panik_texte import S
 
 D = nb.D
-nb.S, nb.NAME, nb.FASSUNG = S, "panik", "-1"     # index.html PROG_FASSUNG.panik
+nb.S, nb.NAME, nb.FASSUNG = S, "panik", "-2"     # index.html PROG_FASSUNG.panik
 nb.ABLAUF = [
     ("teil", "ankommen"), ("still", 1), ("sag", "p1"), ("still", 1.5), ("sag", "p2"), ("still", 2),
     ("sag", "p3"), ("still", 4),
     ("teil", "ruhig_intro"), ("sag", "p4"), ("still", 1),
     ("teil", "ruhig"), ("ruhig", 3, 3), ("sag", "n6"), ("ruhig", 0, 1),
     ("teil", "sinne"),
-    ("sag", "p5"), ("still", 12), ("sag", "p6"), ("still", 9), ("sag", "p7"), ("still", 8),
+    ("sag", "p5"), ("still", 10), ("sag", "p6"), ("still", 8), ("sag", "p7"), ("still", 7),   # je 1–2 s kürzer: langsamere Stimmen (Version 69)
     ("sag", "p8"), ("still", 6),
     ("teil", "hier"), ("sag", "p9"), ("still", 0, D),
     ("sag", "p10"), ("still", 1.5), ("sag", "p11"), ("still", 1.5), ("sag", "n10"),

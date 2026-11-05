@@ -24,12 +24,13 @@ from taeglich_texte import S, TEXTE, ZUEGE
 runter_bauen.EL_MODELL, runter_bauen.EL_TAG, runter_bauen.EL_STABIL = "eleven_v4", "", 0.6
 for _st, _voice in {"w": "hpp4J3VqNfWAUOO0d1Us", "m": "cjVigY5qzO86Huf0OWal"}.items():
     STIMMEN[_st] = ("el", _voice, STIMMEN[_st][2])
+# Florians Wahl aus der Hörprobe 05.11.2026: Zen (ruhig, weiblich) und Ela (jung, weiblich), bisher nur für Täglich
 
 SCHLUSS_LUFT = 3.0
 SEUFZER = (4.0, 1.5, 8.0)        # ein · nachfassen · aus
 TAKT = (4.0, 6.0)                # ein · aus
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-4"
+FASSUNG = "-5"   # -5 = Zen + Ela dazu, 3 Min entzerrt (Version 69)
 os.makedirs(CACHE, exist_ok=True)
 
 

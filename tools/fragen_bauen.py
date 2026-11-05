@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from runter_bauen import clip, SR, AUDIO, CACHE
 from flex_bauen import lautheit
 
-ZIEL = {"w": AUDIO + "/fragen2", "m": AUDIO + "/m/fragen2"}
+ZIEL = {"w": AUDIO + "/fragen2", "m": AUDIO + "/m/fragen2", "zen": AUDIO + "/v/zen/fragen2", "ela": AUDIO + "/v/ela/fragen2", "eli": AUDIO + "/v/elion/fragen2"}
 VORLAUF, NACHLAUF = 0.25, 0.5
 FRAGEN = json.load(open(os.path.join(AUDIO, "..", "fragen.json")))["fragen"]
 

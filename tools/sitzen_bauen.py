@@ -9,7 +9,7 @@ Stimmen: ElevenLabs v4 Bella (w) / Eric (m), Stabilität 0.6, ohne [softly] – 
 Die Kugel bekommt keinen Atemplan (nur „frei“), sie soll keinen Rhythmus vorgeben.
 Am Ende druckt das Skript PROG_ATEM für index.html.
 
-Aufruf: python3 tools/sitzen_bauen.py [1 3 5 7 10 15 20] [--zeichen]
+Aufruf: python3 tools/sitzen_bauen.py [1 3 5 7 10 15 20] [--variante b|c] [--zeichen]
 --zeichen: nur zählen, wie viele Zeichen je Stimme neu vertont würden (nichts wird abgerufen).
 """
 import json, math, os, subprocess, sys
@@ -18,7 +18,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 import runter_bauen
 from runter_bauen import clip, SR, AUDIO, CACHE, STIMMEN
-from sitzen_texte import S, TEXTE
+from sitzen_texte import S, TEXTE, TEXTE_B, TEXTE_C
+VARIANTE = ""   # "" = A, "b"/"c" = Varianten (--variante b), Dateiname 10b-2.mp3
 
 runter_bauen.EL_MODELL, runter_bauen.EL_TAG, runter_bauen.EL_STABIL = "eleven_v4", "", 0.6
 for _st, _voice in {"w": "hpp4J3VqNfWAUOO0d1Us", "m": "cjVigY5qzO86Huf0OWal"}.items():
@@ -27,7 +28,7 @@ for _st, _voice in {"w": "hpp4J3VqNfWAUOO0d1Us", "m": "cjVigY5qzO86Huf0OWal"}.it
 SCHLUSS_LUFT = 3.0
 NAME = "sitzen"          # Ordner/Programmname – atemuhr_bauen.py setzt „atem“ und eigene Texte
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-1"
+FASSUNG = "-2"   # -2 = Zen + Ela dazu (Version 69)
 os.makedirs(CACHE, exist_ok=True)
 
 
@@ -91,12 +92,12 @@ def bauen(minuten):
             i = int(round(start * SR))
             assert i + len(a) <= len(spur), (s, minuten, start)
             spur[i:i + len(a)] += a
-        raw = f"{CACHE}/{NAME}-{minuten}-{s}.f32"
+        raw = f"{CACHE}/{NAME}-{minuten}{VARIANTE}-{s}.f32"
         spur.tofile(raw)
         spur *= 10 ** ((-21 - lautheit(raw)) / 20)
         spur.tofile(raw)
         os.makedirs(f"{ziel}/{NAME}", exist_ok=True)
-        aus = f"{ziel}/{NAME}/{minuten}{FASSUNG}.mp3"
+        aus = f"{ziel}/{NAME}/{minuten}{VARIANTE}{FASSUNG}.mp3"
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "f32le", "-ar", str(SR), "-ac", "1", "-i", raw,
                         "-af", "alimiter=limit=0.79:level=false:attack=5:release=50", "-t", str(gesamt),
                         "-c:a", "libmp3lame", "-b:a", "96k", aus], check=True)
@@ -110,6 +111,10 @@ def zeichen(laengen):
 
 
 if __name__ == "__main__":
+    if "--variante" in sys.argv:
+        VARIANTE = sys.argv[sys.argv.index("--variante") + 1]
+        TEXTE = {"b": TEXTE_B, "c": TEXTE_C}[VARIANTE]
+        del STIMMEN["m"]   # Eric ist seit Version 69 nicht mehr wählbar – die Varianten nur in Bella, Zen, Ela, Elion
     laengen = [int(a) for a in sys.argv[1:] if a.isdigit()] or sorted(TEXTE)
     if "--zeichen" in sys.argv:
         n, saetze = zeichen(laengen)
@@ -118,7 +123,7 @@ if __name__ == "__main__":
     plaene = {}
     for minuten in laengen:
         plan, erg, dehn, marken = bauen(minuten)
-        plaene[f"sitzen-{minuten}"] = plan
+        plaene[f"sitzen-{minuten}{VARIANTE}"] = plan
         print(f"{minuten} Min: dehnbare Stillen ×{dehn:.2f}, Marken", marken)
         for s, (aus, ende) in erg.items():
             print(f"  {os.path.relpath(aus, AUDIO + '/..')}: letzter Satz endet bei {ende:.1f} s")

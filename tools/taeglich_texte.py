@@ -6,7 +6,8 @@ kürzer heißt nur: weniger Stationen, kürzere Stillen. Immer gleicher Bogen, d
 Ritual wird:
   1. Ankommen   — Haltung, Kontakt, Augen
   2. Atem       — Seufzer (4 · 1,5 · 8), dann 4 · 6 im Takt, dann frei
-  3. Körper     — Scan von den Füßen bis zum Kopf, immer komplett
+  3. Körper     — Scan von den Füßen bis zum Kopf, immer komplett (3 Min: ein ruhiger Blick auf den
+                  ganzen Körper, Florian 05.11.2026: der Scan war in 3 Minuten zu schnell)
   4. Präsenz    — Geräusche und Gedanken kommen und gehen
   5. Loslassen  — mit dem Ausatmen
   6. Schluss    — (7/10: Freundlichkeit, nächster Schritt) zurück in den Raum
@@ -42,7 +43,7 @@ S = {
     "b0k": "Jetzt atme ruhig durch die Nase, und lass das Ausatmen etwas länger sein als das Einatmen.",
     "b2k": "Jetzt vier ein, sechs aus. Ich zähle wieder mit.",
     "b2": "Jetzt ruhiger: vier ein, sechs aus. Ein langes Ausatmen sagt deinem Körper: Es ist gerade nichts zu tun. Ich zähle die ersten Runden mit.",
-    "b2w": "Allein weiter, im gleichen Takt.",
+    "b2w": "Allein weiter.",
     "b3": "Lass den Atem jetzt wieder von allein gehen. Du musst nichts mehr steuern. Spür nur, wo er sich am deutlichsten zeigt: am Bauch, an der Brust oder an der Nase.",
     "b4": "Wenn die Aufmerksamkeit abwandert, ist das kein Fehler. Der Moment, in dem du es bemerkst, ist der Moment, in dem du übst. Dann zurück zum nächsten Atemzug.",
     # Körper
@@ -52,6 +53,8 @@ S = {
     "k3_3": "Die Hände, die Arme, die Schultern.",
     "kg": "Der Nacken. Das Gesicht. Die Stirn wird glatt, der Kiefer locker.",
     "kz": "Und jetzt der ganze Körper auf einmal.",
+    # 3 Min (seit Version 69): ein ruhiger Blick auf den ganzen Körper statt eines schnellen Scans
+    "k3k": "Spür jetzt einmal den ganzen Körper. Die Füße am Boden, das Gewicht auf dem Sitz, die Schultern, das Gesicht. Nichts verändern, nur bemerken.",
     "k5_1": "Die Füße. Wie sie den Boden berühren.",
     "k5_2": "Die Beine, schwer und ruhig.",
     "k5_3": "Der Bauch, der sich mit dem Atem hebt und senkt. Der Rücken. Die Brust.",
@@ -100,14 +103,11 @@ TEXTE = {
         ("sag", "b1"), ("still", 1),
         ("teil", "seufzer"), ("seufzer", 2, 2),
         ("teil", "seufzer_ende"),
-        ("sag", "b0k"), ("still", 6, D),
-        ("sag", "k0"), ("still", 1),
-        ("sag", "k3_1"), ("still", 4),
-        ("sag", "k3_2"), ("still", 4),
-        ("sag", "k3_3"), ("still", 4),
-        ("sag", "kg"), ("still", 4),
-        ("sag", "kz"), ("still", 6, D),
-        ("sag", "p0"), ("still", 3),
+        ("sag", "b2k"), ("still", 1),
+        ("teil", "takt"), ("takt", 2, 2), ("sag", "b2w"), ("takt", 0, 1),
+        ("teil", "takt_ende"),
+        ("sag", "b3"), ("still", 6, D),
+        ("sag", "k3k"), ("still", 12, D),
         ("sag", "l0"), ("still", 8, D),
         ("teil", "schluss"),
         ("sag", "f1"), ("still", 4),
@@ -140,13 +140,13 @@ TEXTE = {
         ("sag", "f1"), ("still", 5),
         ("sag", "f3"),
     ],
-    7: [
+    7: [   # Pausen in Ankommen + Körper 4 statt 5 s: Zen und Ela sprechen langsamer (Version 69)
         ("teil", "ankommen"), ("still", 3),
         ("sag", "a1"), ("still", 3),
         ("sag", "a2"), ("still", 4),
-        ("sag", "a3"), ("still", 5),
+        ("sag", "a3"), ("still", 4),
         ("sag", "a4"), ("still", 3),
-        ("sag", "a5"), ("still", 5),
+        ("sag", "a5"), ("still", 4),
         ("sag", "b1l"), ("still", 1),
         ("teil", "seufzer"), ("seufzer", 2, 2), ("sag", "b1w1"), ("seufzer", 0, 1),
         ("teil", "seufzer_ende"),
@@ -155,12 +155,12 @@ TEXTE = {
         ("teil", "takt_ende"),
         ("sag", "b3"), ("still", 15, D),
         ("sag", "k0"), ("still", 2),
-        ("sag", "k7_1"), ("still", 5),
-        ("sag", "k7_2"), ("still", 5),
-        ("sag", "k7_3"), ("still", 5),
-        ("sag", "k7_4"), ("still", 5),
-        ("sag", "k5_4"), ("still", 5),
-        ("sag", "kg7"), ("still", 5),
+        ("sag", "k7_1"), ("still", 4),
+        ("sag", "k7_2"), ("still", 4),
+        ("sag", "k7_3"), ("still", 4),
+        ("sag", "k7_4"), ("still", 4),
+        ("sag", "k5_4"), ("still", 4),
+        ("sag", "kg7"), ("still", 4),
         ("sag", "kz7"), ("still", 12, D),
         ("sag", "p1"), ("still", 6),
         ("sag", "p2"), ("still", 8),
@@ -173,13 +173,15 @@ TEXTE = {
         ("sag", "f2"), ("still", 5),
         ("sag", "f3"),
     ],
+    # 10 Min: feste Pausen am Anfang, bei Freundlichkeit und Schluss gekürzt (Zen/Ela sprechen
+    # langsamer); die Körperscan-Pausen bleiben bei 6–7 s.
     10: [
         ("teil", "ankommen"), ("still", 3),
-        ("sag", "a1"), ("still", 4),
-        ("sag", "a2"), ("still", 6),
-        ("sag", "a3"), ("still", 8),
+        ("sag", "a1"), ("still", 3),
+        ("sag", "a2"), ("still", 5),
+        ("sag", "a3"), ("still", 6),
         ("sag", "a4"), ("still", 3),
-        ("sag", "a5"), ("still", 6),
+        ("sag", "a5"), ("still", 5),
         ("sag", "b1l"), ("still", 1),
         ("teil", "seufzer"), ("seufzer", 2, 2), ("sag", "b1w2"), ("seufzer", 0, 2),
         ("teil", "seufzer_ende"),
@@ -199,17 +201,17 @@ TEXTE = {
         ("sag", "k10_8"), ("still", 7),
         ("sag", "k10_9"), ("still", 6),
         ("sag", "kz7"), ("still", 15, D),
-        ("sag", "p1"), ("still", 10),
+        ("sag", "p1"), ("still", 8),
         ("sag", "p3"), ("still", 15, D),
-        ("sag", "p4"), ("still", 10),
+        ("sag", "p4"), ("still", 8),
         ("sag", "p5"), ("still", 30, D),
-        ("sag", "l1"), ("still", 12),
-        ("sag", "l2"), ("still", 12),
+        ("sag", "l1"), ("still", 9),
+        ("sag", "l2"), ("still", 9),
         ("sag", "l3"), ("still", 20, D),
         ("teil", "schluss"),
-        ("sag", "f0"), ("still", 8),
-        ("sag", "f1"), ("still", 6),
-        ("sag", "f2"), ("still", 7),
+        ("sag", "f0"), ("still", 6),
+        ("sag", "f1"), ("still", 5),
+        ("sag", "f2"), ("still", 6),
         ("sag", "f3"),
     ],
 }

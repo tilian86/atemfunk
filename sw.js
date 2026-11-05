@@ -2,7 +2,8 @@
    Ändert sich pushfunk-push.js, hier ?v= UND CACHE hochzählen. */
 importScripts("pushfunk-push.js?v=1");
 
-const CACHE = "atemfunk-v68";   /* Nummer steht auch unten auf der Startseite (index.html #appVersion) – mitziehen */
+const CACHE = "atemfunk-v69";
+const OFFLINE = "atemfunk-offline";   /* nur Audio, gefüllt von index.html offlineLaden() aus offline.json */   /* Nummer steht auch unten auf der Startseite (index.html #appVersion) – mitziehen */
 /* Grundausstattung sofort. Alles Weitere (männliche Stimme, Programme,
    andere Klangkulissen) landet automatisch im Cache, sobald es einmal lief. */
 const ASSETS = [
@@ -18,6 +19,7 @@ const ASSETS = [
   "journal.html",
   "klaeren.html",
   "gefuehl.html",
+  "kraft.html",
   "klaeren.js",
   "klaeren-kern.js",
   "abend.js",
@@ -30,12 +32,12 @@ const ASSETS = [
   "audio/cues2/Halten.mp3",
   "audio/cues2/Ausatmen.mp3",
   "audio/cues2/Nachatmen.mp3",
-  "audio/abschluss2/ende.mp3",
-  "audio/prog/atem/1-1.mp3",
-  "audio/prog/atem/3-1.mp3",
-  "audio/prog/atem/5-1.mp3",
-  "audio/prog/atem/7-1.mp3",
-  "audio/prog/atem/10-1.mp3",
+  "audio/abschluss3/ende.mp3",
+  "audio/prog/atem/1-2.mp3",
+  "audio/prog/atem/3-2.mp3",
+  "audio/prog/atem/5-2.mp3",
+  "audio/prog/atem/7-2.mp3",
+  "audio/prog/atem/10-2.mp3",
   "audio/atmo/wald.mp3",
   "audio/atmo/waldvoegel.mp3",
   "flex.json"
@@ -52,7 +54,9 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      /* „atemfunk-offline“ (Knopf „Alles offline laden“, Version 69) überlebt Versionswechsel –
+         die Dateinamen enthalten die Fassung, ändern sich also nie unter demselben Namen */
+      Promise.all(keys.filter(k => k !== CACHE && k !== OFFLINE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -129,6 +133,8 @@ async function netzZuerst(e) {
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   if (new URL(e.request.url).origin !== location.origin) return;
+  /* Der Offline-Knopf holt selbst aus dem Netz und legt in OFFLINE ab – hier nicht noch einmal in CACHE kopieren */
+  if (new URL(e.request.url).searchParams.has("offline")) return;
 
   if (e.request.headers.has("range")) {
     e.respondWith(rangeResponse(e.request, e));

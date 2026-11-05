@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from runter_bauen import clip, SR, AUDIO, CACHE
 from flex_texte import ARTEN
 
-ZIEL = {"w": AUDIO + "/flex2", "m": AUDIO + "/m/flex2"}   # m/flex2 gibt es erst, wenn jemand m baut (index.html FLEX_ORDNER)
+ZIEL = {"w": AUDIO + "/flex2", "m": AUDIO + "/m/flex2", "zen": AUDIO + "/v/zen/flex2", "ela": AUDIO + "/v/ela/flex2", "eli": AUDIO + "/v/elion/flex2"}   # m/flex2 gibt es erst, wenn jemand m baut (index.html FLEX_ORDNER)
 VORLAUF, NACHLAUF = 0.25, 0.6
 def keys_von(art): return [k for k in ARTEN[art] if k not in ("titel", "kurz")]
 
@@ -64,7 +64,7 @@ def bauen(stimme, arten, nur_neu=False):
 if __name__ == "__main__":
     args = sys.argv[1:]
     nur_neu = "--nur-neu" in args          # vorhandene Dateien unangetastet lassen (Cache auf den Geräten)
-    stimmen = [a for a in args if a in ("m", "w")] or ["w"]
+    stimmen = [a for a in args if a in ZIEL] or ["w"]
     arten = [a for a in args if a in ARTEN] or list(ARTEN)
     pfad = os.path.join(AUDIO, "..", "flex.json")
     flex = json.load(open(pfad))
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         for key, sek in bauen(s, arten, nur_neu).items():
             neu[key] = max(neu.get(key, 0), sek)
     for (art, k), sek in neu.items():
-        alt = flex.get(art, {}).get(k, 0) if len(stimmen) == 1 else 0   # nur eine Stimme gebaut → die andere bleibt maßgeblich
+        alt = flex.get(art, {}).get(k, 0)   # nie kürzer als bisher: auch nicht gebaute Stimmen (m/flex) bleiben maßgeblich
         flex.setdefault(art, {})[k] = max(alt, sek)
     for art in arten:                       # verwaiste Einträge (gelöschte Bausteine) entfernen
         for k in list(flex.get(art, {})):

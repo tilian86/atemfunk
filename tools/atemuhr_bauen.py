@@ -16,7 +16,7 @@ from runter_bauen import AUDIO
 from atemuhr_texte import S, TEXTE
 
 sb.S, sb.TEXTE, sb.NAME = S, TEXTE, "atem"
-sb.FASSUNG = "-1"          # index.html PROG_FASSUNG.atem
+sb.FASSUNG = "-2"          # index.html PROG_FASSUNG.atem
 sb.SCHLUSS_LUFT = 3.4      # wie die alten Aufnahmen: Platz für den Endgong
 
 if __name__ == "__main__":

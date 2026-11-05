@@ -30,7 +30,7 @@ GROK_STIMMEN = {"w": "celeste", "m": "orion"}   # Florians Hörprobe 30.08.2026
 SCHLUSS_LUFT = 3.0
 TAKT = 10.0                      # 4 ein · 6 aus
 # Fassung im Dateinamen: die App holt Audio cache-first, neue Töne brauchen neue Namen (index.html PROG_FASSUNG)
-FASSUNG = "-5"
+FASSUNG = "-6"   # -6 = Zen + Ela dazu (Version 69)
 os.makedirs(CACHE, exist_ok=True)
 
 

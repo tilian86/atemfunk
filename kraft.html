@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Kraftatmung · Atemfunk</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<link rel="stylesheet" href="app.css">
+<style>
+/* Kraftatmung nach Wim Hof (Version 69, Florian 05.11.2026): 30 tiefe Atemzüge im Takt der Kugel,
+   Luft draußen lassen bis zum Tippen (Stoppuhr), 15 s Erholungsatem, 3 Runden. Ansagen in der
+   gewählten Stimme (tools/kraft_bauen.py → audio/kraft/, audio/v/<stimme>/kraft/). */
+.zurueck { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 4px; padding-right: 12px;
+           color: var(--ink-dim); font-size: 13px; text-decoration: none; }
+h2 { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+.lab { font-size: 13px; color: var(--ink-dim); margin: 12px 0 6px; }
+.wahl { display: flex; gap: 7px; flex-wrap: wrap; }
+.wahl button { flex: 1; min-height: 42px; border-radius: 20px; font: inherit; font-size: 14px; cursor: pointer;
+               border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); color: var(--ink); }
+.wahl button.an { border-color: rgba(127,184,216,0.6); background: var(--accent-soft); }
+.vorsicht { font-size: 13px; line-height: 1.55; color: #e8c08c; }
+.vorsicht b { color: #f0d0a0; }
+#lauf { position: fixed; inset: 0; z-index: 40; background: #0b1026; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; padding: 20px 16px calc(env(safe-area-inset-bottom) + 20px); text-align: center; }
+#lauf[hidden] { display: none; }
+.kugel-rahmen { width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.kugel { width: 170px; height: 170px; border-radius: 50%; transform: scale(0.6);
+         background: radial-gradient(circle at 38% 32%, rgba(245,225,190,0.9), rgba(216,170,110,0.6) 45%, rgba(160,100,60,0.35) 75%, rgba(90,50,30,0.2));
+         box-shadow: 0 0 70px 12px rgba(216,170,110,0.28), inset 0 0 40px rgba(255,255,255,0.12); will-change: transform; }
+.kugel.halten { background: radial-gradient(circle at 38% 32%, rgba(200,225,245,0.8), rgba(127,184,216,0.5) 45%, rgba(70,110,160,0.3) 75%, rgba(40,60,110,0.2));
+                box-shadow: 0 0 70px 12px rgba(127,184,216,0.25), inset 0 0 40px rgba(255,255,255,0.1); }
+.runde { font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); min-height: 18px; margin-top: 18px; }
+.zahl { font-size: 54px; font-weight: 200; color: var(--ink); min-height: 64px; font-variant-numeric: tabular-nums; }
+.was { font-size: 16px; color: var(--ink-dim); min-height: 44px; max-width: 320px; line-height: 1.4; }
+.lauf-knoepfe { display: flex; gap: 12px; margin-top: 18px; }
+.lauf-knoepfe button { min-height: 46px; padding: 0 26px; border-radius: 999px; font: inherit; font-size: 14px; cursor: pointer;
+                       border: 1px solid rgba(255,255,255,0.15); background: transparent; color: var(--ink-dim); }
+.lauf-knoepfe button.primary { border-color: rgba(127,184,216,0.45); color: var(--ink); background: var(--accent-soft); }
+.lauf-knoepfe button[hidden] { display: none; }
+.ergebnis { font-size: 15px; line-height: 1.7; }
+.ergebnis b { font-weight: 500; color: var(--gold); }
+.verlauf { font-size: 13px; line-height: 1.6; color: var(--ink-dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="zurueck" href="index.html">‹ Atmen</a>
+  <h1>⚡ Kraftatmung</h1>
+  <div class="sub">Nach Wim Hof: tief und kräftig atmen, dann die Luft draußen lassen, so lange es angenehm ist. Macht wach und klar, viele fühlen danach Kribbeln und Wärme. Ideal morgens, auf leeren Magen.</div>
+
+  <div class="card">
+    <div class="vorsicht">⚠️ <b>Nur im Sitzen oder Liegen. Nie im Wasser, nie beim Autofahren</b> – man kann kurz ohnmächtig werden. Nicht in der Schwangerschaft; bei Epilepsie, Herz-Kreislauf-Erkrankungen oder hohem Blutdruck vorher ärztlich abklären. Schwindel oder Kribbeln sind normal – wird dir unwohl, einfach aufhören und normal atmen.</div>
+  </div>
+
+  <div class="card">
+    <h2>Einstellen</h2>
+    <div class="lab">Runden</div>
+    <div class="wahl" id="wahlRunden"><button data-w="2">2</button><button data-w="3">3</button><button data-w="4">4</button></div>
+    <div class="lab">Atemzüge pro Runde</div>
+    <div class="wahl" id="wahlZuege"><button data-w="20">20</button><button data-w="30">30</button><button data-w="40">40</button></div>
+    <div class="lab">Tempo</div>
+    <div class="wahl" id="wahlTempo"><button data-w="zuegig">zügig</button><button data-w="ruhig">ruhig</button></div>
+    <div class="lab">Einleitung mit Hinweisen</div>
+    <div class="wahl" id="wahlIntro"><button data-w="an">anhören</button><button data-w="aus">überspringen</button></div>
+    <button class="btn primary" id="startKnopf" type="button" style="width:100%; margin-top:18px">Los geht's</button>
+  </div>
+
+  <div class="card" id="verlaufKarte" hidden>
+    <h2>Deine Haltezeiten</h2>
+    <div class="verlauf" id="verlauf"></div>
+  </div>
+  <div class="hint" style="text-align:center;opacity:.6;margin-top:10px">Kraftatmung · Atemfunk Version 69 · Stand 05.11.2026</div>
+</div>
+
+<div id="lauf" hidden>
+  <div class="runde" id="rundeTxt"></div>
+  <div class="kugel-rahmen" id="kugelRahmen" role="button" aria-label="Tippen, wenn du wieder atmen möchtest"><div class="kugel" id="kugel"></div></div>
+  <div class="zahl" id="zahl"></div>
+  <div class="was" id="was" aria-live="polite"></div>
+  <div class="lauf-knoepfe">
+    <button class="primary" id="atmenKnopf" hidden>Wieder atmen</button>
+    <button id="stoppKnopf">Beenden</button>
+    <button class="primary" id="fertigKnopf" hidden>Fertig</button>
+  </div>
+</div>
+
+<script src="sync.js?v=2"></script>
+<script src="shared.js?v=35"></script>
+<script>
+"use strict";
+/* Einstellungen (gemerkt) */
+const EINST = Object.assign({ runden: "3", zuege: "30", tempo: "zuegig", intro: "an" }, store.getJSON("atemfunk_kraft_einst", {}));
+function wahl(id, schluessel) {
+  const knoepfe = document.querySelectorAll("#" + id + " button");
+  const zeigen = () => knoepfe.forEach(b => b.classList.toggle("an", b.dataset.w === EINST[schluessel]));
+  knoepfe.forEach(b => b.addEventListener("click", () => {
+    EINST[schluessel] = b.dataset.w;
+    store.setJSON("atemfunk_kraft_einst", EINST);
+    zeigen();
+  }));
+  zeigen();
+}
+wahl("wahlRunden", "runden"); wahl("wahlZuege", "zuege"); wahl("wahlTempo", "tempo"); wahl("wahlIntro", "intro");
+
+/* Stimme wie auf der Startseite (index.html STIMM_ORDNER); Eric gibt es seit Version 69 nicht mehr → Elion */
+const ORDNER = { w: "audio/kraft/", zen: "audio/v/zen/kraft/", ela: "audio/v/ela/kraft/", eli: "audio/v/elion/kraft/" };
+let stimme = store.get("atemfunk_voicesex", "zen");
+if (stimme === "m") stimme = "eli";
+const ordner = ORDNER[stimme] || ORDNER.zen;
+
+/* Ansagen: ein einziges Audio-Element, beim Tippen auf „Los“ freigeschaltet (iOS) */
+const sprecher = new Audio();
+function sag(name) {
+  return new Promise(fertig => {
+    if (!lauf) return fertig();
+    sprecher.onended = sprecher.onerror = () => fertig();
+    sprecher.src = ordner + name + ".mp3";
+    sprecher.play().catch(() => fertig());
+  });
+}
+
+/* Leiser Ton: hell beim Einatmen, gedämpft während des Haltens (jede Minute) */
+let actx = null;
+function ton(f, vol, len) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state !== "running") actx.resume().catch(() => {});
+    const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); o.stop(t + len + 0.1);
+  } catch {}
+}
+
+let wache = null;
+async function wachHalten() { try { wache = await navigator.wakeLock?.request("screen"); } catch {} }
+document.addEventListener("visibilitychange", () => { if (lauf && document.visibilityState === "visible") wachHalten(); });
+
+const kugel = $("kugel");
+function kugelZu(scale, sek) {
+  kugel.style.transition = "transform " + sek + "s ease-in-out";
+  kugel.style.transform = "scale(" + scale + ")";
+}
+const warte = ms => new Promise(ok => { lauf.uhren.push(setTimeout(ok, ms)); });
+
+let lauf = null;
+async function starten() {
+  const l = lauf = { uhren: [], zeiten: [], beginn: Date.now(), tippen: null };
+  const aktiv = () => lauf === l;   /* nach Beenden + Neustart darf die alte Schleife nicht weiterlaufen */
+  ton(440, 0.0001, 0.1);                 /* WebAudio im Tippen freischalten (iOS) */
+  sprecher.src = ordner + "runde1.mp3"; sprecher.play().then(() => sprecher.pause()).catch(() => {});
+  wachHalten();
+  $("lauf").hidden = false;
+  $("fertigKnopf").hidden = true; $("atmenKnopf").hidden = true; $("stoppKnopf").hidden = false;
+  kugel.classList.remove("halten");
+  const runden = +EINST.runden, zuege = +EINST.zuege;
+  const [ein, aus] = EINST.tempo === "ruhig" ? [2.2, 1.8] : [1.6, 1.4];
+  if (EINST.intro === "an") {
+    $("was").textContent = "Einleitung …";
+    await sag("intro"); await sag("anleitung");
+  }
+  for (let r = 1; r <= runden && aktiv(); r++) {
+    $("rundeTxt").textContent = "Runde " + r + " von " + runden;
+    $("zahl").textContent = ""; $("was").textContent = "";
+    await sag("runde" + r);
+    /* 1 · Atmen: Kugel groß = einatmen, klein = loslassen */
+    for (let i = 1; i <= zuege && aktiv(); i++) {
+      $("zahl").textContent = i;
+      $("was").textContent = "tief ein … loslassen";
+      ton(i === zuege ? 660 : 523.25, 0.03, 0.9);
+      kugelZu(1.05, ein);
+      await warte(ein * 1000);
+      kugelZu(0.6, aus);
+      if (i === zuege - 5 && zuege >= 20) sag("noch5");
+      await warte(aus * 1000);
+    }
+    if (!aktiv()) break;
+    /* 2 · Luft draußen lassen, bis getippt wird */
+    kugel.classList.add("halten");
+    kugelZu(0.5, 2);
+    $("was").textContent = "Luft draußen lassen. Tippe auf die Kugel, wenn du atmen musst.";
+    $("atmenKnopf").hidden = false;
+    sag("anhalten");
+    const start = Date.now();
+    const anzeige = setInterval(() => {
+      const s = Math.floor((Date.now() - start) / 1000);
+      $("zahl").textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+      if (s > 0 && s % 60 === 0) ton(329.63, 0.025, 2.5);
+    }, 250);
+    l.uhren.push(anzeige);
+    await new Promise(ok => { l.tippen = ok; });
+    clearInterval(anzeige);
+    if (!aktiv()) break;
+    lauf.zeiten.push(Math.round((Date.now() - start) / 1000));
+    $("atmenKnopf").hidden = true;
+    /* 3 · Erholungsatem: tief ein, 15 s halten */
+    sprecher.pause();
+    kugel.classList.remove("halten");
+    kugelZu(1.1, 2);
+    $("was").textContent = "Tief einatmen und halten";
+    sag("erholung");
+    for (let s = 15; s > 0 && aktiv(); s--) { $("zahl").textContent = s; await warte(1000); }
+    if (!aktiv()) break;
+    kugelZu(0.6, 3);
+    $("zahl").textContent = "";
+    $("was").textContent = "Und loslassen";
+    await sag("loslassen");
+    await warte(1500);
+  }
+  if (aktiv()) ende(true);
+}
+
+function tippen() { if (lauf && lauf.tippen) { const f = lauf.tippen; lauf.tippen = null; f(); } }
+$("kugelRahmen").addEventListener("click", tippen);
+$("atmenKnopf").addEventListener("click", tippen);
+
+async function ende(komplett) {
+  const l = lauf;
+  if (!l) return;
+  l.uhren.forEach(u => { clearTimeout(u); clearInterval(u); });
+  if (komplett) {
+    kugelZu(0.75, 4);
+    $("rundeTxt").textContent = "Geschafft";
+    $("zahl").textContent = "";
+    $("was").innerHTML = "";
+    $("stoppKnopf").hidden = true; $("atmenKnopf").hidden = true; $("fertigKnopf").hidden = false;
+    zeigeErgebnis(l.zeiten);
+    sag("ende");
+  }
+  if (l.zeiten.length) sichern(l);
+  lauf = null;
+  if (!komplett) schliessen();
+}
+function zeigeErgebnis(zeiten) {
+  const div = document.createElement("div");
+  div.className = "ergebnis";
+  zeiten.forEach((z, i) => {
+    const zeile = document.createElement("div");
+    zeile.append("Runde " + (i + 1) + ": ");
+    const b = document.createElement("b"); b.textContent = mmss(z);
+    zeile.append(b);
+    div.append(zeile);
+  });
+  $("was").replaceChildren(div);
+}
+function schliessen() {
+  sprecher.pause();
+  try { wache && wache.release(); } catch {}
+  $("lauf").hidden = true;
+  zeigeVerlauf();
+}
+$("stoppKnopf").addEventListener("click", () => ende(false));
+$("fertigKnopf").addEventListener("click", () => { sprecher.pause(); schliessen(); });
+$("startKnopf").addEventListener("click", starten);
+
+const mmss = s => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+
+/* Zählt wie jede Sitzung (Serie, Statistik, Protokoll) – dieselben Schlüssel wie index.html recordSession */
+function heuteStr(versatz = 0) {
+  const d = new Date(); d.setDate(d.getDate() + versatz);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function sichern(l) {
+  const min = Math.round((Date.now() - l.beginn) / 6000) / 10;
+  const kraft = store.getJSON("atemfunk_kraft", []);
+  kraft.push({ t: l.beginn, zeiten: l.zeiten });
+  store.setJSON("atemfunk_kraft", kraft.slice(-200));
+  if (min < 1) return;
+  const s = store.getJSON("atemfunk_streak", { count: 0, last: "", best: 0 });
+  if (s.last !== heuteStr()) { s.count = s.last === heuteStr(-1) ? s.count + 1 : 1; s.last = heuteStr(); }
+  s.best = Math.max(s.best || 0, s.count);
+  store.setJSON("atemfunk_streak", s);
+  const st = store.getJSON("atemfunk_stats", { sessions: 0, minutes: 0 });
+  st.sessions += 1; st.minutes += Math.round(min);
+  store.setJSON("atemfunk_stats", st);
+  let log = store.getJSON("atemfunk_log", []);
+  if (!Array.isArray(log)) log = [];
+  log.push({ t: l.beginn, min, art: "kraft", titel: "Kraftatmung" });
+  store.setJSON("atemfunk_log", log.slice(-1000));
+}
+
+function zeigeVerlauf() {
+  const kraft = store.getJSON("atemfunk_kraft", []);
+  if (!kraft.length) return;
+  const bester = Math.max(...kraft.flatMap(k => k.zeiten));
+  const div = $("verlauf");
+  div.replaceChildren();
+  const kopf = document.createElement("div");
+  kopf.textContent = "Längste Haltezeit bisher: " + mmss(bester);
+  div.append(kopf);
+  kraft.slice(-6).reverse().forEach(k => {
+    const z = document.createElement("div");
+    const d = new Date(k.t);
+    z.textContent = d.toLocaleDateString("de-DE", { day: "numeric", month: "short" }) + " · " + k.zeiten.map(mmss).join(" · ");
+    div.append(z);
+  });
+  $("verlaufKarte").hidden = false;
+}
+zeigeVerlauf();
+</script>
+</body>
+</html>

@@ -13,8 +13,8 @@ from runter_bauen import AUDIO
 from zen_texte import S, TEXTE
 
 sb.S, sb.TEXTE, sb.NAME = S, TEXTE, "zen"
-sb.FASSUNG = "-1"          # index.html PROG_FASSUNG.zen
-del sb.STIMMEN["m"]        # nur Bella
+sb.FASSUNG = "-2"          # index.html PROG_FASSUNG.zen
+del sb.STIMMEN["m"]        # Bella, Zen, Ela, Elion (ohne Eric)
 
 if __name__ == "__main__":
     laengen = [int(a) for a in sys.argv[1:] if a.isdigit()] or sorted(TEXTE)

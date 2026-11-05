@@ -11,11 +11,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 from runter_bauen import clip, SR, AUDIO, CACHE
 from flex_bauen import lautheit
 
-ZIEL = {"w": AUDIO + "/cues2", "m": AUDIO + "/m/cues2"}
+ZIEL = {"w": AUDIO + "/cues2", "m": AUDIO + "/m/cues2", "zen": AUDIO + "/v/zen/cues2", "ela": AUDIO + "/v/ela/cues2", "eli": AUDIO + "/v/elion/cues2"}
 CUES = {"Einatmen": "Einatmen.", "Halten": "Halten.", "Ausatmen": "Ausatmen.", "Nachatmen": "Nachatmen."}
 VORLAUF, NACHLAUF = 0.05, 0.3          # kurz: die Ansage soll genau mit der Phase beginnen
 
 for stimme, ziel in ZIEL.items():
+    if len(sys.argv) > 1 and stimme not in sys.argv[1:]:
+        continue
     clips = {k: clip(stimme, t) for k, t in CUES.items()}
     luecke = np.zeros(int(0.5 * SR), dtype=np.float32)
     gain = 10 ** ((-21 - lautheit(np.concatenate([x for a in clips.values() for x in (a, luecke)]))) / 20)

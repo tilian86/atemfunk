@@ -88,9 +88,9 @@ TEXTE = {
     # 1 Min = „achtsame Minute“, 3 Min = nur Ankommen, Atem, Schluss (Florian 26.10.2026: „einfach sitzen und
     # Atem beobachten“) – für Körperscan und offenes Sitzen zu kurz. 1, 3 und 7 Min nutzen nur Sätze aus den
     # anderen Längen, es wurde nichts neu vertont.
-    1: [
-        ("teil", "ankommen"), ("still", 2),
-        ("sag", "a4"), ("still", 3),
+    1: [   # Pausen vorn 1 + 2 s statt 2 + 3 s: Zen und Ela sprechen langsamer (Version 69)
+        ("teil", "ankommen"), ("still", 1),
+        ("sag", "a4"), ("still", 2),
         ("teil", "atem"),
         ("sag", "b1"), ("still", 8, D),
         ("sag", "b4"), ("still", 12, D),
@@ -278,3 +278,97 @@ TEXTE = {
         ("sag", "f3"),
     ],
 }
+
+
+# ---------- Varianten B und C (Version 69, Florian 05.11.2026: „drei Varianten, die sich abwechseln“) ----------
+# Gleicher Bogen und gleiche Teile wie oben (Ankommen und Schluss werden übernommen, sind also schon vertont),
+# nur der Weg in der Mitte ist ein anderer. Die App wechselt reihum A → B → C (1 Min bleibt immer A).
+#   B „Klang und Raum“: Anker sind die Geräusche, der Körper als Ganzes, Aufmerksamkeit weit wie ein Raum.
+#   C „Benennen“: Atem am Bauch, leises Benennen (Noting), wo sich Stimmungen im Körper zeigen, etwas Freundlichkeit.
+S.update({
+    # B – Hören
+    "hb1": "Heute beginnen wir nicht beim Atem, sondern bei dem, was du hörst. Lass die Geräusche einfach zu dir kommen.",
+    "hb2": "Du musst nichts suchen. Nahe Geräusche, ferne Geräusche, vielleicht das Summen eines Geräts oder dein eigener Atem.",
+    "hb3": "Versuch, ein Geräusch zu hören, bevor du es benennst. Nur Klang: lauter, leiser, hoch, tief. Es kommt und vergeht.",
+    "hb4": "Das Hören geschieht von allein. Du musst die Geräusche nicht festhalten und nichts gegen sie tun.",
+    "hb5": "Wenn du merkst, dass du in Gedanken warst, ist das kein Problem. Das nächste Geräusch holt dich zurück.",
+    "hb6": "Bemerk auch die Lücken. Den Moment, in dem ein Klang verklingt, und die Stille, aus der der nächste kommt.",
+    "hb7": "Jetzt lass auch den Atem dazukommen. Als ein weiteres leises Geräusch, eine weitere Bewegung in diesem Raum.",
+    "hb8": "Hören und atmen. Beides geschieht, ohne dass du etwas dafür tun musst.",
+    # B – Körper als Ganzes
+    "kb0": "Spür jetzt den Körper. Nicht Stück für Stück, sondern als Ganzes, wie einen Raum, in dem Empfindungen auftauchen.",
+    "kb1": "Hier ein Kribbeln, dort Druck, irgendwo Wärme. Wie Geräusche tauchen sie auf und verändern sich.",
+    "kb2": "Wo ist der Körper gerade am deutlichsten zu spüren? Bleib einen Moment dort. Dann lass die Aufmerksamkeit wieder weit werden.",
+    "kb3": "Wenn etwas unangenehm ist, darf es da sein. Es ist eine Empfindung unter vielen, und auch sie verändert sich.",
+    "kb4": "Der Körper atmet. Die Geräusche kommen und gehen. Und du sitzt mittendrin.",
+    # B – weit
+    "ob1": "Lass die Aufmerksamkeit jetzt so weit werden wie der Raum um dich herum. Geräusche, Körper, Gedanken: Alles hat darin Platz.",
+    "ob2": "Gedanken kannst du behandeln wie Geräusche. Sie tauchen auf, klingen eine Weile und verklingen wieder.",
+    "ob3": "Du musst nichts davon festhalten. Du bist eher wie der Raum, in dem das alles geschieht.",
+    "ob4": "Wenn du dich verloren hast, hör einfach hin. Was ist gerade zu hören? Schon bist du wieder hier.",
+    "ob6": "Vielleicht ist auch ein Gefühl da. Lass es da sein, wie einen Klang im Raum.",
+    "ob5": "Nur hören. Nur sitzen. Nichts weiter.",
+    # C – Atem am Bauch, benennen
+    "hc1": "Bring die Aufmerksamkeit heute zum Bauch. Wenn du magst, leg eine Hand darauf und spür, wie er sich beim Atmen hebt und senkt.",
+    "hc2": "Heben. Senken. Du kannst es innerlich ganz leise mitsprechen, ohne den Atem zu verändern.",
+    "hc3": "Zwischen dem Ausatmen und dem nächsten Einatmen gibt es oft eine kleine Pause. Lass sie da sein, ohne den nächsten Atemzug herbeizuholen.",
+    "hc4": "Wenn ein Gedanke dich wegzieht, benenn ihn mit einem einzigen Wort. Denken. Planen. Erinnern. Und dann zurück zum Bauch.",
+    "hc5": "Das Benennen ist kein Urteil. Es ist nur ein leises Feststellen: Ah, das ist gerade da.",
+    "hc6": "Ein Wort, kurz und freundlich, und dann wieder: heben, senken.",
+    "hc7": "Es ist egal, wie oft du abschweifst. Jedes Zurückkommen ist ein Moment, in dem du wach bist.",
+    # C – Körper und Stimmungen
+    "kc0": "Weite die Aufmerksamkeit jetzt auf den ganzen Körper aus. Was am deutlichsten auftaucht, darfst du benennen.",
+    "kc1": "Drücken. Kribbeln. Warm. Kühl. Ziehen. Ein Wort genügt. Dann schau, wie es sich verändert.",
+    "kc2": "Achte darauf, wo sich Stimmungen im Körper zeigen. Unruhe vielleicht im Bauch, Anspannung in den Schultern, Müdigkeit hinter den Augen.",
+    "kc3": "Wenn du eine Stelle findest, die eng ist, atme ein paar Mal so, als würde der Atem dorthin fließen. Ohne etwas wegmachen zu wollen.",
+    "kc4": "Und jetzt wieder der ganze Körper, so, wie er hier sitzt und atmet.",
+    # C – offen benennen
+    "oc1": "Jetzt darfst du alles benennen, was auftaucht. Hören. Spüren. Denken. Fühlen. Und dazwischen immer wieder: atmen.",
+    "oc2": "Mal ist es mehr Denken, mal mehr Spüren. Du musst nichts davon steuern. Du schaust nur, was gerade dran ist.",
+    "oc3": "Wenn ein Gefühl da ist, benenn auch das. Ärger. Freude. Traurigkeit. Langeweile. Und schau, wo du es im Körper spürst.",
+    "oc4": "Vielleicht kannst du dem, was auftaucht, mit etwas Freundlichkeit begegnen. So, wie du einem guten Freund zuhören würdest.",
+    "oc5": "Wenn das Benennen anstrengend wird, lass es weg. Dann nur noch sitzen und bemerken.",
+    "oc6": "Wünsch dir zum Schluss still etwas Gutes. Vielleicht: Möge ich ruhig sein. Möge ich freundlich mit mir sein.",
+})
+
+# Welche Sätze in welcher Länge (wie bei A: 3 Min nur Atem, ab 5 Min der ganze Bogen)
+_WAHL = {
+    "b": {3: (["hb1", "hb3", "hb5", "hb7"], [], []),
+          5: (["hb1", "hb3", "hb5", "hb7"], ["kb0", "kb1", "kb4"], ["ob1"]),
+          7: (["hb1", "hb2", "hb3", "hb5", "hb7"], ["kb0", "kb1", "kb2", "kb4"], ["ob1", "ob2", "ob4", "ob5"]),
+          10: (["hb1", "hb2", "hb3", "hb4", "hb5", "hb7", "hb8"], ["kb0", "kb1", "kb2", "kb4"], ["ob1", "ob2", "ob3", "ob4", "ob5"]),
+          15: (["hb1", "hb2", "hb3", "hb4", "hb5", "hb6", "hb7", "hb8"], ["kb0", "kb1", "kb2", "kb3", "kb4"], ["ob1", "ob2", "ob3", "ob6", "ob4", "ob5"]),
+          20: (["hb1", "hb2", "hb3", "hb4", "hb5", "hb6", "hb7", "hb8"], ["kb0", "kb1", "kb2", "kb3", "kb4"], ["ob1", "ob2", "ob3", "ob6", "ob4", "ob5"])},
+    "c": {3: (["hc1", "hc2", "hc4", "hc7"], [], []),
+          5: (["hc1", "hc2", "hc4", "hc7"], ["kc0", "kc1", "kc4"], ["oc1"]),
+          7: (["hc1", "hc2", "hc3", "hc4", "hc7"], ["kc0", "kc1", "kc2", "kc4"], ["oc1", "oc2", "oc4", "oc5"]),
+          10: (["hc1", "hc2", "hc3", "hc4", "hc5", "hc6", "hc7"], ["kc0", "kc1", "kc2", "kc4"], ["oc1", "oc2", "oc3", "oc4", "oc5"]),
+          15: (["hc1", "hc2", "hc3", "hc4", "hc5", "hc6", "hc7"], ["kc0", "kc1", "kc2", "kc3", "kc4"], ["oc1", "oc2", "oc3", "oc4", "oc5", "oc6"]),
+          20: (["hc1", "hc2", "hc3", "hc4", "hc5", "hc6", "hc7"], ["kc0", "kc1", "kc2", "kc3", "kc4"], ["oc1", "oc2", "oc3", "oc4", "oc5", "oc6"])},
+}
+# Grundpause nach einem Satz (dehnbar) je Länge; Körper etwas kürzer
+_PAUSE = {3: 15, 5: 11, 7: 13, 10: 15, 15: 20, 20: 27}
+
+
+def _variante(v, minuten):
+    a = TEXTE[minuten]
+    i_atem = a.index(("teil", "atem"))
+    i_schluss = a.index(("teil", "schluss"))
+    atem, koerper, offen = _WAHL[v][minuten]
+    p = _PAUSE[minuten]
+    mitte = [("teil", "atem"), ("sag", atem[0]), ("still", 6)]
+    for k in atem[1:]:
+        mitte += [("sag", k), ("still", p, D)]
+    if koerper:
+        mitte += [("teil", "koerper"), ("sag", koerper[0]), ("still", 4)]
+        for k in koerper[1:]:
+            mitte += [("sag", k), ("still", round(p * 0.8), D)]
+    if offen:
+        mitte += [("teil", "offen")]
+        for k in offen:
+            mitte += [("sag", k), ("still", p + 5, D)]
+    return a[:i_atem] + mitte + a[i_schluss:]
+
+
+TEXTE_B = {m: _variante("b", m) for m in _WAHL["b"]}
+TEXTE_C = {m: _variante("c", m) for m in _WAHL["c"]}
