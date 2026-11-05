@@ -32,6 +32,23 @@
   .gast [data-gast] { opacity: 0.4; position: relative; }
   .gast [data-gast]::after { content: "🔒"; font-size: 11px; position: absolute; top: 3px; right: 5px; }
   .gast #syncAnzeige[data-gast] { display: inline-block; padding: 2px 22px 2px 0; font-size: 13px; color: var(--muted, #9aa3c7); cursor: pointer; }
+  /* Geführter Einstieg (Version 72): solange er an ist, zeigt #home nur Kopf + Einstieg */
+  .einstieg-an #home > :not(.brand):not(.autor):not(#einstieg) { display: none !important; }
+  #einstieg { width: 100%; }
+  #einstieg .ein-kopf { display: flex; justify-content: space-between; align-items: center; min-height: 40px; margin: 4px 0 6px; }
+  .einstieg-link, #einstieg .link { background: none; border: 0; color: var(--ink-dim); font: inherit; font-size: 13px; min-height: 40px; cursor: pointer; padding: 0 4px; }
+  #einstieg h2 { font-size: 22px; font-weight: 400; margin: 8px 0 4px; text-align: center; }
+  #einstieg .ein-schritt { text-align: center; color: var(--ink-dim); font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; }
+  #einstieg .ein-kacheln { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+  #einstieg .ein-k { padding: 18px 10px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+    color: var(--ink); font: inherit; font-size: 17px; cursor: pointer; text-align: center; min-height: 72px; }
+  #einstieg .ein-k small { display: block; color: var(--ink-dim); font-size: 12px; margin-top: 4px; }
+  #einstieg .ein-k.sel { border-color: var(--accent); background: rgba(127,184,216,0.16); }
+  #einstieg .ein-weiter { width: 100%; text-align: center; margin: 4px 0 0; font-size: 17px; }
+  #einstieg .ein-weiter:disabled { opacity: 0.4; }
+  #einstieg input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+  #einstieg .ein-notiz { color: var(--ink-dim); font-size: 13px; text-align: center; margin: 6px 0; }
+  .einstieg-link { display: block; margin: 0 auto 6px; }
   #gastHinweis { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 84px); z-index: 60;
     max-width: 420px; margin: 0 auto; padding: 14px 16px; border-radius: 14px; background: #1b2348; color: #e8ecff;
     font-size: 15px; line-height: 1.45; box-shadow: 0 8px 30px rgba(0,0,0,0.45); }
@@ -330,6 +347,9 @@
   <div class="streak" id="streak"></div>
   <div class="stats-line" id="statsLine"></div>
   <div id="syncAnzeige" data-gast="sync"></div>
+  <!-- Geführter Einstieg für Gäste (Version 72): Art → Stimme → Dauer → Hintergrund → Los -->
+  <div id="einstieg" hidden></div>
+  <button class="link einstieg-link" type="button" id="einstiegAn" hidden>← Schritt für Schritt wählen</button>
   <div class="vid" role="button" tabindex="0" id="nochmal" hidden></div>
 
   <!-- Geführt: eine Art wählen, darunter nur ihre Längen und eine Zeile, was sie ausmacht (Umbau Version 65,
@@ -561,6 +581,7 @@
       <div class="tgl" role="switch" tabindex="0" id="tglVoice"><span class="dot"></span><span>Stimme</span></div>
       <div class="tgl" role="switch" tabindex="0" id="tglSignals"><span class="dot"></span><span>Signale</span></div>
       <div class="tgl" role="switch" tabindex="0" id="tglBowl"><span class="dot"></span><span>Klangschale</span></div>
+      <div class="tgl" role="switch" tabindex="0" id="tglEinstieg" hidden><span class="dot"></span><span>Schritt für Schritt</span></div>
     </div>
     <div class="flexQuick" id="bowlJede" role="group" aria-label="Klangschale wie oft" hidden>
       <button type="button" data-sek="60">alle 1 Min</button><button type="button" data-sek="120">alle 2 Min</button><button type="button" data-sek="300">alle 5 Min</button>
@@ -660,7 +681,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 71<br><small style="opacity:.7">Klangschale: „Tibetan Singing Bowl hit 11inch“ von דג בלי מלח, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" style="color:inherit">CC BY-SA 4.0</a>, gekürzt</small></div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 72<br><small style="opacity:.7">Klangschale: „Tibetan Singing Bowl hit 11inch“ von דג בלי מלח, <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.de" style="color:inherit">CC BY-SA 4.0</a>, gekürzt</small></div>
 
 </div>
 
@@ -1133,9 +1154,11 @@ function playClosing() {
 }
 
 /* ---------- Klangkulisse ---------- */
-let ambKey = store.get("atemfunk_amb", store.get("atemfunk_ocean", "off") === "on" ? "meer" : "wald");
+/* Gäste (Version 72): Hintergrund erst aus und leise – beim ersten Öffnen kam sonst sofort Theta-Rauschen */
+const IST_GAST = document.documentElement.classList.contains("gast");
+let ambKey = store.get("atemfunk_amb", IST_GAST ? "aus" : store.get("atemfunk_ocean", "off") === "on" ? "meer" : "wald");
 if (!["aus", "meer", "wald", "voegel", "fluss", "klavier", "hz432", "alpha", "theta"].includes(ambKey)) ambKey = "wald";
-let ambVol = parseInt(store.get("atemfunk_ambvol", "60"), 10);
+let ambVol = parseInt(store.get("atemfunk_ambvol", IST_GAST ? "20" : "60"), 10);
 if (!(ambVol >= 0 && ambVol <= 100)) ambVol = 60;
 function renderAmbients() {
   document.querySelectorAll("#ambients .rhy").forEach(el => {
@@ -1164,9 +1187,9 @@ renderAmbients();
    Hintergrundgeräusche“) – eigene Wahl und eigener Regler, die übrigen Meditationen
    behalten die Klangkulisse oben. Standard: leise Vögel wie bis Version 55 fest eingemischt. */
 const HG_NAMEN = { waldvoegel: "Vögel", aus: "Stille", wald: "Wald", voegel: "Vögel", fluss: "Bach", meer: "Meer", klavier: "Klavier", hz432: "432 Hz", alpha: "Alpha 🎧", theta: "Theta 🎧" };
-let progAmbKey = store.get("atemfunk_prog_amb", "waldvoegel");
+let progAmbKey = store.get("atemfunk_prog_amb", IST_GAST ? "aus" : "waldvoegel");
 if (!["aus", "waldvoegel", "wald", "fluss", "meer", "klavier", "hz432", "alpha", "theta"].includes(progAmbKey)) progAmbKey = "waldvoegel";
-let progVol = parseInt(store.get("atemfunk_prog_vol", "60"), 10);
+let progVol = parseInt(store.get("atemfunk_prog_vol", IST_GAST ? "20" : "60"), 10);
 if (!(progVol >= 0 && progVol <= 100)) progVol = 60;
 function renderProgKulisse() {
   document.querySelectorAll("#progKulisse .rhy").forEach(el => {
@@ -1418,6 +1441,7 @@ let amb = null, ambLoading = false;
 function progKontext() { return !!(session && session.progKulisse); }
 function ambZiel() {   /* Gehen: draußen nie Hintergrund; „Nur Klang“ spielt seinen Klang mit der Lautstärke der Klangkulisse */
   if (session && session.klang) return session.klang;
+  if (IST_GAST && !session) return "aus";   /* Gäste: Klang erst ab „Los“ */
   return progKontext() ? (/^(gehen|nebenbei)-/.test(session.prog) ? "aus" : progAmbKey) : ambKey;
 }
 function ambBase(key) {
@@ -2898,6 +2922,144 @@ if (document.documentElement.classList.contains("gast")) {
   document.addEventListener("click", gastSperre, true);
   document.addEventListener("keydown", gastSperre, true);
   $("gastHinweis").addEventListener("click", () => { $("gastHinweis").hidden = true; });
+}
+
+/* Geführter Einstieg für Gäste (Version 72, Florian: Freunde bekommen den Link). Fünf Schritte mit großen
+   Kacheln; „Los“ klickt die vorhandenen Knöpfe der Startseite (Stimme, Art, Dauer), damit alles wie gewohnt
+   startet. Die Wahl bleibt gemerkt („Wie letztes Mal“); wer „Alles auf einmal zeigen“ wählt, landet künftig
+   direkt auf der Startseite (umschaltbar in den Einstellungen). Florians eigener Modus bleibt unverändert. */
+if (IST_GAST) {
+  const ARTEN = [
+    ["sitzen", "Sitzen", "nur beobachten"], ["taeglich", "Täglich", "mit Atemübung"], ["morgen", "Morgen", "wach werden"],
+    ["schlafen", "Einschlafen", "im Liegen"], ["innehalten", "Innehalten", "sanft"], ["runterkommen", "Runterkommen", "nach Stress"],
+    ["checkin", "Körper-Check", "wie geht's mir?"], ["staerken", "Stärken", "freundlich zu dir"], ["gehen", "Gehen", "spazieren"],
+    ["nebenbei", "Nebenbei", "Zähneputzen, Abspülen"], ["zen", "Zazen", "zählen, Stille"], ["atem", "Atem", "selbst atmen, ohne Worte"],
+    ["notbremse", "Notbremse", "bei Wut"], ["panik", "Panik", "bei Angst"],
+  ];
+  const STIMMEN = [["zen", "Zen", "ruhig"], ["ela", "Ela", "jung"], ["w", "Bella", "warm"], ["eli", "Elion", "männlich"]];
+  const KLAENGE = [["aus", "Stille"], ["waldvoegel", "Vögel"], ["wald", "Wald"], ["fluss", "Bach"], ["meer", "Meer"],
+    ["klavier", "Klavier"], ["hz432", "432 Hz", "Ton"], ["alpha", "Alpha", "🎧 10 Hz"], ["theta", "Theta", "🎧 6 Hz"]];
+  const ohneHg = art => art === "gehen" || art === "nebenbei";
+  const ohneStimme = art => art === "atem";
+  /* Längen aus den Kacheln der Startseite lesen, damit beide immer übereinstimmen */
+  const laengen = art => {
+    const els = art === "atem" ? [...document.querySelectorAll(".durations .dur[data-min]")].filter(e => e.dataset.min !== "0")
+      : /^(notbremse|panik)$/.test(art) ? [...document.querySelectorAll('.akut .dur[data-prog^="' + art + '-"]')]
+      : [...document.querySelectorAll('.artgruppe[data-gruppe="' + art + '"] .dur[data-prog]')];
+    return els.map(e => +e.dataset.min);
+  };
+  const durEl = (art, min) => art === "atem" ? document.querySelector('.durations .dur[data-min="' + min + '"]')
+    : document.querySelector('.dur[data-prog="' + art + "-" + min + '"]');
+  const name = (liste, k) => (liste.find(x => x[0] === k) || [k, k])[1];
+
+  let wahl = {};
+  try { wahl = JSON.parse(store.get("atemfunk_einstieg_wahl", "{}")) || {}; } catch {}
+  const letztes = { ...wahl };
+  let schritt = letztes.art && durEl(letztes.art, letztes.min) ? "zurueck" : "art";
+  const probe = new Audio(); probe.preload = "none";
+
+  const kachel = (k, titel, klein, sel) =>
+    '<button type="button" class="ein-k' + (sel ? " sel" : "") + '" data-k="' + k + '">' + titel + (klein ? "<small>" + klein + "</small>" : "") + "</button>";
+  const SCHRITTE = ["art", "stimme", "dauer", "hg", "los"];
+  const folge = () => !wahl.art ? SCHRITTE : SCHRITTE.filter(x => !(x === "stimme" && ohneStimme(wahl.art)) && !(x === "dauer" && laengen(wahl.art).length < 2) && !(x === "hg" && ohneHg(wahl.art)));
+  const weiter = () => { const f = folge(); schritt = f[f.indexOf(schritt) + 1] || "los"; zeichne(); };
+  const zurueck = () => { const f = folge(); schritt = f[f.indexOf(schritt) - 1] || "art"; probe.pause(); zeichne(); };
+  const beschreibung = w => name(ARTEN, w.art) + (ohneStimme(w.art) ? "" : " · " + name(STIMMEN, w.sex)) + " · " + w.min + " Min";
+
+  function zeichne() {
+    const e = $("einstieg");
+    const f = folge(), nr = f.indexOf(schritt) + 1;
+    let h = '<div class="ein-kopf">' + (schritt !== "art" && schritt !== "zurueck" ? '<button type="button" class="link" data-tun="zurueck">← Zurück</button>' : "<span></span>")
+      + '<button type="button" class="link" data-tun="alles">Alles auf einmal zeigen →</button></div>';
+    if (schritt === "zurueck") {
+      h += '<h2>Schön, dass du wieder da bist.</h2><div class="ein-kacheln" style="grid-template-columns:1fr">'
+        + '<button type="button" class="vid ein-weiter" data-tun="letztes">▶ Wie letztes Mal<br><small>' + beschreibung(letztes) + "</small></button></div>"
+        + '<button type="button" class="link" data-tun="neu" style="display:block; margin:0 auto">Neu wählen</button>';
+    } else if (schritt === "art") {
+      h += '<div class="ein-schritt">Schritt ' + nr + " von " + f.length + '</div><h2>Was möchtest du machen?</h2><div class="ein-kacheln">'
+        + ARTEN.map(a => kachel(a[0], a[1], a[2], a[0] === wahl.art)).join("") + "</div>";
+    } else if (schritt === "stimme") {
+      h += '<div class="ein-schritt">Schritt ' + nr + " von " + f.length + '</div><h2>Welche Stimme?</h2><div class="ein-notiz">Antippen spielt eine kurze Hörprobe.</div><div class="ein-kacheln">'
+        + STIMMEN.map(v => kachel(v[0], v[1], v[2], v[0] === wahl.sex)).join("") + "</div>"
+        + '<button type="button" class="vid ein-weiter" data-tun="weiter"' + (wahl.sex ? "" : " disabled") + ">Weiter</button>";
+    } else if (schritt === "dauer") {
+      h += '<div class="ein-schritt">Schritt ' + nr + " von " + f.length + '</div><h2>Wie lange?</h2><div class="ein-kacheln">'
+        + laengen(wahl.art).map(m => kachel(m, m + " Min", "", m === wahl.min)).join("") + "</div>";
+    } else if (schritt === "hg") {
+      h += '<div class="ein-schritt">Schritt ' + nr + " von " + f.length + '</div><h2>Hintergrundklang?</h2><div class="ein-kacheln">'
+        + KLAENGE.map(k => kachel(k[0], k[1], k[2], k[0] === wahl.hg)).join("") + "</div>"
+        + (wahl.hg && wahl.hg !== "aus" ? '<div class="ein-notiz">Lautstärke</div><input type="range" id="einVol" min="0" max="100" value="' + wahl.vol + '" aria-label="Lautstärke des Hintergrunds">' : "")
+        + (/alpha|theta/.test(wahl.hg || "") ? '<div class="ein-notiz">Alpha und Theta wirken nur mit Kopfhörern.</div>' : "")
+        + '<button type="button" class="vid ein-weiter" data-tun="weiter"' + (wahl.hg ? "" : " disabled") + ">Weiter</button>";
+    } else {
+      h += '<div class="ein-schritt">Schritt ' + nr + " von " + f.length + '</div><h2>Bereit?</h2><div class="ein-notiz">' + beschreibung(wahl)
+        + (ohneHg(wahl.art) ? "" : " · " + name(KLAENGE, wahl.hg)) + '</div><div class="ein-kacheln" style="grid-template-columns:1fr">'
+        + '<button type="button" class="vid ein-weiter" data-tun="los">▶ Los</button></div>';
+    }
+    e.innerHTML = h;
+    const v = $("einVol");
+    if (v) v.addEventListener("input", () => { wahl.vol = +v.value; });
+  }
+
+  /* Startet über die vorhandenen Knöpfe – synchron im Tipp, sonst lässt iOS die Tonspur nicht spielen */
+  function los(w) {
+    probe.pause();
+    store.set("atemfunk_einstieg_wahl", JSON.stringify(w));
+    Object.assign(letztes, w);
+    if (!ohneStimme(w.art)) document.querySelector('#voices .rhy[data-sex="' + w.sex + '"]')?.click();
+    if (!ohneHg(w.art)) { hgGemeinsam(w.hg); volGemeinsam(w.vol); }
+    if (!/^(atem|notbremse|panik)$/.test(w.art)) document.querySelector('#artWahl .rhy[data-wahl="' + w.art + '"]')?.click();
+    schritt = "zurueck";
+    zeichne();
+    durEl(w.art, w.min)?.click();
+  }
+
+  $("einstieg").addEventListener("click", ev => {
+    const t = ev.target.closest("button");
+    if (!t) return;
+    const tun = t.dataset.tun, k = t.dataset.k;
+    if (tun === "alles") { store.set("atemfunk_einstieg", "alles"); einstiegSchalten(false); return; }
+    if (tun === "zurueck") return zurueck();
+    if (tun === "neu") { schritt = "art"; return zeichne(); }
+    if (tun === "letztes") return los({ ...letztes });
+    if (tun === "weiter") return weiter();
+    if (tun === "los") return los({ ...wahl });
+    if (k == null) return;
+    if (schritt === "art") {
+      wahl.art = k;
+      const l = laengen(k);
+      if (!l.includes(wahl.min)) wahl.min = l.includes(5) ? 5 : l[0];
+      if (!wahl.sex) wahl.sex = voiceSex;
+      if (!wahl.hg) { wahl.hg = progAmbKey; wahl.vol = progVol; }
+      if (wahl.vol == null) wahl.vol = progVol;
+      return weiter();
+    }
+    if (schritt === "stimme") {
+      wahl.sex = k;
+      try { probe.src = AUDIO + "probe/" + k + ".mp3"; probe.currentTime = 0; probe.play().catch(() => {}); } catch {}
+      return zeichne();
+    }
+    if (schritt === "dauer") { wahl.min = +k; return weiter(); }
+    if (schritt === "hg") { wahl.hg = k; return zeichne(); }
+  });
+
+  function einstiegSchalten(an) {
+    document.documentElement.classList.toggle("einstieg-an", an);
+    $("einstieg").hidden = !an;
+    $("einstiegAn").hidden = an;
+    $("tglEinstieg").classList.toggle("on", an);
+    $("tglEinstieg").setAttribute("aria-checked", an ? "true" : "false");
+    if (an) { zeichne(); window.scrollTo(0, 0); } else probe.pause();
+  }
+  const zuEinstieg = () => { store.set("atemfunk_einstieg", "gefuehrt"); schritt = letztes.art ? "zurueck" : "art"; einstiegSchalten(true); };
+  $("einstiegAn").addEventListener("click", zuEinstieg);
+  $("tglEinstieg").hidden = false;
+  keyActivate($("tglEinstieg"));
+  $("tglEinstieg").addEventListener("click", () => {
+    if (document.documentElement.classList.contains("einstieg-an")) { store.set("atemfunk_einstieg", "alles"); einstiegSchalten(false); }
+    else zuEinstieg();
+  });
+  einstiegSchalten(store.get("atemfunk_einstieg", "gefuehrt") !== "alles");
 }
 </script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
