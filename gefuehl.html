@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Gefühls-Check · Atemfunk</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="180x180" href="icon-180.png">
+<meta name="theme-color" content="#0b1026">
+<link rel="stylesheet" href="app.css">
+<style>
+/* Gefühls-Check (Version 68): Wo im Körper → wie fühlt es sich an → welches Gefühl → wie stark → Journal.
+   Danach 5 Minuten „Gefühl im Körper spüren“ (index.html?prog=gefuehl-5, tools/gefuehl_bauen.py) und ?nachher=1. */
+textarea, input[type=text] { font-size: 16px; }
+textarea { min-height: 70px; }
+.zurueck { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 4px; padding-right: 12px;
+           color: var(--ink-dim); font-size: 13px; text-decoration: none; }
+h2 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.lab { font-size: 13px; color: var(--ink-dim); margin-bottom: 12px; line-height: 1.45; }
+.koerper { display: flex; gap: 14px; align-items: flex-start; }
+.koerper svg { width: 42%; max-width: 170px; flex-shrink: 0; }
+.koerper svg .z { fill: rgba(255,255,255,0.06); stroke: rgba(255,255,255,0.22); stroke-width: 1.2; cursor: pointer; transition: fill .2s; }
+.koerper svg .z.an { fill: rgba(216,196,143,0.55); stroke: var(--gold); }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip { min-height: 40px; padding: 8px 12px; border-radius: 20px; cursor: pointer; font: inherit; font-size: 14px;
+        border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); color: var(--ink); }
+.chip.an { border-color: rgba(216,196,143,0.7); background: rgba(216,196,143,0.16); }
+.koerper .chips { flex-direction: column; gap: 6px; flex: 1; }
+.koerper .chip { text-align: left; }
+.familien .chip { font-size: 15px; }
+#nuancen { margin-top: 10px; }
+#nuancen:empty { display: none; }
+.staerke { display: flex; align-items: center; gap: 14px; }
+.staerke input { flex: 1; accent-color: var(--gold); height: 32px; }
+.staerke .wert { font-size: 34px; font-weight: 200; min-width: 52px; text-align: right; color: var(--gold); }
+.skala { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-dim); margin-top: -2px; }
+.zusammen { font-size: 15px; line-height: 1.55; white-space: pre-line; }
+.weiter { display: grid; gap: 8px; margin-top: 14px; }
+.weiter .btn { width: 100%; text-align: center; text-decoration: none; color: inherit; }
+.verlauf { font-size: 13px; line-height: 1.6; color: var(--ink-dim); }
+.verlauf b { color: var(--ink); font-weight: 500; }
+#hinweis:empty { display: none; }
+#hinweis { margin: 4px 2px 12px; font-size: 13px; color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="zurueck" href="index.html">‹ Atmen</a>
+  <h1>🫀 Gefühls-Check</h1>
+  <div class="sub">Kurz nach innen schauen: Wo spürst du etwas, wie fühlt es sich an, welches Gefühl ist es? Benennen allein beruhigt schon ein Stück. Danach kannst du 5 Minuten hinspüren.</div>
+
+  <div id="eingabe">
+    <div class="card">
+      <h2>1 · Wo im Körper?</h2>
+      <div class="lab">Antippen, mehrere gehen. Nichts Bestimmtes? Dann „nirgends genau“.</div>
+      <div class="koerper">
+        <svg viewBox="0 0 200 400" aria-hidden="true">
+          <circle class="z" data-z="kopf" cx="100" cy="38" r="27"/>
+          <rect class="z" data-z="hals" x="88" y="66" width="24" height="18" rx="6"/>
+          <path class="z" data-z="schultern" d="M52 104 Q56 86 88 86 L112 86 Q144 86 148 104 Z"/>
+          <rect class="z" data-z="brust" x="58" y="106" width="84" height="62" rx="12"/>
+          <rect class="z" data-z="bauch" x="62" y="170" width="76" height="70" rx="14"/>
+          <rect class="z" data-z="arme" x="26" y="104" width="26" height="128" rx="13"/>
+          <rect class="z" data-z="arme" x="148" y="104" width="26" height="128" rx="13"/>
+          <circle class="z" data-z="arme" cx="39" cy="248" r="14"/>
+          <circle class="z" data-z="arme" cx="161" cy="248" r="14"/>
+          <rect class="z" data-z="beine" x="64" y="244" width="32" height="140" rx="14"/>
+          <rect class="z" data-z="beine" x="104" y="244" width="32" height="140" rx="14"/>
+        </svg>
+        <div class="chips" id="orte"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Wie fühlt es sich an?</h2>
+      <div class="lab">Was am ehesten passt – auch mehrere.</div>
+      <div class="chips" id="qualitaeten"></div>
+    </div>
+
+    <div class="card">
+      <h2>3 · Welches Gefühl ist es?</h2>
+      <div class="lab">Ein Wort reicht. Feiner geht's darunter, oder mit eigenem Wort.</div>
+      <div class="chips familien" id="familien"></div>
+      <div class="chips" id="nuancen"></div>
+      <input type="text" id="eigen" class="breit" placeholder="Eigenes Wort (optional)" style="width:100%; margin-top:10px" autocomplete="off">
+    </div>
+
+    <div class="card">
+      <h2>4 · Wie stark?</h2>
+      <div class="staerke"><input type="range" id="staerke" min="0" max="10" step="1" value="5" aria-label="Stärke von 0 bis 10"><div class="wert" id="staerkeWert">5</div></div>
+      <div class="skala"><span>0 kaum</span><span>10 überwältigend</span></div>
+      <textarea id="ausloeser" placeholder="Was hat es ausgelöst? (optional)" style="width:100%; margin-top:12px"></textarea>
+    </div>
+
+    <div id="hinweis" role="status" aria-live="polite"></div>
+    <button class="btn primary" id="sichern" type="button" style="width:100%">Festhalten</button>
+  </div>
+
+  <div id="fertig" hidden>
+    <div class="card">
+      <h2 id="fertigTitel">Festgehalten ✓</h2>
+      <div class="zusammen" id="zusammen"></div>
+      <div class="weiter" id="weiter"></div>
+    </div>
+  </div>
+
+  <div id="nachher" hidden>
+    <div class="card">
+      <h2>Wie stark ist es jetzt?</h2>
+      <div class="lab" id="nachherVorher"></div>
+      <div class="staerke"><input type="range" id="nachherWert" min="0" max="10" step="1" value="5" aria-label="Stärke jetzt von 0 bis 10"><div class="wert" id="nachherZahl">5</div></div>
+      <div class="skala"><span>0 kaum</span><span>10 überwältigend</span></div>
+      <button class="btn primary" id="nachherSichern" type="button" style="width:100%; margin-top:14px">Eintragen</button>
+    </div>
+  </div>
+
+  <div class="card" id="verlaufKarte" hidden>
+    <h2>Deine letzten Checks</h2>
+    <div class="verlauf" id="verlauf"></div>
+  </div>
+  <div class="hint" style="text-align:center;opacity:.6;margin-top:10px">Gefühls-Check · Version 68 · Stand 05.11.2026</div>
+</div>
+
+<script src="sync.js?v=2"></script>
+<script src="shared.js?v=35"></script>
+<script>
+"use strict";
+const ORTE = [["kopf", "Kopf"], ["hals", "Hals, Kehle"], ["schultern", "Schultern, Nacken"], ["brust", "Brust, Herz"],
+              ["bauch", "Bauch, Magen"], ["ruecken", "Rücken"], ["arme", "Arme, Hände"], ["beine", "Beine, Füße"],
+              ["ueberall", "ganzer Körper"], ["nirgends", "nirgends genau"]];
+const QUALITAETEN = ["eng", "Druck", "schwer", "Kloß, Knoten", "flau", "kribbelig", "zittrig", "unruhig", "heiß", "kalt",
+                     "leer", "taub", "pochend", "warm", "weit", "leicht"];
+const FAMILIEN = [
+  ["Angst", "😟", ["nervös", "besorgt", "unsicher", "panisch", "bedroht"]],
+  ["Wut", "😠", ["gereizt", "frustriert", "genervt", "empört", "verletzt"]],
+  ["Traurigkeit", "😢", ["enttäuscht", "niedergeschlagen", "Verlust", "Sehnsucht", "Heimweh"]],
+  ["Scham", "😳", ["peinlich", "bloßgestellt", "klein", "Schuld", "Reue"]],
+  ["Überforderung", "🌀", ["gestresst", "gehetzt", "zu viel", "durcheinander", "unter Druck"]],
+  ["Einsamkeit", "🫥", ["allein", "ausgeschlossen", "nicht gesehen", "abgeschnitten"]],
+  ["Erschöpfung", "🪫", ["müde", "ausgelaugt", "lustlos", "leer"]],
+  ["Freude", "😊", ["froh", "begeistert", "erleichtert", "stolz", "verspielt"]],
+  ["Ruhe", "😌", ["zufrieden", "gelassen", "geborgen", "entspannt"]],
+  ["Verbundenheit", "💛", ["Liebe", "Dankbarkeit", "Zärtlichkeit", "Mitgefühl"]],
+  ["Neugier", "✨", ["interessiert", "Vorfreude", "wach", "aufgeregt"]],
+];
+const LETZT = "atemfunk_gefuehl_letzt";
+const W = { orte: new Set(), qual: new Set(), familie: null, nuance: null };
+const ortName = z => (ORTE.find(o => o[0] === z) || [, z])[1];
+
+function chip(text, an, klick) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip" + (an ? " an" : ""); b.textContent = text;
+  b.setAttribute("aria-pressed", an ? "true" : "false");
+  b.addEventListener("click", klick);
+  return b;
+}
+function zeichneOrte() {
+  $("orte").replaceChildren(...ORTE.map(([z, n]) => chip(n, W.orte.has(z), () => ortUmschalten(z))));
+  document.querySelectorAll(".koerper .z").forEach(el => el.classList.toggle("an", W.orte.has(el.dataset.z)));
+}
+function ortUmschalten(z) {
+  if (W.orte.has(z)) W.orte.delete(z);
+  else {
+    if (z === "nirgends") W.orte.clear(); else W.orte.delete("nirgends");
+    W.orte.add(z);
+  }
+  zeichneOrte();
+}
+document.querySelectorAll(".koerper .z").forEach(el => el.addEventListener("click", () => ortUmschalten(el.dataset.z)));
+function zeichneQual() {
+  $("qualitaeten").replaceChildren(...QUALITAETEN.map(q => chip(q, W.qual.has(q), () => {
+    W.qual.has(q) ? W.qual.delete(q) : W.qual.add(q); zeichneQual();
+  })));
+}
+function zeichneFamilien() {
+  $("familien").replaceChildren(...FAMILIEN.map(([n, e]) => chip(e + " " + n, W.familie === n, () => {
+    W.familie = W.familie === n ? null : n; W.nuance = null; zeichneFamilien();
+  })));
+  const f = FAMILIEN.find(x => x[0] === W.familie);
+  $("nuancen").replaceChildren(...(f ? f[2].map(n => chip(n, W.nuance === n, () => {
+    W.nuance = W.nuance === n ? null : n; zeichneFamilien();
+  })) : []));
+}
+$("staerke").addEventListener("input", () => { $("staerkeWert").textContent = $("staerke").value; });
+$("nachherWert").addEventListener("input", () => { $("nachherZahl").textContent = $("nachherWert").value; });
+
+function gefuehlWort(g) {
+  const teile = [g.familie, g.nuance, g.eigen].filter(Boolean);
+  return teile.length ? teile[0] + (teile.length > 1 ? " (" + teile.slice(1).join(", ") + ")" : "") : "Gefühl ohne Namen";
+}
+function eintragText(g) {
+  const z = [gefuehlWort(g) + " · " + g.staerke + "/10" + (g.nachher != null ? " → nach dem Hinspüren " + g.nachher + "/10" : "")];
+  const orte = g.orte.map(ortName).join(", ");
+  if (orte || g.qual.length) z.push("Im Körper: " + [orte, g.qual.join(", ")].filter(Boolean).join(" – "));
+  if (g.ausloeser) z.push("Auslöser: " + g.ausloeser);
+  return z.join("\n");
+}
+
+async function sichern() {
+  const g = { orte: [...W.orte], qual: [...W.qual], familie: W.familie, nuance: W.nuance,
+              eigen: $("eigen").value.trim(), staerke: +$("staerke").value, ausloeser: $("ausloeser").value.trim(), nachher: null };
+  if (!g.orte.length && !g.qual.length && !g.familie && !g.eigen) {
+    $("hinweis").textContent = "Tipp wenigstens eine Stelle oder ein Gefühl an.";
+    return;
+  }
+  const id = "gefuehl-" + Date.now();
+  $("sichern").disabled = true;
+  try {
+    await dbTx("journal", "readwrite", s => s.put({ id, datum: heute(), zeit: Date.now(), art: "gefuehl", text: eintragText(g), gefuehl: g }));
+  } catch {
+    $("sichern").disabled = false;
+    $("hinweis").textContent = "Konnte nicht speichern – nochmal versuchen?";
+    return;
+  }
+  store.set(LETZT, id);
+  try { window.atemSync && atemSync.anstossen(); } catch {}
+  $("eingabe").hidden = true;
+  $("fertig").hidden = false;
+  $("zusammen").textContent = eintragText(g);
+  const weiter = $("weiter");
+  const m = document.createElement("a");
+  m.className = "btn primary"; m.href = "index.html?prog=gefuehl-5"; m.textContent = "▶ 5 Minuten hinspüren";
+  const j = document.createElement("a");
+  j.className = "btn"; j.href = "journal.html"; j.textContent = "Zum Journal";
+  weiter.replaceChildren(m, j);
+  if (g.staerke >= 8 && ["Angst", "Wut", "Überforderung"].includes(g.familie)) {
+    const a = document.createElement("a");
+    a.className = "btn"; a.href = "index.html"; a.textContent = g.familie === "Angst" ? "Sehr stark? Erst „Panik“ (3 Min)" : "Sehr stark? Erst „Notbremse“ (3 Min)";
+    weiter.insertBefore(a, m);
+  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  zeigeVerlauf();
+}
+$("sichern").addEventListener("click", sichern);
+
+async function nachherZeigen() {
+  const id = store.get(LETZT, "");
+  let e = null;
+  try { e = id ? await dbTx("journal", "readonly", s => s.get(id)) : null; } catch {}
+  if (!e || !e.gefuehl || Date.now() - e.zeit > 6 * 3600e3) return false;
+  $("eingabe").hidden = true;
+  $("nachher").hidden = false;
+  $("nachherVorher").textContent = gefuehlWort(e.gefuehl) + " – vorher " + e.gefuehl.staerke + "/10. Es muss nicht weniger sein.";
+  $("nachherWert").value = e.gefuehl.staerke; $("nachherZahl").textContent = e.gefuehl.staerke;
+  $("nachherSichern").onclick = async () => {
+    e.gefuehl.nachher = +$("nachherWert").value;
+    e.text = eintragText(e.gefuehl);
+    try { await dbTx("journal", "readwrite", s => s.put(e)); } catch { return; }
+    try { window.atemSync && atemSync.anstossen(); } catch {}
+    store.set(LETZT, "");
+    $("nachher").hidden = true;
+    $("fertig").hidden = false;
+    $("fertigTitel").textContent = "Eingetragen ✓";
+    $("zusammen").textContent = e.text;
+    const j = document.createElement("a");
+    j.className = "btn"; j.href = "journal.html"; j.textContent = "Zum Journal";
+    const n = document.createElement("a");
+    n.className = "btn"; n.href = "gefuehl.html"; n.textContent = "Neuer Check";
+    $("weiter").replaceChildren(j, n);
+    zeigeVerlauf();
+  };
+  return true;
+}
+
+async function zeigeVerlauf() {
+  let alle = [];
+  try { alle = await dbTx("journal", "readonly", s => s.getAll()); } catch {}
+  const liste = alle.filter(e => e && e.art === "gefuehl" && e.gefuehl).sort((a, b) => b.zeit - a.zeit).slice(0, 6);
+  if (!liste.length) return;
+  $("verlaufKarte").hidden = false;
+  $("verlauf").replaceChildren(...liste.map(e => {
+    const d = document.createElement("div");
+    const g = e.gefuehl, tag = new Date(e.zeit).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
+    const b = document.createElement("b"); b.textContent = gefuehlWort(g);
+    d.append(tag + " " + uhrzeit(e.zeit) + " · ", b, " " + g.staerke + (g.nachher != null ? "→" + g.nachher : "") + "/10" +
+             (g.orte.length ? " · " + g.orte.map(ortName).join(", ") : ""));
+    return d;
+  }));
+}
+
+zeichneOrte(); zeichneQual(); zeichneFamilien();
+(async () => {
+  if (new URLSearchParams(location.search).get("nachher") === "1") {
+    history.replaceState(null, "", "gefuehl.html");
+    await nachherZeigen();
+  }
+  zeigeVerlauf();
+})();
+</script>
+</body>
+</html>

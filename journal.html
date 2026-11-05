@@ -96,6 +96,7 @@
   <!-- Klären: Reflexionsgespräch vorbereiten (klaeren.html) -->
   <div class="card klaer" id="klaerKarte">
     <a class="btn primary klaer-start" id="klaerBtn" href="klaeren.html">🫂 Etwas klären</a>
+    <a class="btn klaer-start" href="gefuehl.html" style="margin-top:8px">🫀 Gefühls-Check</a>
     <div class="hint" id="klaerHinweis">Ein Streit, ein Gedanke, der kreist, eine Entscheidung: Atemfunk baut dir einen Prompt für ein ruhiges Gespräch in Gemini oder ChatGPT. Die Zusammenfassung kommt zurück ins Journal.</div>
   </div>
 
@@ -274,7 +275,7 @@ function zeichne(ziel, liste) {
     const k = document.createElement("div");
     k.className = "card eintrag";
     const zeit = document.createElement("div");
-    zeit.className = "zeit"; zeit.textContent = (e.art === "klaerung" ? "🫂 " : "") + uhrzeit(e.zeit);
+    zeit.className = "zeit"; zeit.textContent = (e.art === "klaerung" ? "🫂 " : e.art === "gefuehl" ? "🫀 " : "") + uhrzeit(e.zeit);
     if (e.art === "klaerung") k.classList.add("klaerung");
     const txt = document.createElement("div");
     txt.className = "txt";

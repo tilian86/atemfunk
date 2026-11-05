@@ -97,6 +97,13 @@
   .runter.akut .dur { border-color: rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); padding: 14px 0 11px; }
   .runter.akut .dur .num { font-size: 18px; font-weight: 300; }
   .runter.akut .dur .lbl { color: #e8a08c; opacity: 0.85; }
+  .runter.akut .dur { flex: 1 1 30%; }
+  .gefuehl-start { position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 84px); z-index: 30;
+                   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px; border-radius: 18px;
+                   background: #0b1026; border: 1px solid rgba(216,196,143,0.4); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+  .gefuehl-start .vid { width: 100%; text-align: center; margin: 0; }
+  .gefuehl-start .puls { animation: puls 1.2s ease-in-out 3; }
+  .gefuehl-start .link { background: none; border: 0; color: var(--ink-dim); font: inherit; font-size: 13px; min-height: 40px; cursor: pointer; }
   .runter.zweireihig { flex-wrap: wrap; }      /* Einfach sitzen: sieben Längen, 4 + 3 */
   .runter-hinweis { font-size: 12px; color: var(--ink-dim); opacity: 0.8; margin-bottom: 22px; }
   .dur .num { font-size: 32px; font-weight: 200; line-height: 1; color: var(--ink); }
@@ -416,10 +423,11 @@
   <!-- Akut: Notbremse (tools/notbremse_bauen.py, Version 63) + Panik (tools/panik_bauen.py, Version 64), nur Bella; seit Version 65 unter „Geführt“ statt ganz oben -->
   <div class="section-cap" style="margin-top:14px">Akut</div>
   <div class="runter akut">
+    <a class="dur" href="gefuehl.html" id="gefuehlKachel" style="text-decoration:none; color:inherit" aria-label="Gefühls-Check: was spürst du gerade, wo im Körper"><div class="num">Gefühl</div><div class="lbl">Check · spüren</div></a>
     <div class="dur" role="button" tabindex="0" data-prog="notbremse-3" data-min="3" aria-label="Notbremse, 3 Minuten, wenn du auf hundert bist"><div class="num">Notbremse</div><div class="lbl">3 Min · auf hundert</div></div>
     <div class="dur" role="button" tabindex="0" data-prog="panik-3" data-min="3" aria-label="Panik, 3 Minuten, zurück ins Hier und Jetzt"><div class="num">Panik</div><div class="lbl">3 Min · zurück ins Hier</div></div>
   </div>
-  <div class="runter-hinweis">Notbremse bei Wut und Überreizung: Druck ablassen, Seufzer-Atmung, Gefühl benennen · Panik bei Angst und Herzrasen: langsam atmen, mit den Sinnen zurück ins Hier · zum ersten Mal so oder Schmerz in der Brust: 112</div>
+  <div class="runter-hinweis">Gefühl: im Körper finden, benennen, einschätzen – danach 5 Minuten hinspüren, kommt ins Journal · Notbremse bei Wut und Überreizung: Druck ablassen, Seufzer-Atmung, Gefühl benennen · Panik bei Angst und Herzrasen: langsam atmen, mit den Sinnen zurück ins Hier · zum ersten Mal so oder Schmerz in der Brust: 112</div>
 
   <!-- Nur Klang (Version 65): Klangkulisse ohne Stimme, Signale, Klangschale und Zeitlimit; Lautstärke wie die Klangkulisse -->
   <div class="section-cap" style="margin-top:14px">Nur Klang</div>
@@ -546,7 +554,7 @@
 
   <!-- Version = Nummer aus CACHE "atemfunk-vN" in sw.js – beim Hochzählen hier mitziehen -->
   <!-- padding-bottom: Platz für die feste Navigation, sonst liegt das Ende der Startseite darunter -->
-  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 67</div>
+  <div class="voice-note" id="appVersion" style="margin-top:28px; padding-bottom:calc(env(safe-area-inset-bottom) + 92px)">Atemfunk · Version 68</div>
 
 </div>
 
@@ -1347,6 +1355,8 @@ const FLEX_TITEL = { atmung: "Atemmeditation", koerperscan: "Körperscan", gedan
    gleich — die Stimme zählt die Seufzer genau dann an, wenn die Kugel sie zeigt. */
 const PROG_ATEM = {
   /* Notbremse: tools/notbremse_bauen.py */
+  /* Gefühl im Körper spüren: tools/gefuehl_bauen.py (Start über gefuehl.html → index.html?prog=gefuehl-5) */
+  "gefuehl-5": [[0.0, "frei"], [22.0, "ruhig"], [52.0, "frei"]],
   "notbremse-3": [[0.0, "frei"], [50.0, "seufzer"], [117.5, "frei"], [138.5, "ruhig"], [158.5, "frei"]],
   /* Panik: tools/panik_bauen.py */
   "panik-3": [[0.0, "frei"], [45.0, "ruhig"], [85.0, "frei"]],
@@ -1375,12 +1385,12 @@ const PROG_ATEM = {
    Innehalten -5 = Bella/Eric statt Grok (Version 57), Runterkommen -2 = Bella/Eric statt Sarah/Brian
    (Version 58, vorher prog/runterkommen-N.mp3), Atemuhr atem -1 = Bella/Eric statt Edge (Version 59,
    vorher atem-N.mp3, tools/atemuhr_bauen.py), Zazen zen -1 (Version 61, nur Bella), Gehen gehen -1 (Version 62, nur Bella) */
-const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4", sitzen: "-1", runterkommen: "-2", atem: "-1", zen: "-1", gehen: "-1", notbremse: "-1", panik: "-1" };
+const PROG_FASSUNG = { innehalten: "-5", taeglich: "-4", sitzen: "-1", runterkommen: "-2", atem: "-1", zen: "-1", gehen: "-1", notbremse: "-1", panik: "-1", gefuehl: "-1" };
 /* Neues seit Version 61 gibt es nur mit Bella (Florian 26.10.2026) – auch bei eingestellter Männerstimme */
-const NUR_BELLA = /^(zen|gehen|notbremse|panik)-/;
+const NUR_BELLA = /^(zen|gehen|notbremse|panik|gefuehl)-/;
 /* Tonspur eines festen Programms: liegt im Unterordner der Art, mit Fassung im Namen */
-const progDatei = prog => (NUR_BELLA.test(prog) ? "audio/" : voicePath()) + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem|zen|gehen|notbremse|panik)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3";
-const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen", "notbremse-3": "Notbremse", "panik-3": "Panik",
+const progDatei = prog => (NUR_BELLA.test(prog) ? "audio/" : voicePath()) + "prog/" + prog.replace(/^(innehalten|taeglich|sitzen|runterkommen|atem|zen|gehen|notbremse|panik|gefuehl)-(\d+)$/, (_, art, n) => art + "/" + n + PROG_FASSUNG[art]) + ".mp3";
+const PROG_TITEL = { "runterkommen-5": "Runterkommen", "runterkommen-10": "Runterkommen", "notbremse-3": "Notbremse", "panik-3": "Panik", "gefuehl-5": "Gefühl spüren",
   "innehalten-3": "Innehalten", "innehalten-5": "Innehalten", "innehalten-10": "Innehalten", "innehalten-15": "Innehalten",
   "taeglich-3": "Täglich", "taeglich-5": "Täglich", "taeglich-7": "Täglich", "taeglich-10": "Täglich",
   "sitzen-1": "Achtsame Minute", "sitzen-3": "Einfach sitzen", "sitzen-5": "Einfach sitzen", "sitzen-7": "Einfach sitzen", "sitzen-10": "Einfach sitzen", "sitzen-15": "Einfach sitzen", "sitzen-20": "Einfach sitzen",
@@ -1766,6 +1776,7 @@ function finishSession(completed) {
   const warFrage = session.frage;
   const eintrag = { t: session.startedAt, art: session.art, titel: session.titel };
   const warKlang = session.klang;
+  const warGefuehl = session.prog === "gefuehl-5";
   const kulisseZurueck = session.progKulisse || !!warKlang;
   session = null;
   if (kulisseZurueck) { stopAmbient(); ensureAmbient(); }   /* zurück zur normalen Klangkulisse */
@@ -1791,6 +1802,11 @@ function finishSession(completed) {
       $("doneSub").textContent = "„" + warFrage + "“";
       store.set("atemfunk_letzte_frage", warFrage);
       $("journalBtn").href = "journal.html?frage=" + encodeURIComponent(warFrage);
+      $("journalBtn").textContent = "Ins Journal";
+      $("journalBtn").style.display = "inline-flex";
+    } else if (warGefuehl) {   /* zurück zum Gefühls-Check: Stärke nachher eintragen */
+      $("journalBtn").href = "gefuehl.html?nachher=1";
+      $("journalBtn").textContent = "Wie ist es jetzt?";
       $("journalBtn").style.display = "inline-flex";
     } else {
       $("journalBtn").style.display = "none";
@@ -1936,6 +1952,19 @@ renderFlex();
       $("flexStart").classList.add("puls");
       $("flexStart").focus({ preventScroll: true });
     }, 300);
+  }
+}
+/* Vom Gefühls-Check (gefuehl.html): ?prog=gefuehl-5 – Ton braucht auf iOS eine Berührung, darum Startknopf */
+{
+  const pr = new URLSearchParams(location.search).get("prog");
+  if (pr === "gefuehl-5") {
+    history.replaceState(null, "", "index.html");
+    const k = document.createElement("div");
+    k.className = "gefuehl-start";
+    k.innerHTML = '<button class="vid puls" type="button">▶ Gefühl im Körper spüren · 5 Min</button><button class="link" type="button">später</button>';
+    k.children[0].addEventListener("click", () => { k.remove(); startSession(5, "gefuehl-5"); });
+    k.children[1].addEventListener("click", () => k.remove());
+    document.body.appendChild(k);
   }
 }
 $("pauseBtn").addEventListener("click", () => togglePause());
