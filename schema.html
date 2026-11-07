@@ -91,7 +91,7 @@ try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem
 </div>
 
 <script src="sync.js?v=3"></script>
-<script src="shared.js?v=35"></script>
+<script src="shared.js?v=36"></script>
 <script>
 "use strict";
 
@@ -100,7 +100,7 @@ const MODI = [
   ["Kind-Modi", [
     ["Verletzbares Kind", "Fühlt sich einsam, wertlos, im Stich gelassen. Der Schmerz, der eigentlich gemeint ist."],
     ["Wütendes Kind", "Zorn über nicht erfüllte Bedürfnisse. Impulsiv, laut, fordernd."],
-    ["Impulsives Kind", "Will sofort, ohne Rücksicht auf Folgen. Bei ADHS oft besonders präsent."],
+    ["Impulsives Kind", "Will sofort, ohne Rücksicht auf Folgen."],
     ["Glückliches Kind", "Neugierig, verspielt, zufrieden. Der Zustand, wenn Bedürfnisse erfüllt sind."],
   ]],
   ["Bewältigungs-Modi", [
@@ -130,7 +130,7 @@ const MODI = [
 })();
 
 const SYSTEM = `Du bist ein erfahrener Schematherapeut und arbeitest mit dem Modusmodell nach Jeffrey Young.
-Der Nutzer heißt Florian, hat ADHS und kennt das Modell aus einer Gruppe.
+Der Nutzer heißt {{NAME}}.
 
 Ordne die geschilderte Situation ein. Antworte auf Deutsch, per Du, warm und klar, ohne Fachjargon-Wand
 und ohne Floskeln. Keine Diagnosen, keine Pathologisierung. Halte dich an diese Struktur:
@@ -141,17 +141,17 @@ Zwei, drei Sätze, die die Situation in eigenen Worten spiegeln.
 ## Aktive Modi
 Nenne die 2–3 Modi, die erkennbar sind (z. B. Verletzbares Kind, Strafender Elternteil,
 Distanzierter Beschützer, Überkompensation). Zu jedem: woran du ihn hier festmachst — belege es
-mit dem, was Florian geschrieben hat.
+mit dem, was {{NAME}} geschrieben hat.
 
 ## Was darunter liegt
 Welches Bedürfnis wurde nicht erfüllt? (Sicherheit, Verbindung, Autonomie, Anerkennung, Grenzen)
 
 ## Der gesunde Erwachsene
-Sprich als diese Stimme direkt zu Florian: was sie zum verletzbaren Kind sagt, wie sie den
+Sprich als diese Stimme direkt zu {{NAME}}: was sie zum verletzbaren Kind sagt, wie sie den
 strafenden oder fordernden Anteil begrenzt.
 
 ## Ein Schritt
-Eine einzige, konkrete, heute machbare Sache. Klein genug, dass sie mit ADHS wirklich passiert.
+Eine einzige, konkrete, heute machbare Sache. Klein genug, dass sie wirklich passiert.
 
 Wenn Hinweise auf akute Krise oder Selbstgefährdung auftauchen: benenne das ruhig und weise auf
 Hilfe hin (Telefonseelsorge 0800 111 0 111), statt einfach weiter einzuordnen.
@@ -228,7 +228,7 @@ async function nachfragen() {
   const r = await frageKIgemerkt(OFFEN, info, SYSTEM.replace(META_AUFTRAG, ""),
     "Situation:\n" + e.lage +
     "\n\nBisheriges Gespräch:\n" + gespraechText(verlaufVon(e)) +
-    "\n\nFlorian sagt jetzt:\n" + frage +
+    "\n\n{{NAME}} sagt jetzt:\n" + frage +
     "\n\nGeh direkt darauf ein – wie ein Therapeut im Gespräch, nicht wie ein Gutachten. " +
     "Keine Überschriften-Struktur wiederholen. Wenn du eine Rückfrage hast, stell genau eine. Höchstens 180 Wörter.");
   fertig("Senden");
@@ -385,12 +385,12 @@ Antworte NUR mit einem JSON-Objekt – kein Vorspann, kein Codeblock, in den Tex
   Fordernder Elternteil, Distanzierter Beschützer, Willfährige Unterwerfung, Überkompensation.
   staerke: 1 = leise, 2 = deutlich, 3 = laut.
   stimme: was dieser Anteil innerlich sagt, höchstens 12 Wörter.
-  zeichen: woran man ihn in Florians Schilderung erkennt, höchstens 12 Wörter.
+  zeichen: woran man ihn in {{NAME}}s Schilderung erkennt, höchstens 12 Wörter.
   uebergang: ein bis drei Wörter, wie das Vorige zu diesem Modus führt, z. B. „weckt“, „darauf schimpft“,
   „um das nicht zu spüren“.
 - beduerfnis: ein Wort (Sicherheit, Verbindung, Autonomie, Anerkennung, Grenzen oder Spiel).
 - beduerfnis_satz: was genau gefehlt hat, höchstens 14 Wörter.
-- erwachsener: was der gesunde Erwachsene direkt zu Florian sagt, höchstens 25 Wörter.
+- erwachsener: was der gesunde Erwachsene direkt zu {{NAME}} sagt, höchstens 25 Wörter.
 - schritt: ein konkreter, heute machbarer Schritt, höchstens 14 Wörter.
 
 Nimm nur, was in Situation und Gespräch steht. Deutsch, per Du. Gib genau das JSON aus.`;

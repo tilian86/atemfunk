@@ -170,7 +170,7 @@ try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem
 </div>
 
 <script src="sync.js?v=3"></script>
-<script src="shared.js?v=35"></script>
+<script src="shared.js?v=36"></script>
 <script>
 "use strict";
 
@@ -338,7 +338,7 @@ async function zeigeFrueher() {
   }
 }
 
-const SYSTEM = `Du begleitest Florian beim Journaling. Er hat ADHS, mag es konkret und hasst
+const SYSTEM = `Du begleitest {{NAME}} beim Journaling. Er mag es konkret und hasst
 Küchenpsychologie und Kalendersprüche. Er hat ausdrücklich gesagt: bloß kein Sechs-Minuten-Tagebuch,
 wo jeden Tag dieselben drei Fragen kommen.
 
@@ -498,7 +498,7 @@ async function impuls() {
   const letzte = alle.filter(e => e.zeit >= Date.now() - 5 * 864e5).sort((a, b) => a.zeit - b.zeit)
     .map(e => e.datum + " " + uhrzeit(e.zeit) + " — " + (e.text || "[" + e.art + "]")).join("\n");
   const r = await frageKI(
-    `Du gibst Florian einen Schreibimpuls fürs Journal. Er hat ADHS und will keine Standardfragen
+    `Du gibst {{NAME}} einen Schreibimpuls fürs Journal. Er will keine Standardfragen
      wie „Wofür bist du dankbar?". Der Impuls muss aus SEINEM Material entstehen: greif etwas
      Konkretes aus den letzten Tagen auf, das noch offen wirkt, sich wiederholt oder überrascht hat.
      Er darf schräg, spielerisch oder unbequem sein – aber nie beliebig.
@@ -526,7 +526,7 @@ async function antworten() {
   const r = await frageKIgemerkt(OFFEN, info, SYSTEM,
     "Einträge:\n" + eintraegeText +
     "\n\nDeine Fragen:\n" + gespraechAlsText(g) +
-    "\n\nFlorians Antwort:\n" + a +
+    "\n\n{{NAME}}s Antwort:\n" + a +
     "\n\nGeh darauf ein, kurz und konkret. Höchstens 150 Wörter, gern mit einer weiterführenden Frage.");
   fertig("Senden");
   wartet = false;
@@ -598,9 +598,9 @@ function zeigeFaeden() {
 }
 
 /* ---------- Wochenspiegel (früher Wochenrückblick) ---------- */
-const SYSTEM_WOCHE = `Du bist einmal pro Woche Florians Spiegel: ein kluger, nüchterner Beobachter mit
+const SYSTEM_WOCHE = `Du bist einmal pro Woche {{NAME}}s Spiegel: ein kluger, nüchterner Beobachter mit
 psychologischem Gespür, der ihm etwas über ihn selbst zeigt, das er im Alltag nicht sieht – eine Metaebene,
-kein Tagebuch-Echo. Florian hat ADHS und hasst Kitsch, Floskeln und Küchenpsychologie.
+kein Tagebuch-Echo. {{NAME}} hasst Kitsch, Floskeln und Küchenpsychologie.
 
 Du bekommst:
 – seine geführten Runden der Woche (🌙 Abendrunden, ☀️ Morgenrunden, 🌤 Zwischenhalte): Fragen und seine Antworten.
@@ -611,7 +611,7 @@ Du bekommst:
 – frühere Wochenspiegel (falls vorhanden) mit den Vermutungen von damals,
 – sein Profil, offene Fäden und gemerkte Erkenntnisse.
 
-Haltung: genau, neugierig, wohlwollend-direkt. Keine Diagnosen, keine Etiketten (auch nicht „typisch ADHS“),
+Haltung: genau, neugierig, wohlwollend-direkt. Keine Diagnosen, keine Etiketten (auch keine Störungsbilder),
 kein Lob, kein Pathos, keine Ratschlagslisten, keine Moral. Belege jede Aussage mit seinen eigenen Worten –
 kurze Zitate in „…“ mit Wochentag (z. B. Di: „…“). Was sich nicht belegen lässt, lässt du weg. Ist die Woche
 dünn (wenige Einträge), schreib kürzer und sag offen, dass die Grundlage schmal ist. Per Du, auf Deutsch.
@@ -825,7 +825,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 if ("serviceWorker" in navigator && location.protocol === "https:")
   navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
-<script src="abend.js?v=4"></script>
+<script src="abend.js?v=5"></script>
 <!-- Pushfunk: Push-Empfang mit dem Atemfunk-Symbol; eigener Service Worker sw.js bindet pushfunk-push.js ein -->
 <script src="https://pushfunk.46-225-133-113.sslip.io/pushfunk.js" data-app="atemfunk" data-name="Atemfunk" data-sw="vorhanden" defer></script>
 </body>

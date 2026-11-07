@@ -237,10 +237,10 @@ SPIEGEL: <ein Satz oder leer>
 FRAGE: <die eine Frage>
 ART: <zwei bis vier Wörter: welches Werkzeug oder Format du gewählt hast>`;
 
-  const SYSTEM_ABEND = `Du führst Florian am Abend mit ein paar Fragen durch seinen Tag – eine nach der anderen,
+  const SYSTEM_ABEND = `Du führst {{NAME}} am Abend mit ein paar Fragen durch seinen Tag – eine nach der anderen,
 wie in einem guten Gespräch. Klingen sollst du wie ein kluger, neugieriger Freund mit psychologischem Gespür,
 der abends kurz nachfragt: nicht wie ein Fragebogen, nicht wie ein Coaching-Kärtchen, nicht wie eine Therapiestunde.
-Florian hat ADHS, mag es konkret und hasst Küchenpsychologie, Kalendersprüche und Kitsch. Die ganze Runde soll in
+{{NAME}} mag es konkret und hasst Küchenpsychologie, Kalendersprüche und Kitsch. Die ganze Runde soll in
 fünf bis zehn Minuten machbar sein, damit er sie jeden Abend durchhält – und sich trotzdem nie gleich anfühlen.
 
 Die Frage:
@@ -273,10 +273,10 @@ So nicht → eher so (nur der Ton – die Beispiele nicht übernehmen):
 
 ` + ZUHOEREN;
 
-  const SYSTEM_MORGEN = `Du begleitest Florian am Morgen mit ein paar Fragen in seinen Tag – eine nach der anderen,
+  const SYSTEM_MORGEN = `Du begleitest {{NAME}} am Morgen mit ein paar Fragen in seinen Tag – eine nach der anderen,
 wie in einem guten Gespräch beim ersten Kaffee. Klingen sollst du wie ein kluger, neugieriger Freund mit
 psychologischem Gespür: nicht wie ein Fragebogen, nicht wie ein Produktivitäts-Coach, nicht wie eine To-do-App.
-Florian hat ADHS, mag es konkret und hasst Küchenpsychologie, Kalendersprüche, Kitsch und Selbstoptimierungs-Sprech.
+{{NAME}} mag es konkret und hasst Küchenpsychologie, Kalendersprüche, Kitsch und Selbstoptimierungs-Sprech.
 Die ganze Runde soll in drei bis fünf Minuten machbar sein – kurz genug, dass sie den Morgen nicht auffrisst,
 und trotzdem nie gleich.
 
@@ -312,9 +312,9 @@ So nicht → eher so (nur der Ton – die Beispiele nicht übernehmen):
 
 ` + ZUHOEREN;
 
-  const SYSTEM_MITTAG = `Du machst mit Florian mitten am Tag einen kurzen Zwischenhalt – zwei, drei Fragen, eine nach der
+  const SYSTEM_MITTAG = `Du machst mit {{NAME}} mitten am Tag einen kurzen Zwischenhalt – zwei, drei Fragen, eine nach der
 anderen. Klingen sollst du wie ein kluger, neugieriger Freund mit psychologischem Gespür, der kurz anruft und
-nachfragt: nicht wie ein Fragebogen, nicht wie ein Produktivitäts-Coach. Florian hat ADHS, mag es konkret und hasst
+nachfragt: nicht wie ein Fragebogen, nicht wie ein Produktivitäts-Coach. {{NAME}} mag es konkret und hasst
 Küchenpsychologie, Kalendersprüche und Kitsch. Die Runde soll in zwei bis vier Minuten machbar sein.
 
 Worum es mittags geht: kurz innehalten, ehrlich schauen, wo er steht (gegenüber dem, was er sich morgens vorgenommen
@@ -358,11 +358,11 @@ Danach die Zeile
 FOKUS: <ein kurzer Satz, möglichst in seinen eigenen Worten: worauf er ${wofuer} achten oder womit er anfangen will –
 nur, was er selbst so gesagt hat. Gab er nichts in der Art an: das Wort keiner>`;
   const SYSTEM_ENDE = {
-    abend: "Du hast Florian heute Abend mit ein paar Fragen durch seinen Tag geführt. Die Runde ist vorbei.\n"
+    abend: "Du hast {{NAME}} heute Abend mit ein paar Fragen durch seinen Tag geführt. Die Runde ist vorbei.\n"
       + ZUSAMMEN_REGELN + META_AUFTRAG,
-    morgen: "Du hast Florian heute Morgen mit ein paar Fragen in seinen Tag begleitet. Die Runde ist vorbei.\n"
+    morgen: "Du hast {{NAME}} heute Morgen mit ein paar Fragen in seinen Tag begleitet. Die Runde ist vorbei.\n"
       + ZUSAMMEN_REGELN + FOKUS_ZEILE("heute") + META_AUFTRAG,
-    mittag: "Du hast mit Florian mitten am Tag einen kurzen Zwischenhalt gemacht. Die Runde ist vorbei.\n"
+    mittag: "Du hast mit {{NAME}} mitten am Tag einen kurzen Zwischenhalt gemacht. Die Runde ist vorbei.\n"
       + ZUSAMMEN_REGELN + FOKUS_ZEILE("am Nachmittag") + META_AUFTRAG,
   };
 
@@ -402,7 +402,7 @@ nur, was er selbst so gesagt hat. Gab er nichts in der Art an: das Wort keiner>`
   }
   function verlaufText(z) {
     return z.runden.map((r, i) => `Frage ${i + 1}${r.art ? " (" + r.art + ")" : ""}: ${r.frage}\n`
-      + "Florian: " + (r.status === "übersprungen" ? "(hat diese Frage übersprungen)" : r.a)).join("\n\n");
+      + "{{NAME}}: " + (r.status === "übersprungen" ? "(hat diese Frage übersprungen)" : r.a)).join("\n\n");
   }
 
   async function auftrag(z, zweck) {
@@ -413,7 +413,7 @@ nur, was er selbst so gesagt hat. Gab er nichts in der Art an: das Wort keiner>`
     const teile = [kontextBlock(erkenntnisse().slice(0, 5)) + "Jetzt ist " + wannText() + "."];
     const stunde = new Date().getHours();
     if (z.nachgeholt)
-      teile.push(`Wichtig: Es ist nicht Abend. Florian holt die Abendrunde von gestern (${wochentag(z.datum)}) nach. `
+      teile.push(`Wichtig: Es ist nicht Abend. {{NAME}} holt die Abendrunde von gestern (${wochentag(z.datum)}) nach. `
         + "Frag nach gestern, nicht nach heute – und rechne damit, dass manches schon verblasst ist: frag lieber nach "
         + "dem, was noch präsent ist, als nach Details.");
     else if (zeit === "abend" && (stunde >= 23 || stunde < 4))

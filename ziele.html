@@ -27,7 +27,7 @@ try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem
 <div class="wrap">
   <h1>Ziele</h1>
   <div class="sub">Sag, was du vorhast. Es wird in Schritte zerlegt, die klein genug sind,
-    dass sie mit ADHS wirklich passieren – und wandert von dort in Todoist oder deinen Kalender.</div>
+    dass sie wirklich passieren – und wandert von dort in Todoist oder deinen Kalender.</div>
 
   <textarea id="ziel" placeholder="Zum Beispiel: Bis Ende September die Steuererklärung fertig machen. Oder: Morgen früh besser starten."></textarea>
   <div class="row">
@@ -58,11 +58,11 @@ try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem
 </div>
 
 <script src="sync.js?v=3"></script>
-<script src="shared.js?v=35"></script>
+<script src="shared.js?v=36"></script>
 <script>
 "use strict";
 
-const SYSTEM = `Du hilfst Florian, Vorhaben in machbare Schritte zu zerlegen. Er hat ADHS:
+const SYSTEM = `Du hilfst {{NAME}}, Vorhaben in machbare Schritte zu zerlegen. Typische Hürden:
 große Aufgaben blockieren, unklare Schritte werden nicht angefangen, Zeitgefühl ist schwierig.
 
 Regeln:

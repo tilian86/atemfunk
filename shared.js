@@ -172,7 +172,7 @@ function schliesseFaden(id) {
 function kontextBlock(lernen) {
   const teile = [];
   const p = profil();
-  if (p) teile.push("Was du über Florian schon weißt:\n" + p);
+  if (p) teile.push("Was du über {{NAME}} schon weißt:\n" + p);
   if (lernen && lernen.length)
     teile.push("Was er sich selbst gemerkt hat:\n" + lernen.map(e => "- " + e.text).join("\n"));
   const f = faeden();
@@ -189,7 +189,7 @@ function kontextBlock(lernen) {
 const META_AUFTRAG = `
 
 Zum Schluss, nach deiner eigentlichen Antwort, zwei technische Zeilen (sie werden ausgeblendet):
-THEMEN: <150–400 Zeichen. Das aktualisierte Kurzprofil über Florian: wiederkehrende Themen,
+THEMEN: <150–400 Zeichen. Das aktualisierte Kurzprofil über {{NAME}}: wiederkehrende Themen,
 was ihm hilft, was ihn bremst, was ihm wichtig ist. Übernimm Bestehendes und ergänze nur,
 was heute wirklich dazugekommen ist. Keine Aufzählung von Tagesereignissen.>
 FADEN: <ein einziger offener Punkt, an dem du beim nächsten Mal anknüpfen willst – als Frage

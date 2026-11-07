@@ -417,7 +417,7 @@
   }
 
   /* ---------- Aufträge an die KI (Rolle steht im Nutzertext, siehe frageKI) ---------- */
-  const SYSTEM_ANALYSE = `Du bereitest für Florian ein Reflexionsgespräch vor. Das Gespräch führt er danach selbst mit Gemini oder ChatGPT, meist im Sprachmodus – du führst es NICHT. Deine Aufgabe: seine Schilderung ordnen, entscheiden, ob für ein gutes Gespräch etwas Wichtiges fehlt, und die Bausteine für den Gesprächs-Prompt liefern.
+  const SYSTEM_ANALYSE = `Du bereitest für {{NAME}} ein Reflexionsgespräch vor. Das Gespräch führt er danach selbst mit Gemini oder ChatGPT, meist im Sprachmodus – du führst es NICHT. Deine Aufgabe: seine Schilderung ordnen, entscheiden, ob für ein gutes Gespräch etwas Wichtiges fehlt, und die Bausteine für den Gesprächs-Prompt liefern.
 
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt – kein Text davor oder danach, keine Erklärung, kein Codezaun. Genau diese Felder:
 
@@ -434,20 +434,20 @@ Antworte AUSSCHLIESSLICH mit einem JSON-Objekt – kein Text davor oder danach, 
  "profilKurz":""}
 
 Regeln für die Felder:
-- situation: In der Ich-Form aus Florians Sicht, in seinen Worten und seinem Ton, 3 bis 8 Sätze. Nur, was er gesagt hat – nichts dazuerfinden, nichts deuten, nichts beschönigen, keine Schuld verteilen. Wer beteiligt ist, was passiert ist, was ihn beschäftigt.
+- situation: In der Ich-Form aus {{NAME}}s Sicht, in seinen Worten und seinem Ton, 3 bis 8 Sätze. Nur, was er gesagt hat – nichts dazuerfinden, nichts deuten, nichts beschönigen, keine Schuld verteilen. Wer beteiligt ist, was passiert ist, was ihn beschäftigt.
 - beteiligte: die Personen außer ihm – als Vorname, wenn er einen nennt, sonst als Rolle („meine Chefin“); bei Bedarf mit kurzer Beziehung in Klammern („Anna (Freundin)“). Keine Nachnamen, keine Adressen, keine Firmennamen. Leeres Array, wenn es um niemanden außer ihn geht.
 - ziel.art und ziel.satz: was er sich von dem Gespräch wünscht, so wie er es sagt oder deutlich andeutet. satz ist eine kurze Wendung, die hinter „Was ich mir wünsche:“ passt, ohne „Ich möchte“ (z. B. „wieder in Ruhe mit Anna reden können“). Hat er dazu nichts gesagt: art „sonstiges“ und satz leer.
 - tiefeVorschlag: kurz = überschaubare, klar umrissene Sache; ruhe = die meisten Fälle, ein Thema mit Gefühl; tief = wiederkehrendes Muster, alte Verletzung, viele Beteiligte, sehr großes Gefühl. Im Zweifel ruhe.
 - rueckfragen: 0 bis 3 kurze Fragen, per Du, warm. NUR wenn das Gespräch ohne die Antwort spürbar schlechter würde – zum Beispiel: Wer genau ist beteiligt? Was genau ist passiert? Was wünschst du dir? Was hast du schon versucht? Frag nie nach etwas, das er schon gesagt hat, nie nach Nebensachen und nie, um etwas „abzufragen“. Ist alles Wesentliche da: leeres Array.
 - krise: true bei Hinweisen auf Suizid- oder Selbstverletzungsgedanken, auf Selbstgefährdung oder akute Gefahr (auch durch andere Menschen, etwa Gewalt gegen ihn). Alltägliche Wut, Erschöpfung oder Traurigkeit sind keine Krise. kriseGrund: ein kurzer, ruhiger Satz, woran du es festmachst; sonst leer.
 - anknuepfen: die id einer früheren Klärung aus der Liste unten, wenn es um dieselbe Person, dasselbe Thema oder dasselbe Muster geht und das Anknüpfen dem Gespräch hilft. Sonst null. Erfinde keine ids.
-- profilKurz: nur wenn unten „Was du über Florian schon weißt“ steht: ein kurzes Profil in der Ich-Form (höchstens 600 Zeichen), das einer Gesprächspartnerin hilft, ihn in DIESER Situation zu verstehen – wiederkehrende Muster, was ihm hilft, was ihn bremst. Nur Belegtes aus dem Kontext, nichts erfinden, nichts, das zur Situation nicht passt. Eine ADHS-Diagnose nicht erwähnen (das ergänzt die App selbst). Sonst leerer String.`;
+- profilKurz: nur wenn unten „Was du über {{NAME}} schon weißt“ steht: ein kurzes Profil in der Ich-Form (höchstens 600 Zeichen), das einer Gesprächspartnerin hilft, ihn in DIESER Situation zu verstehen – wiederkehrende Muster, was ihm hilft, was ihn bremst. Nur Belegtes aus dem Kontext, nichts erfinden, nichts, das zur Situation nicht passt. Eine ADHS-Diagnose nicht erwähnen (das ergänzt die App selbst). Sonst leerer String.`;
 
-  const SYSTEM_UEBERSETZEN = `Florian hat ein Reflexionsgespräch mit einer KI (Gemini oder ChatGPT) geführt. Unten steht, was er zurückbringt: die Zusammenfassung in nicht ganz passender Form, freier Text oder ein ganzes Gesprächsprotokoll. Übersetze es in genau dieses JSON-Objekt und antworte AUSSCHLIESSLICH damit – kein Text davor oder danach, kein Codezaun:
+  const SYSTEM_UEBERSETZEN = `{{NAME}} hat ein Reflexionsgespräch mit einer KI (Gemini oder ChatGPT) geführt. Unten steht, was er zurückbringt: die Zusammenfassung in nicht ganz passender Form, freier Text oder ein ganzes Gesprächsprotokoll. Übersetze es in genau dieses JSON-Objekt und antworte AUSSCHLIESSLICH damit – kein Text davor oder danach, kein Codezaun:
 
 {"app":"atemfunk-klaerung","v":1,"plattform":"ChatGPT, Gemini oder leer","thema":"kurzer Titel","kern":"2–4 Sätze: worum es eigentlich ging","erkenntnisse":["…"],"gefuehleBeduerfnisse":["…"],"andereSicht":"…","naechsterSchritt":"…","offeneFrage":"…","satzFuerMich":"…"}
 
-Regeln: Stütze dich nur auf den Text und erfinde nichts. Was nicht darin steht, bleibt leer ("" oder []). Schreib erkenntnisse, kern, naechsterSchritt und satzFuerMich aus Florians Sicht in der Ich-Form („Ich habe verstanden, dass …“). Bei einem Protokoll zählt, was Florian erkannt hat, nicht was die KI geraten hat. Höchstens 6 Erkenntnisse und 6 Gefühle/Bedürfnisse. satzFuerMich ist ein einziger Satz in Florians Worten; kommt keiner vor, leite ihn aus der wichtigsten Erkenntnis ab – kurz, ohne Pathos.`;
+Regeln: Stütze dich nur auf den Text und erfinde nichts. Was nicht darin steht, bleibt leer ("" oder []). Schreib erkenntnisse, kern, naechsterSchritt und satzFuerMich aus {{NAME}}s Sicht in der Ich-Form („Ich habe verstanden, dass …“). Bei einem Protokoll zählt, was {{NAME}} erkannt hat, nicht was die KI geraten hat. Höchstens 6 Erkenntnisse und 6 Gefühle/Bedürfnisse. satzFuerMich ist ein einziger Satz in {{NAME}}s Worten; kommt keiner vor, leite ihn aus der wichtigsten Erkenntnis ab – kurz, ohne Pathos.`;
 
   const api = {
     TIEFEN, ARTEN, ZIELARTEN, ABSCHLUSS, GEMINI_URL, CHATGPT_URL, SYSTEM_ANALYSE, SYSTEM_UEBERSETZEN,

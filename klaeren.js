@@ -223,7 +223,7 @@
     if (kand.length) teile.push("Frühere Klärungen (nur für das Feld \"anknuepfen\"):\n"
       + kand.map(c => `- id: ${c.id} | ${c.datum} | ${c.thema || "ohne Titel"} | ${c.kern}`).join("\n"));
     teile.push("Heute ist der " + heute() + ".");
-    teile.push("Florians Schilderung (gesprochen oder getippt, ungeordnet):\n\"\"\"\n" + S.text.slice(0, 6000) + "\n\"\"\"");
+    teile.push("{{NAME}}s Schilderung (gesprochen oder getippt, ungeordnet):\n\"\"\"\n" + S.text.slice(0, 6000) + "\n\"\"\"");
     teile.push("Antworte jetzt nur mit dem JSON-Objekt.");
     return teile.join("\n\n");
   }
@@ -433,7 +433,7 @@
     S.warten = "uebersetzen";
     zeige("warten");
     const info = { art: "uebersetzen", klaerung: S.start };
-    const r = await frageKIgemerkt(OFFEN, info, K.SYSTEM_UEBERSETZEN, "Das hat Florian zurückgebracht:\n\n\"\"\"\n" + t.slice(-24000) + "\n\"\"\"", "sonnet");
+    const r = await frageKIgemerkt(OFFEN, info, K.SYSTEM_UEBERSETZEN, "Das hat {{NAME}} zurückgebracht:\n\n\"\"\"\n" + t.slice(-24000) + "\n\"\"\"", "sonnet");
     nimmAntwort(r, info);
   }
   function nimmUebersetzung(r) {
