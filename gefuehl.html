@@ -124,7 +124,9 @@ h2 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
   <div class="hint" style="text-align:center;opacity:.6;margin-top:10px">Gefühls-Check · Version 68 · Stand 05.11.2026</div>
 </div>
 
-<script src="sync.js?v=2"></script>
+<script>/* Journal-Links nur auf Florians gekoppelten Geräten (v73) */
+var PRIVAT = (() => { try { return localStorage.getItem("atemfunk_gast") !== "1" && !!localStorage.getItem("atemfunk_lib_url"); } catch { return false; } })();</script>
+<script src="sync.js?v=3"></script>
 <script src="shared.js?v=35"></script>
 <script>
 "use strict";
@@ -226,6 +228,7 @@ async function sichern() {
   const j = document.createElement("a");
   j.className = "btn"; j.href = "journal.html"; j.textContent = "Zum Journal";
   weiter.replaceChildren(m, j);
+  if (!PRIVAT) j.remove();   /* Gäste haben kein Journal */
   if (g.staerke >= 8 && ["Angst", "Wut", "Überforderung"].includes(g.familie)) {
     const a = document.createElement("a");
     a.className = "btn"; a.href = "index.html"; a.textContent = g.familie === "Angst" ? "Sehr stark? Erst „Panik“ (3 Min)" : "Sehr stark? Erst „Notbremse“ (3 Min)";
@@ -260,6 +263,7 @@ async function nachherZeigen() {
     const n = document.createElement("a");
     n.className = "btn"; n.href = "gefuehl.html"; n.textContent = "Neuer Check";
     $("weiter").replaceChildren(j, n);
+    if (!PRIVAT) j.remove();
     zeigeVerlauf();
   };
   return true;

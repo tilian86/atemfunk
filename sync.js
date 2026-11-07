@@ -18,7 +18,10 @@
 "use strict";
 (function () {
   if (window.atemSync) return;
-  try { if (localStorage.getItem("atemfunk_gast") === "1") return; } catch {}   /* Gast-Version: kein Sync */
+  try {   /* Gast-Version: kein Sync. Gast ist jeder, der nicht gekoppelt ist – außer beim Koppeln (?gast=0) */
+    if (localStorage.getItem("atemfunk_gast") === "1") return;
+    if (!localStorage.getItem("atemfunk_lib_url") && new URLSearchParams(location.search).get("gast") !== "0") return;
+  } catch {}
   const WORKER = "https://atemfunk-media.florian-s-thiel.workers.dev/";
   const META = "atemfunk_sync", WEG = "atemfunk_sync_weg", LIB = "atemfunk_lib_url";
   const KENN = /^[\w.:-]{1,120}$/;

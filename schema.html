@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<script>try { if (localStorage.getItem("atemfunk_gast") === "1") location.replace("index.html"); } catch {}</script>
+<script>/* Privater Bereich: nur auf Florians gekoppelten Geräten (Bibliothek/Sync verbunden), sonst zur Startseite (v73) */
+try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem("atemfunk_lib_url")) location.replace("index.html"); } catch {}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Modus · Atemfunk</title>
@@ -89,7 +90,7 @@
   <div id="verlauf"></div>
 </div>
 
-<script src="sync.js?v=2"></script>
+<script src="sync.js?v=3"></script>
 <script src="shared.js?v=35"></script>
 <script>
 "use strict";
