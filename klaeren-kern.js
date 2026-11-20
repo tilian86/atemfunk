@@ -149,6 +149,18 @@
   const ANFANG = "Fang an, indem du in zwei, drei Sätzen sagst, wie du meine Lage verstanden hast, und mir eine erste Frage stellst.";
   const ADHS_ZEILE = "Ich habe ADHS – wenn ich springe, hilf mir freundlich zurück zum Faden.";
 
+  /* Tagesgespräch (klaeren.html?tag=1): kein Problem klären, sondern locker über den Tag reden */
+  const KOPF_TAG = "Ich möchte mit dir über meinen heutigen Tag reden – wie mit einer klugen, warmherzigen Gesprächspartnerin, die gut zuhört. Kein Therapie-Ersatz, einfach ein ehrlicher Blick auf den Tag: was gut war, was schwer war und was ich mitnehme.";
+  const REGELN_TAG = [
+    "Hör zu und spiegle kurz, was du verstehst – auch Gefühle, die zwischen den Zeilen stehen. Frag nach, statt zu vermuten.",
+    "Stell pro Antwort höchstens eine Frage. Halte deine Antworten kurz (2–5 Sätze), ich spreche meist im Sprachmodus.",
+    "Schau auf beides: was gut lief und mich gefreut hat, und was schwer war. Keine Ratschläge, solange ich nicht danach frage.",
+    "Wenn dir ein Muster auffällt oder ich mir selbst im Weg stehe, sag es freundlich und ehrlich. Gib mir nicht automatisch recht.",
+    "Achte darauf, wie es mir gerade geht und was ich im Körper merke, nicht nur auf die Ereignisse.",
+  ];
+  const SCHLUSS_TAG = "Zum Schluss – wenn ich „Abschluss“ sage oder die Zeit um ist – fass kurz zusammen, was ich aus dem Tag mitnehme, und frag mich nach einer Kleinigkeit für morgen.";
+  const ANFANG_TAG = "Fang an mit ein, zwei Sätzen zu dem, was dir an meinem Tag auffällt (steht noch nichts da, frag einfach, wie er war), und stell mir eine erste, offene Frage.";
+
   /* Der Abschluss-Prompt: die KI liefert die Zusammenfassung als JSON-Block zurück */
   const ABSCHLUSS = `Danke. Bitte schreib mir jetzt eine Zusammenfassung für mein Journal – als Text, nicht vorgelesen. Antworte NUR mit diesem JSON-Block:
 {"app":"atemfunk-klaerung","v":1,
@@ -194,6 +206,7 @@
   /* p: { situation, beteiligte[], ziel:{art,satz}, tiefe, art, artZusatz, profil, anknuepfen:{datum,thema,erkannt,offen}|null,
           adhs:boolean, heute:"JJJJ-MM-TT" } */
   function baueVorlage(p) {
+    if (p.tag) return baueTagVorlage(p);
     const tiefe = TIEFEN[p.tiefe] ? p.tiefe : "ruhe";
     const L = [KOPF, "", "Worum es geht:", absatz(p.situation, 3000)];
     const bet = (p.beteiligte || []).map(b => txt(b, 80)).filter(Boolean);
@@ -214,6 +227,23 @@
     L.push("So hilfst du mir am meisten:");
     for (const r of [...REGELN, ...methode, KRISE_REGEL]) L.push("- " + r);
     L.push("", SCHLUSS, "", ANFANG);
+    return L.join("\n");
+  }
+
+  /* p: { situation (heutige Journal-Einträge, darf leer sein), tiefe, profil, adhs, tag: true } */
+  function baueTagVorlage(p) {
+    const tiefe = TIEFEN[p.tiefe] ? p.tiefe : "ruhe";
+    const tag = absatz(p.situation, 6000);
+    const L = [KOPF_TAG, "", "Mein Tag bisher (aus meinem Journal):",
+               tag || "Heute steht noch nichts in meinem Journal. Frag mich einfach, wie mein Tag war.",
+               "Zeitrahmen: " + TIEFEN[tiefe].zeit, ""];
+    const ueber = [];
+    if (p.profil && txt(p.profil)) ueber.push(txt(p.profil, 800));
+    if (p.adhs) ueber.push(ADHS_ZEILE);
+    if (ueber.length) L.push("Was du über mich wissen solltest:", ...ueber, "");
+    L.push("So hilfst du mir am meisten:");
+    for (const r of [...REGELN_TAG, KRISE_REGEL]) L.push("- " + r);
+    L.push("", SCHLUSS_TAG, "", ANFANG_TAG);
     return L.join("\n");
   }
 
@@ -400,12 +430,12 @@
   function eintragText(d) {
     const tag = new Date(d.datum + "T12:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "numeric" });
     const t = TIEFEN[d.tiefe];
-    const L = [`🫂 Klärung · ${txt(d.thema, 120) || "ohne Titel"} · ${tag}`];
+    const L = [`${d.tagesgespraech ? "💬 Tagesgespräch" : "🫂 Klärung"} · ${txt(d.thema, 120) || "ohne Titel"} · ${tag}`];
     const meta = [d.plattform, t ? `${t.icon} ${t.name}` : ""].filter(Boolean).join(" · ");
     if (meta) L.push("Gespräch: " + meta);
     const bl = (kopf, arr) => { if (arr && arr.length) L.push("", kopf + "\n" + arr.map(x => "- " + x).join("\n")); };
     const ab = (kopf, s) => { if (s && String(s).trim()) L.push("", kopf + " " + String(s).trim()); };
-    if (d.schilderung) L.push("", "Worum es ging (meine Schilderung): " + kuerze(d.schilderung, 420));
+    if (d.schilderung && !d.tagesgespraech) L.push("", "Worum es ging (meine Schilderung): " + kuerze(d.schilderung, 420));   /* Tagesgespräch: der Tag steht ja schon im Journal */
     ab("Kurz gesagt:", d.kern);
     bl("Erkannt:", d.erkenntnisse);
     bl("Gefühle und Bedürfnisse:", d.gefuehleBeduerfnisse);

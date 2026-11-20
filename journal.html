@@ -97,9 +97,10 @@ try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem
 
   <!-- Klären: Reflexionsgespräch vorbereiten (klaeren.html) -->
   <div class="card klaer" id="klaerKarte">
-    <a class="btn primary klaer-start" id="klaerBtn" href="klaeren.html">🫂 Etwas klären</a>
+    <a class="btn primary klaer-start" id="tagBtn" href="klaeren.html?tag=1">💬 Mit ChatGPT über den Tag reden</a>
+    <a class="btn klaer-start" id="klaerBtn" href="klaeren.html" style="margin-top:8px">🫂 Etwas klären</a>
     <a class="btn klaer-start" href="gefuehl.html" style="margin-top:8px">🫀 Gefühls-Check</a>
-    <div class="hint" id="klaerHinweis">Ein Streit, ein Gedanke, der kreist, eine Entscheidung: Atemfunk baut dir einen Prompt für ein ruhiges Gespräch in Gemini oder ChatGPT. Die Zusammenfassung kommt zurück ins Journal.</div>
+    <div class="hint" id="klaerHinweis">Über den Tag reden oder etwas klären, das dich beschäftigt: Atemfunk baut dir einen Prompt für ein Gespräch in ChatGPT oder Gemini, gern im Sprachmodus. Die Zusammenfassung kommt zurück ins Journal.</div>
   </div>
 
   <div class="hint" id="impulsText" style="display:none; margin:0 0 10px; color:var(--gold); font-size:14px; line-height:1.55"></div>
@@ -166,7 +167,7 @@ try { if (localStorage.getItem("atemfunk_gast") === "1" || !localStorage.getItem
 
   <div class="cap">Frühere Tage</div>
   <div id="frueher"></div>
-  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 51 · Stand 12.10.2026</div>
+  <div class="hint" id="stand" style="text-align:center;opacity:.6;margin-top:22px">Journal · Version 52 · Stand 20.11.2026</div>
 </div>
 
 <script src="sync.js?v=3"></script>
@@ -277,7 +278,7 @@ function zeichne(ziel, liste) {
     const k = document.createElement("div");
     k.className = "card eintrag";
     const zeit = document.createElement("div");
-    zeit.className = "zeit"; zeit.textContent = (e.art === "klaerung" ? "🫂 " : e.art === "gefuehl" ? "🫀 " : "") + uhrzeit(e.zeit);
+    zeit.className = "zeit"; zeit.textContent = (e.art === "klaerung" ? (e.klaerung && e.klaerung.tag ? "💬 " : "🫂 ") : e.art === "gefuehl" ? "🫀 " : "") + uhrzeit(e.zeit);
     if (e.art === "klaerung") k.classList.add("klaerung");
     const txt = document.createElement("div");
     txt.className = "txt";
@@ -535,6 +536,8 @@ async function antworten() {
 
 /* ---------- Klären: angefangene Klärung wiederaufnehmen ---------- */
 function zeigeKlaerKarte() {
+  const t = store.getJSON("atemfunk_tag", null);
+  if (t && t.v === 1 && ["einfuegen", "vorschau"].includes(t.schritt)) $("tagBtn").textContent = "💬 Tagesgespräch fortsetzen";
   const d = store.getJSON("atemfunk_klaeren", null);
   const offen = d && d.v === 1 && d.schritt && d.schritt !== "fertig" && ((d.text || "").trim() || d.schritt !== "start");
   $("klaerBtn").textContent = offen ? "🫂 Klärung fortsetzen" : "🫂 Etwas klären";

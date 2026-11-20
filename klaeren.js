@@ -4,7 +4,9 @@
 (function () {
   "use strict";
   const K = window.Klaeren;
-  const ENTWURF = "atemfunk_klaeren", OFFEN = "atemfunk_klaeren_offen";
+  /* ?tag=1: Tagesgespräch – die heutigen Journal-Einträge gehen direkt in den Prompt, eigener Entwurf */
+  const TAG = new URLSearchParams(location.search).has("tag");
+  const ENTWURF = TAG ? "atemfunk_tag" : "atemfunk_klaeren", OFFEN = TAG ? "atemfunk_tag_offen" : "atemfunk_klaeren_offen";
   const ARTNAME = { konflikt: "Konflikt", gedankenkreisen: "Gedankenkreisen", entscheidung: "Entscheidung",
                     gefuehl: "Gefühl", selbstbild: "Selbstbild", beziehung: "Beziehung", sonstiges: "Sonstiges" };
   const ESC = { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" };
@@ -20,7 +22,10 @@
   }
   let S = (() => {
     const d = store.getJSON(ENTWURF, null);
-    return d && d.v === 1 && d.schritt && d.schritt !== "fertig" ? { ...neu(), ...d } : neu();
+    if (!(d && d.v === 1 && d.schritt && d.schritt !== "fertig")) return neu();
+    /* Tagesgespräch von gestern, das nie geführt wurde: frisch mit dem heutigen Tag beginnen */
+    if (TAG && d.schritt === "ergebnis" && abendTag(d.start) !== abendTag()) return neu();
+    return { ...neu(), ...d };
   })();
   let timer = null, speicherUhr = null;
 
@@ -108,7 +113,7 @@
   /* ---------- Rahmen ---------- */
   function rendereEtappen() {
     const nr = { start: 1, warten: 1, rueckfragen: 1, ergebnis: 2, einfuegen: 3, vorschau: 3, fertig: 3 }[S.schritt] || 1;
-    const namen = ["Erzählen", "Gespräch führen", "Ins Journal"];
+    const namen = [TAG ? "Dein Tag" : "Erzählen", "Gespräch führen", "Ins Journal"];
     $("etappen").innerHTML = namen.map((n, i) =>
       `<li class="${i + 1 === nr ? "jetzt" : i + 1 < nr ? "fertig" : ""}"${i + 1 === nr ? ' aria-current="step"' : ""}>${i + 1} · ${n}</li>`).join("");
   }
@@ -313,10 +318,11 @@
       ziel: a ? a.ziel : null,
       tiefe: S.tiefe,
       art: a ? a.art : "sonstiges", artZusatz: a ? a.artZusatz : null,
-      profil: S.kontext && a ? a.profilKurz : "",
+      profil: S.kontext ? (a ? a.profilKurz : TAG ? profil() : "") : "",
       anknuepfen: S.ankn && S.anknKandidat ? S.anknKandidat : null,
       adhs: !!S.kontext && /ADHS/i.test(profil() || ""),
       heute: heute(),
+      tag: TAG,
     };
   }
   const promptJetzt = () => K.baueVorlage(vorlageParams());
@@ -329,8 +335,11 @@
       ${S.ohneKI ? `<div class="card info"><b>Ohne KI-Vorarbeit.</b> ${esc(S.ohneKI)} Ich habe deine Worte unverändert übernommen und die Methode bleibt allgemein. Das Gespräch klappt trotzdem.
         ${kiBasis() ? `<div class="row"><button class="btn" id="nochmalKI" type="button">🔁 Nochmal mit KI versuchen</button></div>` : ""}</div>` : ""}
       <div class="card">
-        <label class="lab" for="sit">${a ? "So habe ich dich verstanden. Ändere, was nicht stimmt." : "Das geht als Schilderung in den Prompt. Ändere, was du magst."}</label>
-        <textarea id="sit" rows="7" autocomplete="off"></textarea>
+        <label class="lab" for="sit">${TAG ? "Das steht heute in deinem Journal und geht so in den Prompt. Ergänze oder streiche, was du magst." : a ? "So habe ich dich verstanden. Ändere, was nicht stimmt." : "Das geht als Schilderung in den Prompt. Ändere, was du magst."}</label>
+        <textarea id="sit" rows="7" autocomplete="off"${TAG ? ' placeholder="Heute steht noch nichts im Journal. Schreib ein, zwei Sätze zu deinem Tag – oder lass es leer, dann fragt ChatGPT einfach, wie er war."' : ""}></textarea>
+        ${TAG ? `<div class="row"><button class="btn" id="tagNeu" type="button">↻ Heutige Einträge neu holen</button></div>
+        <label class="check"><input type="checkbox" id="kontext"><span>Was Atemfunk über mich weiß mitgeben
+          <small>Dein kurzes Profil geht mit in den Prompt. Du kannst ihn vor dem Kopieren lesen.</small></span></label>` : ""}
         ${meta ? `<div class="hint">${esc(meta)}</div>` : ""}
         <div class="lab" style="margin-top:16px">Wie tief soll das Gespräch gehen?</div>
         <div class="chips" id="tiefen"></div>
@@ -343,8 +352,10 @@
         <details id="promptBox"><summary>Prompt ansehen und gegenlesen</summary><pre class="prompt" id="promptText"></pre></details>
         <div class="row">
           <button class="btn primary" id="kopPrompt" type="button">📋 Prompt kopieren</button>
-          <a class="btn" id="gem" href="${K.GEMINI_URL}" target="_blank" rel="noopener noreferrer">Gemini öffnen</a>
-          <a class="btn" id="gpt" href="${K.CHATGPT_URL}" target="_blank" rel="noopener noreferrer">ChatGPT öffnen</a>
+          ${TAG ? `<a class="btn" id="gpt" href="${K.CHATGPT_URL}" target="_blank" rel="noopener noreferrer">ChatGPT öffnen</a>
+          <a class="btn" id="gem" href="${K.GEMINI_URL}" target="_blank" rel="noopener noreferrer">Gemini öffnen</a>`
+          : `<a class="btn" id="gem" href="${K.GEMINI_URL}" target="_blank" rel="noopener noreferrer">Gemini öffnen</a>
+          <a class="btn" id="gpt" href="${K.CHATGPT_URL}" target="_blank" rel="noopener noreferrer">ChatGPT öffnen</a>`}
         </div>
         <div id="notfallBox" hidden><div class="hint">Kopieren ging nicht automatisch. Der Text ist markiert: halte ihn gedrückt und wähle „Kopieren“.</div>
           <textarea id="notfall" rows="5" readonly></textarea></div>
@@ -362,7 +373,7 @@
           <button class="btn primary" id="einfuegen" type="button">📥 Zusammenfassung einfügen</button>
         </div>
       </div>
-      <button class="btn breit" id="zurueckStart" type="button">‹ Text ändern</button>`;
+      ${TAG ? "" : `<button class="btn breit" id="zurueckStart" type="button">‹ Text ändern</button>`}`;
     const sit = $("sit");
     sit.value = S.situation != null ? S.situation : S.text;
     const wachse = () => { sit.style.height = "auto"; sit.style.height = Math.min(sit.scrollHeight + 2, 460) + "px"; };
@@ -386,7 +397,17 @@
     $("gem").addEventListener("click", () => { S.plattform = "Gemini"; flush(); });
     $("gpt").addEventListener("click", () => { S.plattform = "ChatGPT"; flush(); });
     $("einfuegen").addEventListener("click", () => { uebernimmFelder(); zeige("einfuegen"); });
-    $("zurueckStart").addEventListener("click", () => { uebernimmFelder(); S.analyse = null; S.situation = null; zeige("start"); });
+    if ($("zurueckStart")) $("zurueckStart").addEventListener("click", () => { uebernimmFelder(); S.analyse = null; S.situation = null; zeige("start"); });
+    if (TAG) {
+      const kx = $("kontext");
+      kx.checked = !!S.kontext;
+      kx.addEventListener("change", () => { S.kontext = kx.checked; aktualisiere(); sichern(); });
+      $("tagNeu").addEventListener("click", async () => {
+        const t = await tagesText();
+        S.text = S.situation = t; sit.value = t; wachse(); aktualisiere(); sichern();
+        melde(t ? "Heutige Einträge neu geholt." : "Heute steht noch nichts im Journal.");
+      });
+    }
     if ($("nochmalKI")) $("nochmalKI").addEventListener("click", () => starteAnalyse());
   }
 
@@ -469,8 +490,8 @@
         <div class="fe"><label class="lab" for="v_satz">Ein Satz für mich</label><input type="text" id="v_satz" autocomplete="off"></div>
       </div>
       <div class="card">
-        <div class="hint" style="margin-top:0">Beim Übernehmen passiert Folgendes: Ein Journal-Eintrag 🫂 wird angelegt. Der Satz für dich und bis zu zwei Erkenntnisse kommen unter „Was ich gelernt habe“. Die offene Frage wird ein offener Faden, den Abendrunde und Journal später aufgreifen.</div>
-        <div class="row"><button class="btn primary" id="uebernehmen" type="button">🫂 Ins Journal</button>
+        <div class="hint" style="margin-top:0">Beim Übernehmen passiert Folgendes: Ein Journal-Eintrag ${TAG ? "💬" : "🫂"} wird angelegt. Der Satz für dich und bis zu zwei Erkenntnisse kommen unter „Was ich gelernt habe“. Die offene Frage wird ein offener Faden, den Abendrunde und Journal später aufgreifen.</div>
+        <div class="row"><button class="btn primary" id="uebernehmen" type="button">${TAG ? "💬" : "🫂"} Ins Journal</button>
           <button class="btn" id="zurueckEinf" type="button">‹ Zurück</button></div>
       </div>`;
     $("v_thema").value = v.thema || "";
@@ -509,12 +530,12 @@
     if (!v.thema && !v.kern && !v.erkenntnisse.length) { melde("Mindestens Titel, Kern oder eine Erkenntnis sollte drinstehen."); return; }
     if (!v.thema) v.thema = K.kuerze(v.kern, 60).replace(/ …$/, "");
     knopf.disabled = true;
-    const id = "klaerung-" + S.start;
+    const id = (TAG ? "tag-" : "klaerung-") + S.start;
     const eintrag = {
       id, datum: heute(), zeit: Date.now(), art: "klaerung",
-      text: K.eintragText({ ...v, datum: heute(), tiefe: S.tiefe, schilderung: S.text }),
+      text: K.eintragText({ ...v, datum: heute(), tiefe: S.tiefe, schilderung: S.text, tagesgespraech: TAG }),
       klaerung: { thema: v.thema, plattform: v.plattform, tiefe: S.tiefe, kern: v.kern, erkenntnisse: v.erkenntnisse,
-                  offeneFrage: v.offeneFrage, satzFuerMich: v.satzFuerMich },
+                  offeneFrage: v.offeneFrage, satzFuerMich: v.satzFuerMich, ...(TAG ? { tag: true } : {}) },
     };
     try {
       await dbTx("journal", "readwrite", s => s.put(eintrag));         /* gleiche id = nie doppelt */
@@ -528,7 +549,7 @@
     const gelernt = merkeErkenntnisse([v.satzFuerMich, ...v.erkenntnisse.slice(0, 2)].filter(Boolean));
     let faden = false;
     if (v.offeneFrage) {
-      const ft = `Klärung „${v.thema}“, offen: ${K.kuerze(v.offeneFrage, 220)}`;
+      const ft = `${TAG ? "Tagesgespräch" : "Klärung"} „${v.thema}“, offen: ${K.kuerze(v.offeneFrage, 220)}`;
       merkeFaden(ft);
       faden = faeden().some(f => f.text === ft.trim());
     }
@@ -544,25 +565,53 @@
     buehne.innerHTML = `
       <div class="card fertig">
         <h2>✓ Im Journal gespeichert</h2>
-        <p>„${esc(e.titel || "Klärung")}“ steht jetzt im Journal, mit 🫂 gekennzeichnet.</p>
+        <p>„${esc(e.titel || (TAG ? "Tagesgespräch" : "Klärung"))}“ steht jetzt im Journal, mit ${TAG ? "💬" : "🫂"} gekennzeichnet.</p>
         <ul>
           <li>${e.gelernt ? e.gelernt + (e.gelernt === 1 ? " Erkenntnis" : " Erkenntnisse") + " unter „Was ich gelernt habe“ gemerkt" : "Keine neue Erkenntnis gemerkt (war schon da)"}</li>
           <li>${e.faden ? "Die offene Frage ist ein Faden für die nächsten Gespräche" : "Kein offener Faden"}</li>
         </ul>
         <div class="row"><a class="btn primary" href="journal.html">Zum Journal</a>
-          <button class="btn" id="nochmal" type="button">Noch etwas klären</button></div>
+          ${TAG ? `<a class="btn" href="klaeren.html">🫂 Etwas klären</a>` : `<button class="btn" id="nochmal" type="button">Noch etwas klären</button>`}</div>
       </div>`;
-    $("nochmal").addEventListener("click", () => { S = neu(); zeige("start"); });
+    if ($("nochmal")) $("nochmal").addEventListener("click", () => { S = neu(); zeige("start"); });
   }
 
   $("verwerfen").addEventListener("click", () => {
-    if (!confirm("Diese Klärung wirklich verwerfen? Der Entwurf geht verloren.")) return;
+    if (!confirm(TAG ? "Dieses Tagesgespräch wirklich verwerfen? Der Entwurf geht verloren." : "Diese Klärung wirklich verwerfen? Der Entwurf geht verloren.")) return;
     localStorage.removeItem(ENTWURF); localStorage.removeItem(OFFEN);
-    S = neu(); render(); window.scrollTo(0, 0);
+    S = neu();
+    if (TAG) { tagStarten(); return; }
+    render(); window.scrollTo(0, 0);
   });
 
+  /* ---------- Tagesgespräch: heutige Einträge holen (wie im Journal: bis 4 Uhr zählt der Vortag mit) ---------- */
+  async function tagesText() {
+    try {
+      const tage = new Set([heute(), abendTag()]);
+      const alle = await dbTx("journal", "readonly", s => s.getAll());
+      return alle.filter(e => e && tage.has(e.datum)).sort((a, b) => a.zeit - b.zeit).map(e => {
+        const z = uhrzeit(e.zeit);
+        if (e.art === "bild") return `${z} — [Foto]${e.text ? " " + e.text : ""}`;
+        if (e.art === "audio") return `${z} — [Sprachnotiz]${e.text ? " " + e.text : ""}`;
+        return `${z} — ${e.text || ""}`;
+      }).join("\n");
+    } catch { return ""; }
+  }
+  async function tagStarten() {
+    const t = await tagesText();
+    S.text = S.situation = t;
+    if (t) pruefeKrise(t);
+    zeige("ergebnis");
+  }
+  if (TAG) {
+    document.title = "Über den Tag reden · Atemfunk";
+    document.querySelector("h1").textContent = "💬 Über den Tag reden";
+    document.querySelector(".sub").textContent = "Atemfunk nimmt, was heute in deinem Journal steht, und baut dir daraus einen Prompt für ein Gespräch mit ChatGPT oder Gemini, gern im Sprachmodus. Die Zusammenfassung landet danach im Journal.";
+  }
+
   /* ---------- Start: ggf. noch offene Antwort abholen ---------- */
-  render();
+  if (TAG && S.schritt === "start") tagStarten();
+  else render();
   (async function aufnehmen() {
     const o = store.getJSON(OFFEN, null);
     if (!o) {
